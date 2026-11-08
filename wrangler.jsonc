@@ -1,0 +1,63 @@
+// Cloudflare Worker config for the hub (SHARED-SPEC §10).
+// Public settings are `vars` (anything VITE_* is also shipped to the browser).
+// Secrets are set with `wrangler secret put <NAME> --env <env>`, never here:
+//   SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_MAP
+// Wrangler environments don't inherit `vars`, so each environment repeats them.
+// Build for an environment with CLOUDFLARE_ENV=<env> (see the workflows).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "openapphub",
+  "main": "src/server.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Local development (`npm run dev`). Put your own values in .env.local.
+  "vars": {
+    "VITE_HOSTED": "false",
+    "VITE_APP_ID": "hub",
+    "VITE_SUPABASE_URL": "",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "",
+    "VITE_HUB_URL": "http://localhost:3000",
+    "VITE_COOKIE_DOMAIN": "",
+    "VITE_SUITE_URLS": "",
+    "VITE_DOCS_URL": "https://docs.openapphub.org",
+    "VITE_SIGNUPS_OPEN": "true",
+  },
+
+  "env": {
+    "staging": {
+      "name": "openapphub-staging",
+      "routes": [{ "pattern": "staging.openapphub.org", "custom_domain": true }],
+      "vars": {
+        "VITE_HOSTED": "true",
+        "VITE_APP_ID": "hub",
+        // Owner: fill in once the staging project (dnsqxiiexkdokgebysrt) is ready.
+        "VITE_SUPABASE_URL": "",
+        "VITE_SUPABASE_PUBLISHABLE_KEY": "",
+        "VITE_HUB_URL": "https://staging.openapphub.org",
+        "VITE_COOKIE_DOMAIN": ".openapphub.org",
+        "VITE_SUITE_URLS": "charter=https://charter-staging.openapphub.org,board=https://board-staging.openapphub.org,ledger=https://ledger-staging.openapphub.org",
+        "VITE_DOCS_URL": "https://docs.openapphub.org",
+        "VITE_SIGNUPS_OPEN": "true",
+      },
+    },
+    "production": {
+      "name": "openapphub",
+      "routes": [{ "pattern": "openapphub.org", "custom_domain": true }],
+      "vars": {
+        "VITE_HOSTED": "true",
+        "VITE_APP_ID": "hub",
+        // Owner: fill in with the production project (nxungwtxnctcqolfshcr).
+        "VITE_SUPABASE_URL": "",
+        "VITE_SUPABASE_PUBLISHABLE_KEY": "",
+        "VITE_HUB_URL": "https://openapphub.org",
+        "VITE_COOKIE_DOMAIN": ".openapphub.org",
+        "VITE_SUITE_URLS": "charter=https://charter.openapphub.org,board=https://board.openapphub.org,ledger=https://ledger.openapphub.org",
+        "VITE_DOCS_URL": "https://docs.openapphub.org",
+        // Sign-ups stay closed until launch (START-HERE).
+        "VITE_SIGNUPS_OPEN": "false",
+      },
+    },
+  },
+}

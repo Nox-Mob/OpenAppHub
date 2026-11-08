@@ -1,0 +1,12 @@
+node_modules
+dist
+.output
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
+*.log
+.DS_Store
+.tanstack
+worker-configuration.d.ts

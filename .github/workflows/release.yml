@@ -1,0 +1,42 @@
+name: Release (production)
+
+# Owner only. Migrates production, then deploys the production Worker.
+# Fails without deploying if migrations fail.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "production" to migrate and deploy production'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event.inputs.confirm == 'production'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Migrate production (no seed, ever)
+        run: node scripts/migrate.mjs
+      - name: Build for production
+        run: npm run build
+        env:
+          CLOUDFLARE_ENV: production
+      - name: Deploy production Worker
+        run: npx wrangler deploy

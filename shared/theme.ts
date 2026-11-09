@@ -39,7 +39,11 @@ export function resolveTheme(pref: ThemePreference, systemDark: boolean): "light
 }
 
 function systemPrefersDark(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
 }
 
 /** Applies a preference to <html>: the `dark` class and data-theme="<preference>". */
@@ -65,7 +69,7 @@ export function setThemePreference(pref: ThemePreference): void {
 
 /** Re-applies "system" when the device switches between light and dark. */
 export function watchSystemTheme(): () => void {
-  if (typeof window === "undefined") return () => {};
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return () => {};
   const media = window.matchMedia("(prefers-color-scheme: dark)");
   const onChange = () => {
     if (getThemePreference() === "system") applyTheme("system");

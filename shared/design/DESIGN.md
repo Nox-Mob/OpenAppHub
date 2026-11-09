@@ -74,6 +74,69 @@ In the root route: `<html lang="en" data-app={VITE_APP_ID} suppressHydrationWarn
   width; tabs scroll sideways.
 - Content max width 76rem, padding 28px/32px (16px on phones).
 
+## Shared UI (`shared/ui`)
+
+Wrap every signed-in page in `AppShell`. Pass your router's link so navigation stays client-side:
+
+```tsx
+import { AppShell } from "../shared/ui";
+import { docsUrl } from "../shared/docs";
+import { hubUrl, isHosted } from "../shared/supabase/hosted";
+
+<AppShell
+  app="board" // VITE_APP_ID
+  nav={[{ label: "Meetings", href: "/meetings", icon: <CalendarIcon />, current: true }]}
+  navFooter={[{ label: "Settings", href: "/settings" }]}
+  user={{ name, email }}
+  orgs={orgs} // listMyOrgs(client)
+  currentOrgId={currentOrg?.id ?? null} // resolveCurrentOrg(orgs, cookie)
+  onSelectOrg={() => router.invalidate()} // cookie already set
+  orgCreateHref={isHosted() ? hubUrl("/orgs/new") : "/orgs/new"}
+  billing={billing} // getOrgBilling(client, orgId); null = no banner
+  canManageBilling={role === "owner" || role === "admin"}
+  billingHref={hubUrl("/billing")}
+  helpHref={docsUrl("board/")}
+  onSignOut={signOut}
+  LinkComponent={RouterLink} // ({ href, ...props }) => <Link to={href} {...props} />
+>
+  {page}
+</AppShell>;
+```
+
+| Component        | Notes                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `AppShell`       | Sidebar (240px) + top bar; drawer below 768px (focus trapped, Escape closes); skip link; user menu holds the theme toggle, Account, Help and Sign out  |
+| `SuiteSwitcher`  | Lists apps from `VITE_SUITE_URLS`; hidden when only this app is known (self-hosted)                                                                    |
+| `OrgSwitcher`    | Sets `oah_org` (suite-wide when hosted) and calls `onSelect`; "Create organization" only if you pass `createHref`                                      |
+| `BillingBanner`  | Wording from `billingNotice()`: trial days left, payment problem, plan ending, read-only (always says export still works). Nothing when billing is off |
+| `HelpLink`       | `<HelpLink path="board/meetings/">How minutes are approved</HelpLink>`; opens the docs in a new tab                                                    |
+| `InvitationPage` | `/invite/<token>` flow with the app follow-up hook (below)                                                                                             |
+
+### `InvitationPage` and the follow-up hook
+
+```tsx
+<InvitationPage
+  token={token}
+  app="board"
+  client={supabase}
+  signInHref={(next) =>
+    isHosted() ? loginRedirect(next) : `/auth?next=${encodeURIComponent(next)}`
+  }
+  continueHref={() => "/meetings"}
+  onAccepted={async (inv, client) => {
+    const { error } = await client
+      .schema("board")
+      .rpc("on_invitation_accepted", { p_invitation_id: inv.id });
+    if (error) throw error; // shown with a "Try again" that retries only this step
+  }}
+/>
+```
+
+It shows the organization and role (`get_invitation`), sends signed-out visitors to sign in and
+back, accepts on an explicit click (`accept_invitation`), then runs `onAccepted` only for
+invitations whose `app` is this app. An invitation for **another** app is sent to that app's
+`/invite/<token>` **before** it's accepted, so the follow-up always runs where it belongs.
+
 ## Money and dates (every app)
 
 Use `shared/format.ts`. Never `toFixed(2)`, `toLocaleString()`, `toLocaleDateString()` or a local helper.

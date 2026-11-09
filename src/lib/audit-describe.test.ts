@@ -22,6 +22,18 @@ describe("describeAudit", () => {
       "Renamed the organization from “A” to “B”",
     ],
     [
+      {
+        action: "update",
+        old_data: { name: "A", time_zone: "UTC", currency: "USD" },
+        new_data: { name: "A", time_zone: "America/Toronto", currency: "CAD" },
+      },
+      "Changed the time zone to America/Toronto and currency to CAD",
+    ],
+    [
+      { action: "update", old_data: { name: "A", slug: "a" }, new_data: { name: "A", slug: "b" } },
+      "Changed the organization",
+    ],
+    [
       { table_name: "memberships", new_data: { user_id: "b", role: "member" } },
       "Bob joined as Member",
     ],

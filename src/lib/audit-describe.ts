@@ -28,6 +28,14 @@ export function describeAudit(e: AuditEntry, names: Record<string, string>): str
       if (e.action === "delete") return `Deleted the organization ${q(o["name"])}`;
       if (n["name"] !== o["name"])
         return `Renamed the organization from ${q(o["name"])} to ${q(n["name"])}`;
+      {
+        const changes: string[] = [];
+        if (n["time_zone"] !== o["time_zone"] && typeof n["time_zone"] === "string")
+          changes.push(`time zone to ${n["time_zone"]}`);
+        if (n["currency"] !== o["currency"] && typeof n["currency"] === "string")
+          changes.push(`currency to ${n["currency"]}`);
+        if (changes.length) return `Changed the ${changes.join(" and ")}`;
+      }
       return "Changed the organization";
     case "memberships": {
       const who = person(n["user_id"] ?? o["user_id"]);

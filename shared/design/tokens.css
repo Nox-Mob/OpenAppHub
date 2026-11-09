@@ -96,6 +96,13 @@
   --app-accent-foreground: oklch(0.99 0 0);
 }
 
+/* Re-resolve accent-derived tokens wherever an app is set, so a section with
+   data-app="ledger" inside the hub uses Ledger's accent (a var() in a custom
+   property resolves on the element that declares it). */
+[data-app] {
+  --chart-1: var(--app-accent);
+}
+
 /* Colour: dark (soft graphite gray) */
 .dark {
   --background: oklch(0.245 0.003 70);

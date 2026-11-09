@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth-client";
 import { docsUrl } from "@shared/docs";
+import { ThemeToggle } from "@shared/ui/ThemeToggle";
 import { suiteUrls, type SuiteApp } from "@shared/supabase/hosted";
 
 export const Route = createFileRoute("/")({
@@ -27,6 +28,7 @@ function HomePage() {
             <a className="px-2 text-muted-foreground hover:text-foreground" href={docsUrl("hub/")}>
               Docs
             </a>
+            <ThemeToggle />
             {user ? (
               <Button variant="outline" size="sm" onClick={() => void signOut()}>
                 Sign out

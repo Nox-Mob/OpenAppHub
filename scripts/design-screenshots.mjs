@@ -25,7 +25,7 @@ const proto = join(root, "docs/design/prototype");
 const outDir = join(root, "docs/design/screenshots");
 mkdirSync(outDir, { recursive: true });
 
-const ALL = ["civic", "commons", "record"];
+const ALL = ["suite", "civic", "commons", "record"];
 const directions = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 const SCREENS = [
   { name: "dashboard", file: "dashboard.html", app: "ledger", fullPage: true },

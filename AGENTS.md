@@ -12,7 +12,7 @@ The repo doesn't exist yet. Create it with the stack in SHARED-SPEC §2: **TanSt
 
 ## Phase 1 — Foundations
 
-1. **Scaffold.** Repo layout (§2.1), `wrangler.jsonc` with `staging` and `production` environments (§10), security headers in the server entry, `.env.example`, `.gitignore`, `ci.yml`, `staging.yml`, `release.yml`, `migrate.yml` (§10.2).
+1. **Scaffold.** Repo layout (§2.1), `wrangler.jsonc` with `staging` and `production` environments (§10), security headers in the server entry, `.env.example`, `.gitignore`, `ci.yml`, `staging.yml`, `migrate.yml` (§10.2; `release.yml` retired 2026-11-09: Cloudflare deploys `main`).
 2. **Migration runner.** `scripts/migrate.mjs` exactly per §3.3, including `--seed`, `--dry-run` and `--skip`. `scripts/README.md`.
 3. **Core SQL** in `db/core/0001_core.sql`, `0002_core_functions.sql`, `0003_core_policies.sql`, exactly per §3.2: organizations, memberships with one owner, profiles, **invitations**, instance settings; `create_organization`, `rename_organization`, `delete_organization`, `transfer_ownership`, `ownership_transfer_candidates`, the invitation functions, `org_member_directory`, `handle_new_user` (reads `full_name` / `name`), and the owner-change trigger.
    - Everything idempotent: the same files run on self-hosted single-app databases.
@@ -64,6 +64,10 @@ The owner wants a **new design language for the whole suite** (SHARED-SPEC §9).
 
 ## Rules for this repo
 
+- **Pull requests: never add a "Generated with Claude Code" line or a link to the agent session to a PR description.** Owner rule (2026-11-09), mandatory, for every PR.
+- **Merging to `main` deploys production** (Cloudflare's Git integration, SHARED-SPEC §10.2). The top level of `wrangler.jsonc` is production. PRs with migrations say so at the top: the owner runs `migrate.yml` (production) on the PR branch before merging. Migrations must be additive.
+- Money and dates only through `shared/format.ts`; theme only through `shared/theme.ts`.
+
 - The hub is the only repo that touches Stripe **suite billing**, the `billing` and `hub` schemas, `ops`, and `instance_settings`. Charter dues are Charter's (§6).
 - Changes to `db/core/` bump `shared/VERSION` and must stay idempotent and self-hostable: no core function may depend on `billing` or `hub` except through run-time resolution that degrades safely.
 - Service-role use only as listed in §7.2.
@@ -73,12 +77,12 @@ The owner wants a **new design language for the whole suite** (SHARED-SPEC §9).
 ## Owner steps to list in PRs
 
 - Create the repo; enable secret scanning and push protection.
-- GitHub secrets: `STAGING_DATABASE_URL`, `PROD_DATABASE_URL`, `SUPABASE_ACCESS_TOKEN`, `STAGING_REF`, `PROD_REF`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
+- GitHub secrets: `STAGING_DATABASE_URL`, `PROD_DATABASE_URL`, `SUPABASE_ACCESS_TOKEN`, `STAGING_REF`, `PROD_REF` (contents: `docs/SECRETS.md`). No Cloudflare secrets: deploys use Cloudflare's Git integration.
 - Worker secrets: `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MAP`.
 - Stripe products and prices (test mode first), webhook endpoint `https://openapphub.org/api/stripe/webhook`, Customer Portal on.
 - Supabase Auth: Site URL `https://openapphub.org`; redirect URLs for every production and staging origin; custom SMTP before launch.
-- Cloudflare: custom domains `openapphub.org` and `staging.openapphub.org` on the Worker.
-- Run `migrate.yml` / `release.yml` for production in the order in START-HERE.
+- Cloudflare: Worker `openapphub` connected to `main` (build `npm run build`, deploy `npx wrangler deploy`); optional `openapphub-staging` (build `npm run build:staging`); custom domains `openapphub.org` and `staging.openapphub.org`.
+- Run `migrate.yml` for production before merging a PR with migrations, in the order in START-HERE.
 
 ## Done when
 

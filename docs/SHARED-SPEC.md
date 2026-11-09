@@ -4,6 +4,8 @@
 Place it at `docs/SHARED-SPEC.md` in all four app repos (the docs repo has its own `AGENTS.md`).
 If this file and a repo's `AGENTS.md` conflict, this file wins; stop and ask the owner.
 
+**v2.2 (2026-11-09, owner changes):** the design direction is chosen ("Civic, slightly warm", §9); dark mode is Light / Dark / System, shared across the suite (§9); money and dates use `shared/format.ts` in every app (§9); **deploys use Cloudflare's Git integration: merging to `main` deploys production** (§10.2), so the `CLOUDFLARE_*` GitHub secrets and `release.yml` are gone (§7.1); pull request descriptions carry no "Generated with Claude Code" line or session link (§2.2).
+
 **v2.1 (2026-11-08, owner change):** the suite starts from **fresh databases**. The old Supabase projects are being deleted; nothing is copied or parked, and there is no legacy schema. `VITE_SUITE_URLS` is a JSON object (§7.1). Changes are in §0.1, §3.1 and §7.1.
 
 **v2 (2026-11-08)** replaces v1. It answers the questions raised in each repo's `docs/MIGRATION-NOTES.md` (§0.2). Each repo's notes remain its step-by-step plan; where a note proposed something this spec now settles differently, this spec wins and the agent updates the note in its next PR.
@@ -45,6 +47,9 @@ If a value you need is still missing, **stop and ask the owner**. Never guess a 
 | 11 | The service-role key is allowed only on an approved list. | §7.2 |
 | 12 | Ledger's AI PDF import is **off** until the owner picks a provider. | Ledger AGENTS |
 | 13 | Storage buckets are prefixed with the app's name. | §3.7 |
+| 15 | **Design:** "Civic, slightly warm"; dark mode a soft graphite gray; Light / Dark / System toggle that becomes the suite-wide default. | §9, `shared/design/DESIGN.md` |
+| 16 | **Deploys:** Cloudflare's Git integration builds and deploys `main` (production) with `npm run build` + `npx wrangler deploy`. No Cloudflare API token in GitHub. | §10.2 |
+| 17 | **Pull requests:** no "Generated with Claude Code" line and no session link in PR descriptions. Mandatory. | §2.2 |
 | 14 | Accepted as proposed: Ledger keeps its own MFA check; each app audits only its own tables; Charter's public join page is self-hosted only; old deploy jobs are switched off so one tool writes to production. | various |
 
 ---
@@ -133,6 +138,7 @@ Invitations, ownership transfer, organization creation and deletion, and the mem
 - One branch and one PR per step. Small PRs. Never push to `main` directly.
 - Every PR must pass CI: typecheck, lint, tests, build, and (if SQL changed) the DB test job.
 - The PR description lists: what changed, migration files, owner steps, how it was tested, and the **docs** impact (§12).
+- **PR descriptions never include a "Generated with Claude Code" line or a link to the agent session** (owner rule, mandatory).
 - **Agents never apply migrations to production, never deploy production, and never run destructive SQL** (`drop`, `truncate`, unqualified `delete`, `alter … drop column`) except inside reviewed migration files the owner approved.
 - Agents never create, read or print real secrets.
 - The repo's own `AGENTS.md` rules still apply unless this spec replaces them. Each repo's `MIGRATION-NOTES.md` §7 (or equivalent) lists which rules are replaced and in which step.
@@ -420,7 +426,6 @@ Hub server functions and routes on its Worker:
 | `SMTP_*` (or Supabase Auth SMTP) | Supabase Auth settings / hub Worker secret | **NO** | hub email |
 | `STAGING_DATABASE_URL`, `PROD_DATABASE_URL` | GitHub Actions secrets | **NO** | migrate, release |
 | `SUPABASE_ACCESS_TOKEN`, `STAGING_REF`, `PROD_REF` | GitHub Actions secrets | **NO** | gen-types |
-| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | GitHub Actions secrets | **NO** | deploy workflows |
 
 Rules:
 - Secrets never go in frontend code, `VITE_*`, the repo, logs or PR text.
@@ -474,13 +479,15 @@ The owner wants **one new design language for the whole suite**. Charter and Led
 3. **The owner picks one** (or mixes) in the PR. Nothing else in Phase 2 continues until then.
 4. Write the chosen direction into `shared/design/` and `DESIGN.md`.
 
+**Chosen (2026-11-09): "Civic, slightly warm"**: Civic's clarity, density, Inter and ink-navy primary on warm neutrals; dark mode is a soft graphite gray. Canonical tokens: hub `shared/design/tokens.css`.
+
 **Rules for the chosen system:**
 - Tokens as CSS variables in the shadcn convention (`--background`, `--foreground`, `--primary`, `--muted`, `--border`, `--ring`, `--radius`, …), light and dark.
 - **Per-app accent** (`--app-accent`, `--app-accent-foreground`) set by `VITE_APP_ID`; the hub uses the neutral primary. Accents are approved with the direction.
 - Components are shadcn/ui themed only through tokens. **No hard-coded colours** in app code.
 - **Layout:** `AppShell` with a left sidebar and a top bar (SuiteSwitcher, OrgSwitcher, BillingBanner, user menu with **Help**). Below 768px the sidebar becomes a drawer. The apps must work on phones.
-- **Data:** numbers right-aligned with tabular figures; one money format and one date format suite-wide, defined in `DESIGN.md`.
-- **Dark mode:** follows the system, toggle in the user menu.
+- **Data:** numbers right-aligned with tabular figures; one money format (`$1,234.56`) and one date format (`Nov 9, 2026`, `Nov 9, 2026, 2:30 PM`) suite-wide, defined in `DESIGN.md` and implemented once in `shared/format.ts`. Every app uses those helpers.
+- **Dark mode:** Light / Dark / System (default System), toggle in the user menu. The choice is the `oah_theme` cookie on the parent domain, so choosing it in one app makes it the default in every app (`shared/theme.ts`, `shared/ui/ThemeToggle.tsx`).
 - **Accessibility:** contrast ≥ 4.5:1, visible focus, full keyboard use, labels on every input.
 - **Restyling an app** happens in its own PRs, separate from data and auth work, with before/after screenshots, **without changing behaviour**. Visible text stays the same unless the owner approves, because the docs quote it.
 - Later revisions are token changes plus a `shared` sync.
@@ -509,16 +516,17 @@ Old domains (for example `opencharterapp.org`) redirect to the new ones once the
 
 ### 10.2 Release flow
 
-Production code and production database changes must move together, so **nothing deploys production automatically**:
+**Owner decision (2026-11-09): Cloudflare's Git integration deploys.** Each Worker is connected to its repo in Cloudflare; a push to `main` runs `npm run build` and `npx wrangler deploy`. So:
+
+- The **top level of `wrangler.jsonc` is production** (a plain build + deploy must produce production). `env.staging` is staging, built with `CLOUDFLARE_ENV=staging` (`npm run build:staging`); `env.development` is local development.
+- **Merging to `main` deploys production.** Database changes therefore go first: the owner runs `migrate.yml` against production on the PR's branch, then merges. Migrations must be additive (the running code must keep working until the deploy finishes); a destructive change is split across two releases.
+- Staging deploys through a second Cloudflare Worker (`<app>-staging`) connected the same way with `npm run build:staging`, or not at all until needed.
 
 | Workflow | Trigger | Does |
 |---|---|---|
 | `ci.yml` | every PR and push | typecheck, lint, tests, build, DB tests |
-| `staging.yml` | push to `main` | `migrate.mjs --seed` against staging, then `wrangler deploy --env staging`. Skips with a notice until staging exists |
-| `release.yml` | **owner**, `workflow_dispatch` | `migrate.mjs` against production, then `wrangler deploy --env production`. Fails without deploying if migrations fail |
-| `migrate.yml` | owner, `workflow_dispatch` | migrations only, `target: staging | production` |
-
-Switch off any Cloudflare Git integration that deploys production straight from `main`.
+| `staging.yml` | push to `main` | `migrate.mjs --seed` against staging. Skips with a notice until `STAGING_DATABASE_URL` exists |
+| `migrate.yml` | owner, `workflow_dispatch` | migrations only, `target: staging | production` (dry run by default) |
 
 ---
 

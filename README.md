@@ -11,14 +11,14 @@ Read [`AGENTS.md`](AGENTS.md) and [`docs/SHARED-SPEC.md`](docs/SHARED-SPEC.md) b
 
 ## Status
 
-| Area                                                                            | State                                   |
-| ------------------------------------------------------------------------------- | --------------------------------------- |
-| Scaffold, Worker config, security headers, CI/staging/release/migrate workflows | Done                                    |
-| Migration runner (`scripts/migrate.mjs`)                                        | Done                                    |
-| Core SQL (`db/core/0001–0003`) and DB tests                                     | Done                                    |
-| Sign in (email + password, Google), sign up, email confirmation, password reset | Done (needs Supabase)                   |
-| Design refresh (Phase 2)                                                        | Not started; placeholder neutral tokens |
-| Organizations, members, invitations, ownership, billing screens                 | Not started                             |
+| Area                                                                            | State                                      |
+| ------------------------------------------------------------------------------- | ------------------------------------------ |
+| Scaffold, Worker config, security headers, CI/staging/release/migrate workflows | Done                                       |
+| Migration runner (`scripts/migrate.mjs`)                                        | Done                                       |
+| Core SQL (`db/core/0001–0003`) and DB tests                                     | Done                                       |
+| Sign in (email + password, Google), sign up, email confirmation, password reset | Done (needs Supabase)                      |
+| Design system (Phase 2): "Civic, slightly warm", dark mode, money/date formats  | Done: `shared/design/`, `shared/format.ts` |
+| Organizations, members, invitations, ownership, billing screens                 | Not started                                |
 
 ## Local development
 
@@ -56,14 +56,18 @@ See [`.env.example`](.env.example).
 
 ## Deploys
 
-| Workflow      | Trigger         | Does                                                                                    |
-| ------------- | --------------- | --------------------------------------------------------------------------------------- |
-| `ci.yml`      | every PR / push | typecheck, lint, format, tests, build, DB tests                                         |
-| `staging.yml` | push to `main`  | migrate staging with seed → deploy `staging.openapphub.org` (skips until secrets exist) |
-| `release.yml` | owner, manual   | migrate production → deploy `openapphub.org`                                            |
-| `migrate.yml` | owner, manual   | migrations only, staging or production (dry run by default)                             |
+**Merging to `main` deploys production.** Cloudflare's Git integration runs `npm run build` and
+`npx wrangler deploy`; the top level of `wrangler.jsonc` is production. Staging is a second Worker
+built with `npm run build:staging`. Run `migrate.yml` against production **before** merging a PR
+that adds migrations.
 
-Nothing deploys production automatically.
+| Workflow      | Trigger         | Does                                                        |
+| ------------- | --------------- | ----------------------------------------------------------- |
+| `ci.yml`      | every PR / push | typecheck, lint, format, tests, build, DB tests             |
+| `staging.yml` | push to `main`  | migrate staging with seed (skips until the secret exists)   |
+| `migrate.yml` | owner, manual   | migrations only, staging or production (dry run by default) |
+
+Secrets and variables, and what goes in each: [`docs/SECRETS.md`](docs/SECRETS.md).
 
 ## Supabase Auth setup (owner)
 

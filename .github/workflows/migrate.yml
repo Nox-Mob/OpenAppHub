@@ -1,6 +1,9 @@
 name: Migrate
 
-# Owner only. Applies migrations without deploying.
+# Owner only. Applies migrations (deploys are Cloudflare's Git integration).
+# Production: run this on the pull request's branch BEFORE merging it, because
+# merging to main deploys the new code right away. Migrations must be additive
+# so the old code keeps working until the deploy finishes.
 on:
   workflow_dispatch:
     inputs:

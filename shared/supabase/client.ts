@@ -5,7 +5,7 @@
 // production sessions never collide.
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isHosted } from "./hosted";
+import { cookieDomainFor } from "./hosted";
 
 export type SupabaseConfig = { url: string; key: string };
 
@@ -22,7 +22,7 @@ export function supabaseConfig(): SupabaseConfig | null {
 }
 
 export function cookieOptions() {
-  const domain = isHosted() ? import.meta.env.VITE_COOKIE_DOMAIN : undefined;
+  const domain = cookieDomainFor(typeof location === "undefined" ? undefined : location.hostname);
   return {
     path: "/",
     sameSite: "lax" as const,

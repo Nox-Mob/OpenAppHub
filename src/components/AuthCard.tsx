@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { ThemeToggle } from "@shared/ui/ThemeToggle";
 
 /** Centered card used by the sign-in, sign-up and password screens. */
 export function AuthCard({
@@ -14,7 +15,8 @@ export function AuthCard({
   footer?: ReactNode;
 }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-muted/40 px-4 py-12">
+    <main className="relative flex min-h-screen flex-col items-center justify-center bg-muted/40 px-4 py-12">
+      <ThemeToggle className="absolute top-4 right-4" />
       <Link to="/" className="mb-8 text-lg font-semibold tracking-tight text-foreground">
         OpenAppHub
       </Link>

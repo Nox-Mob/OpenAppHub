@@ -66,3 +66,19 @@ export function suiteUrls(): SuiteUrls {
 export function loginRedirect(next: string): string {
   return hubUrl(`/login?next=${encodeURIComponent(next)}`);
 }
+
+/**
+ * The cookie domain to use on this host: VITE_COOKIE_DOMAIN in hosted mode, but
+ * only when the current host is under it (so previews on workers.dev or
+ * localhost still get working, host-only cookies). undefined = host-only.
+ */
+export function cookieDomainFor(
+  hostname: string | undefined,
+  domain = import.meta.env.VITE_COOKIE_DOMAIN,
+): string | undefined {
+  if (!isHosted() || !domain) return undefined;
+  if (!hostname) return domain; // server side: the request host is checked by the browser
+  const bare = domain.replace(/^\./, "").toLowerCase();
+  const host = hostname.toLowerCase();
+  return host === bare || host.endsWith(`.${bare}`) ? domain : undefined;
+}

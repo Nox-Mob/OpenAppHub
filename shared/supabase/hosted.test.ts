@@ -47,3 +47,22 @@ describe("parseSuiteUrls", () => {
     expect(parseSuiteUrls(raw)).toEqual({});
   });
 });
+
+describe("cookieDomainFor", () => {
+  it("uses the shared domain only on hosts under it, in hosted mode", async () => {
+    const { vi } = await import("vitest");
+    vi.stubEnv("VITE_HOSTED", "true");
+    const { cookieDomainFor } = await import("./hosted");
+    const d = ".openapphub.org";
+    expect(cookieDomainFor("openapphub.org", d)).toBe(d);
+    expect(cookieDomainFor("charter.openapphub.org", d)).toBe(d);
+    expect(cookieDomainFor("localhost", d)).toBeUndefined();
+    expect(cookieDomainFor("openapphub.workers.dev", d)).toBeUndefined();
+    expect(cookieDomainFor("evilopenapphub.org", d)).toBeUndefined();
+    expect(cookieDomainFor(undefined, d)).toBe(d);
+    expect(cookieDomainFor("charter.openapphub.org", "")).toBeUndefined();
+    vi.stubEnv("VITE_HOSTED", "false");
+    expect(cookieDomainFor("charter.openapphub.org", d)).toBeUndefined();
+    vi.unstubAllEnvs();
+  });
+});

@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
+import { themeInitScript } from "@shared/theme";
 import { getSessionUser } from "@/lib/session";
 import appCss from "../styles.css?url";
 
@@ -47,8 +48,10 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" data-app="hub" suppressHydrationWarning>
       <head>
+        {/* Applies the saved light/dark/system choice before the first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript() }} />
         <HeadContent />
       </head>
       <body>

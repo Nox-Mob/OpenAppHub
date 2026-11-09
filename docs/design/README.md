@@ -1,17 +1,37 @@
-# Suite design directions (Phase 2): pick one
+# Suite design directions (Phase 2)
 
-SHARED-SPEC §9 asks for 2–3 distinct directions for the whole suite. Here are three. **Pick one in
-the pull request** (or mix: for example "Civic, with Commons' accents"). Nothing is restyled until
-you do.
+## Decision (2026-11-09): "Civic, slightly warm"
+
+The owner chose **Civic, made slightly warmer** (less warm than Commons), with a **grayer dark
+mode** than the proposals. It's now the suite's design system: [`shared/design/`](../../shared/design/)
+and [`DESIGN.md`](../../shared/design/DESIGN.md). The screenshots below render the real
+`shared/design/tokens.css` (`?direction=suite` in the prototype). The three original proposals
+follow for the record.
+
+![Chosen tokens, light](screenshots/suite-tokens-light.png)
+
+| Desktop, light                                     | Desktop, dark                                     | Phone                                            |
+| -------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------ |
+| ![](screenshots/suite-dashboard-desktop-light.png) | ![](screenshots/suite-dashboard-desktop-dark.png) | ![](screenshots/suite-dashboard-phone-light.png) |
+| ![](screenshots/suite-table-desktop-light.png)     | ![](screenshots/suite-table-desktop-dark.png)     | ![](screenshots/suite-table-phone-light.png)     |
+| ![](screenshots/suite-dialog-desktop-light.png)    | ![](screenshots/suite-dialog-desktop-dark.png)    | ![](screenshots/suite-dialog-phone-light.png)    |
+
+Dark tokens: [suite-tokens-dark.png](screenshots/suite-tokens-dark.png). Contrast: all pass
+([contrast.md](contrast.md)).
+
+---
+
+## The proposals
+
+SHARED-SPEC §9 asked for 2–3 distinct directions. These were the three.
 
 Each direction is **only a tokens file** ([`prototype/tokens/`](prototype/tokens/)): colour (light
 and dark), fonts, type scale, radius, elevation and density. The sample screens use the same markup
-for all three, so what you see is what a token swap does. That's also how later revisions will work
-(§9: "later revisions are token changes plus a `shared` sync").
+for all three, so what you see is what a token swap does.
 
 Before designing, I audited what the three apps use today: [AUDIT.md](AUDIT.md).
 
-## At a glance
+### At a glance
 
 |                | A · Civic                                  | B · Commons                                     | C · Record                                     |
 | -------------- | ------------------------------------------ | ----------------------------------------------- | ---------------------------------------------- |
@@ -30,14 +50,14 @@ Before designing, I audited what the three apps use today: [AUDIT.md](AUDIT.md).
 
 All three pass the contrast checks in light and dark: [contrast.md](contrast.md).
 
-## Sample screens
+### Sample screens
 
 Every direction shows the same three screens: a **dashboard** (Ledger accent, trial banner), a
 **data table** (Charter members) and a **form dialog** (Board, with a validation error and the
 keyboard focus ring on the main button). Desktop is 1440px wide; the phone is 390px, where the
 sidebar becomes a drawer, tables become cards and dialogs become bottom sheets.
 
-### A · Civic
+#### A · Civic
 
 ![Civic tokens](screenshots/civic-tokens-light.png)
 
@@ -49,7 +69,7 @@ sidebar becomes a drawer, tables become cards and dialogs become bottom sheets.
 
 Dark tokens: [civic-tokens-dark.png](screenshots/civic-tokens-dark.png)
 
-### B · Commons
+#### B · Commons
 
 ![Commons tokens](screenshots/commons-tokens-light.png)
 
@@ -61,7 +81,7 @@ Dark tokens: [civic-tokens-dark.png](screenshots/civic-tokens-dark.png)
 
 Dark tokens: [commons-tokens-dark.png](screenshots/commons-tokens-dark.png)
 
-### C · Record
+#### C · Record
 
 ![Record tokens](screenshots/record-tokens-light.png)
 
@@ -73,7 +93,7 @@ Dark tokens: [commons-tokens-dark.png](screenshots/commons-tokens-dark.png)
 
 Dark tokens: [record-tokens-dark.png](screenshots/record-tokens-dark.png)
 
-## Common to every direction
+## Common to every direction (now in DESIGN.md)
 
 These hold whichever direction you pick; they go into `shared/design/DESIGN.md`.
 
@@ -105,17 +125,17 @@ labels on every field, errors linked with `aria-describedby`.
 `--app-accent-foreground`, `--font-sans`/`--font-display`/`--font-mono`, `--shadow-sm|md|lg`,
 `--control-h`, `--row-h`, `--space-card`, `--badge-radius`, `--heading-weight`, `--heading-tracking`.
 
-## What happens after you pick
+## What happens next
 
-1. The chosen tokens become `shared/design/tokens.css`, a Tailwind preset and `DESIGN.md` (step 6).
-2. Shared UI is built on them: `AppShell`, `SuiteSwitcher`, `OrgSwitcher`, `BillingBanner`,
+1. Done: the chosen tokens are `shared/design/tokens.css`, the Tailwind mapping and preset, and `DESIGN.md` (step 6).
+2. Next: shared UI is built on them: `AppShell`, `SuiteSwitcher`, `OrgSwitcher`, `BillingBanner`,
    `HelpLink`, `InvitationPage` (step 7), and `shared/VERSION` goes to `1.0.0`.
 3. Each app restyles in its own PRs, with before/after screenshots and no behaviour changes (§9).
 
 ## Regenerating
 
 The prototype is static HTML in [`prototype/`](prototype/): open `prototype/dashboard.html?direction=commons&theme=dark`
-in a browser to try any combination (`direction` = `civic` | `commons` | `record`, `theme`,
+in a browser to try any combination (`direction` = `suite` (chosen) | `civic` | `commons` | `record`, `theme`,
 `app` = `hub` | `charter` | `board` | `ledger`). To re-render every screenshot and the contrast report:
 
 ```bash

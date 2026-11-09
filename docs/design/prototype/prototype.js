@@ -10,7 +10,13 @@
   root.dataset.app = app;
   root.dataset.direction = direction;
   if (theme === "dark") root.classList.add("dark");
-  document.write(`<link rel="stylesheet" href="tokens/${direction}.css">`);
+  if (direction === "suite") {
+    // The chosen system: the real shared tokens. They load no fonts, so add Inter here.
+    document.write('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">');
+    document.write('<link rel="stylesheet" href="../../../shared/design/tokens.css">');
+  } else {
+    document.write(`<link rel="stylesheet" href="tokens/${direction}.css">`);
+  }
 
   const I = {
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',

@@ -43,5 +43,6 @@ See `docs/SECRETS.md` for what goes in each value.
 - GitHub secrets: `STAGING_DATABASE_URL`, `PROD_DATABASE_URL` (Session pooler strings); later `SUPABASE_ACCESS_TOKEN`, `STAGING_REF`, `PROD_REF`.
 - Cloudflare: Worker `openapphub` connected to `main` (build `npm run build`, deploy `npx wrangler deploy`); the Worker name must match `wrangler.jsonc`.
 - Supabase Auth on both projects: Site URL, redirect URLs (`/auth/callback`), Google provider, email confirmation; sign-ups closed on production until launch; custom SMTP before launch.
-- Run `migrate.yml` → production (then staging) to apply `db/core` **before** merging PR 1 to `main`.
+- **First deploy (PR 1):** merge, then run Actions → Migrate → production (the workflow only appears once it's on `main`). Staging is migrated automatically by `staging.yml` on the merge. The home page and sign-in don't need the core tables; anyone who signs up in between gets a profile from the 0002 backfill. After this, migrate production _before_ merging PRs with migrations.
+- Supabase (production): turn off **Allow new users to sign up** until launch (the app hides the form, but the Auth API still accepts sign-ups). Turn on Google when ready (off on both projects).
 - Secret scanning and push protection on the repo.

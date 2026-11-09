@@ -583,6 +583,19 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Profiles for accounts created before this file ran (for example, sign-ups
+-- between a first deploy and the first migration). Idempotent.
+insert into public.profiles (id, display_name)
+select
+  u.id,
+  left(coalesce(
+    nullif(btrim(u.raw_user_meta_data ->> 'full_name'), ''),
+    nullif(btrim(u.raw_user_meta_data ->> 'name'), ''),
+    nullif(split_part(coalesce(u.email::text, ''), '@', 1), '')
+  ), 120)
+from auth.users u
+on conflict (id) do nothing;
+
 -- Execute privileges -------------------------------------------------------------
 
 revoke all on function

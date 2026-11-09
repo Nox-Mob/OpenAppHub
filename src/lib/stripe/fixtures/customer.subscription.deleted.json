@@ -1,0 +1,16 @@
+{
+  "id": "evt_1SubDeleted",
+  "object": "event",
+  "type": "customer.subscription.deleted",
+  "data": {
+    "object": {
+      "id": "sub_Riverside",
+      "object": "subscription",
+      "customer": "cus_Riverside",
+      "status": "canceled",
+      "current_period_end": 1797811200,
+      "metadata": {},
+      "items": { "object": "list", "data": [{ "price": "price_SuiteYear" }] }
+    }
+  }
+}

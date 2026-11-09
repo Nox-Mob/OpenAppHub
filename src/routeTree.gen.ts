@@ -29,6 +29,7 @@ import { Route as DevShellRouteImport } from './routes/dev.shell'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AppAdminDemoRouteImport } from './routes/_app.admin.demo'
 import { Route as AppOrgsNewRouteImport } from './routes/_app.orgs.new'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api.stripe.webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -129,6 +130,11 @@ const AppOrgsNewRoute = AppOrgsNewRouteImport.update({
   path: '/orgs/new',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe/webhook',
+  path: '/api/stripe/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/admin/demo': typeof AppAdminDemoRoute
   '/orgs/new': typeof AppOrgsNewRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/admin/demo': typeof AppAdminDemoRoute
   '/orgs/new': typeof AppOrgsNewRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/_app/admin/demo': typeof AppAdminDemoRoute
   '/_app/orgs/new': typeof AppOrgsNewRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/admin/demo'
     | '/orgs/new'
+    | '/api/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/admin/demo'
     | '/orgs/new'
+    | '/api/stripe/webhook'
   id:
     | '__root__'
     | '/'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/_app/admin/demo'
     | '/_app/orgs/new'
+    | '/api/stripe/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -276,6 +288,7 @@ export interface RootRouteChildren {
   DevHubRoute: typeof DevHubRoute
   DevShellRoute: typeof DevShellRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -420,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppOrgsNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/stripe/webhook': {
+      id: '/api/stripe/webhook'
+      path: '/api/stripe/webhook'
+      fullPath: '/api/stripe/webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -459,6 +479,7 @@ const rootRouteChildren: RootRouteChildren = {
   DevHubRoute: DevHubRoute,
   DevShellRoute: DevShellRoute,
   InviteTokenRoute: InviteTokenRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -2,6 +2,8 @@ import type { ScreenProps } from "./types";
 import { useState } from "react";
 import { formatDate } from "@shared/format";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
+import { HelpLink } from "@shared/ui/HelpLink";
+import { HELP } from "@/config/help";
 import { NoOrganization, PageHeader, Panel } from "@/components/hub/HubShell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -56,6 +58,7 @@ export function AuditScreen({ hub }: ScreenProps) {
       <PageHeader
         title="Audit log"
         description="Changes to this organization, its members and its invitations."
+        actions={<HelpLink path={HELP.audit}>About the audit log</HelpLink>}
       />
       <Panel title="Recent changes">
         {first.error ? <Alert variant="destructive">{first.error}</Alert> : null}

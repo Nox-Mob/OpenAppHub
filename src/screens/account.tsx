@@ -3,6 +3,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { openCookieSettings } from "@shared/consent";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
+import { HelpLink } from "@shared/ui/HelpLink";
 import { ThemeToggle } from "@shared/ui/ThemeToggle";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageHeader, Panel } from "@/components/hub/HubShell";
@@ -10,6 +11,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { HELP } from "@/config/help";
 import { deleteMyAccount } from "@/lib/members";
 import { looksLikeEmail } from "@/lib/org-settings";
 import { ROLE_LABEL } from "@/lib/roles";
@@ -63,7 +65,11 @@ export function AccountScreen({ user, hub }: ScreenProps) {
 
   return (
     <>
-      <PageHeader title="Your account" description={user.email ?? undefined} />
+      <PageHeader
+        title="Your account"
+        description={user.email ?? undefined}
+        actions={<HelpLink path={HELP.account}>Account help</HelpLink>}
+      />
       <div className="max-w-2xl space-y-6">
         <Panel title="Your name" description="Shown to the people in your organizations.">
           <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={saveName}>

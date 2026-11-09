@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
 import { suiteUrls } from "@shared/supabase/hosted";
 import { setCurrentOrg } from "@shared/supabase/org";
+import { HelpLink } from "@shared/ui/HelpLink";
+import { HELP } from "@/config/help";
 import { PageHeader, Panel } from "@/components/hub/HubShell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -59,6 +61,7 @@ export function WelcomeScreen({
   return (
     <>
       <PageHeader
+        actions={<HelpLink path={HELP.gettingStarted}>Getting started guide</HelpLink>}
         title={first ? `Welcome to OpenAppHub, ${first}` : "Welcome to OpenAppHub"}
         description={
           org && !canManage(hub.role)

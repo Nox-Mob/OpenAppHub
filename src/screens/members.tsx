@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { sendInvitation } from "@/lib/members";
 import type { InviteResult } from "@/lib/members-core";
+import { HELP } from "@/config/help";
 import { ROLE_HELP, ROLE_LABEL, canManage } from "@/lib/roles";
 import { must, useAsync } from "@/lib/use-async";
 
@@ -104,7 +105,7 @@ export function MembersScreen({
       <PageHeader
         title="Members"
         description={`People in ${org?.name ?? "your organization"} and what they can do in every app.`}
-        actions={<HelpLink path="hub/accounts/invitations/">How invitations work</HelpLink>}
+        actions={<HelpLink path={HELP.members}>How invitations work</HelpLink>}
       />
       {error ? (
         <Alert variant="destructive" className="mb-4">

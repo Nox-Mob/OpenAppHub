@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { HELP } from "@/config/help";
 import {
   CURRENCIES,
   confirmTextFor,
@@ -34,9 +35,7 @@ export function SettingsScreen({ hub }: ScreenProps) {
       <PageHeader
         title="Organization settings"
         description={`${org.name} · your role: ${ROLE_LABEL[org.role]}`}
-        actions={
-          <HelpLink path="hub/accounts/organizations-and-roles/">Roles and ownership</HelpLink>
-        }
+        actions={<HelpLink path={HELP.orgSettings}>Roles and ownership</HelpLink>}
       />
       <div className="max-w-2xl space-y-6">
         <RenamePanel orgId={org.id} name={org.name} canEdit={canManage(hub.role)} />
@@ -335,7 +334,15 @@ function TransferPanel({ orgId, orgName }: { orgId: string; orgName: string }) {
   return (
     <Panel
       title="Transfer ownership"
-      description="Only the owner can do this. The new owner must be an active member (email confirmed). You'll become an admin and can't undo it yourself."
+      description={
+        <>
+          Only the owner can do this. The new owner must be an active member (email confirmed).
+          You'll become an admin and can't undo it yourself.{" "}
+          <HelpLink path={HELP.ownership} className="ml-1">
+            How transfers work
+          </HelpLink>
+        </>
+      }
     >
       {done ? (
         <Alert>{done}</Alert>

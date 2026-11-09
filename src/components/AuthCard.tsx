@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { HelpLink } from "@shared/ui/HelpLink";
 import { ThemeToggle } from "@shared/ui/ThemeToggle";
+import { HELP } from "@/config/help";
 
 /** Centered card used by the sign-in, sign-up and password screens. */
 export function AuthCard({
@@ -26,6 +28,9 @@ export function AuthCard({
         <div className="mt-6">{children}</div>
       </div>
       {footer ? <div className="mt-6 text-sm text-muted-foreground">{footer}</div> : null}
+      <HelpLink path={HELP.signIn} className="mt-4">
+        Help with signing in
+      </HelpLink>
     </main>
   );
 }

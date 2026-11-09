@@ -1,6 +1,8 @@
 import type { ScreenProps } from "./types";
 import { daysLeft, hasAppAccess } from "@shared/supabase/billing";
 import { suiteUrls } from "@shared/supabase/hosted";
+import { HelpLink } from "@shared/ui/HelpLink";
+import { HELP } from "@/config/help";
 import { NoOrganization, PageHeader } from "@/components/hub/HubShell";
 import { SetupChecklist } from "@/components/hub/SetupChecklist";
 import { Button } from "@/components/ui/button";
@@ -98,6 +100,14 @@ export function DashboardScreen({ user, hub }: ScreenProps) {
                 <a href="/audit">Audit log</a>
               </Button>
             ) : null}
+            <Button asChild variant="outline" size="sm">
+              <a href="/account">Your account</a>
+            </Button>
+          </div>
+          <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
+            <HelpLink path={HELP.gettingStarted}>Getting started guide</HelpLink>
+            <HelpLink path={HELP.export}>Your data and exports</HelpLink>
+            <HelpLink path={HELP.troubleshooting}>Troubleshooting</HelpLink>
           </div>
         </>
       )}

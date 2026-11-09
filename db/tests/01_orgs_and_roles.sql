@@ -9,6 +9,10 @@ declare
   org_a uuid;
   org_b uuid;
 begin
+  -- Core behaves as on a self-hosted database: billing off, whether or not the
+  -- hub's 0002_billing ran on this test database.
+  update public.instance_settings set billing_enabled = false;
+
   -- handle_new_user: full_name, then name, then the email's local part.
   perform tests.ok((select display_name from public.profiles where id = alice) = 'Alice Owner', 'profile uses full_name');
   perform tests.ok((select display_name from public.profiles where id = bob) = 'Bob', 'profile uses name');
@@ -85,13 +89,16 @@ begin
 
   -- instance_settings: signed-in read, no write.
   perform tests.as_user(bob);
-  perform tests.ok((select billing_enabled from public.instance_settings) = false, 'billing off by default');
+  perform tests.ok((select billing_enabled from public.instance_settings) = false, 'billing off (self-hosted)');
   perform tests.throws('update public.instance_settings set billing_enabled = true', 'cannot change instance settings');
   perform tests.ok(public.has_app_access(org_a, 'board'), 'app access when billing off');
 
   -- Billing on without the billing schema: degrade to no write access.
   perform tests.as_super();
   update public.instance_settings set billing_enabled = true;
+  if exists (select 1 from pg_namespace where nspname = 'billing') then
+    alter schema billing rename to billing_hidden_for_test;
+  end if;
   perform tests.as_user(bob);
   perform tests.ok(not public.has_app_access(org_a, 'board'), 'billing on without billing schema denies');
   perform tests.ok(not public.can_write(org_a, 'board'), 'and so cannot write');

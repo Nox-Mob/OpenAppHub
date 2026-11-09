@@ -1,0 +1,22 @@
+{
+  "id": "evt_1CheckoutDone",
+  "object": "event",
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "id": "cs_test_a1",
+      "object": "checkout.session",
+      "mode": "subscription",
+      "client_reference_id": "11111111-1111-4111-8111-111111111111",
+      "customer": "cus_Riverside",
+      "subscription": "sub_Riverside",
+      "payment_status": "paid",
+      "status": "complete",
+      "metadata": {
+        "org_id": "11111111-1111-4111-8111-111111111111",
+        "plan": "starter",
+        "apps": "board"
+      }
+    }
+  }
+}

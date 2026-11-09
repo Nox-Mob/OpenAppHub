@@ -20,4 +20,11 @@ for f in db/tests/[0-9]*.sql; do
   echo "── $f"
   if ! psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$f"; then status=1; fi
 done
+# The staging seed must refuse to run where real organizations exist.
+if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f db/tests/seed_guard.sql >/dev/null 2>&1; then
+  echo "FAILED: the staging seed ran on a database with real organizations"
+  status=1
+else
+  echo "── seed guard: refused a database with real organizations (ok)"
+fi
 exit $status

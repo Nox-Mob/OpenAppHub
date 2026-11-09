@@ -139,6 +139,7 @@ Invitations, ownership transfer, organization creation and deletion, and the mem
 - Every PR must pass CI: typecheck, lint, tests, build, and (if SQL changed) the DB test job.
 - The PR description lists: what changed, migration files, owner steps, how it was tested, and the **docs** impact (§12).
 - **PR descriptions never include a "Generated with Claude Code" line or a link to the agent session** (owner rule, mandatory).
+- **Commit messages never include a "Co-Authored-By: Claude" line or a session link** (owner rule, mandatory).
 - **Agents never apply migrations to production, never deploy production, and never run destructive SQL** (`drop`, `truncate`, unqualified `delete`, `alter … drop column`) except inside reviewed migration files the owner approved.
 - Agents never create, read or print real secrets.
 - The repo's own `AGENTS.md` rules still apply unless this spec replaces them. Each repo's `MIGRATION-NOTES.md` §7 (or equivalent) lists which rules are replaced and in which step.
@@ -201,6 +202,16 @@ RLS on all of them.
 | `handle_new_user()` | trigger on `auth.users`: creates the profile, with `display_name` from `raw_user_meta_data` `full_name`, else `name`, else the email's local part |
 
 Also in 0002: `drop trigger if exists on_auth_user_created on auth.users;` then recreate it.
+
+**`0004_core_org_settings.sql`** (shared 1.2.0)
+
+| Item | Behaviour |
+|---|---|
+| `organizations.time_zone` (default `UTC`), `organizations.currency` (default `USD`, `^[A-Z]{3}$`) | The org's time zone and currency. Every app passes them to `shared/format.ts` (`getOrgPreferences()` in `shared/supabase/org.ts`, which falls back to UTC / USD) |
+| `set_organization_preferences(p_org, p_time_zone, p_currency)` | owner/admin; time zone must be in `pg_timezone_names`; currency upper-cased, three letters |
+| `ownership_transfer_candidates(p_org)` | now only **active** members: email confirmed and not banned |
+| `transfer_ownership(p_org, p_new_owner)` | now also requires an active new owner |
+| `transfer_ownership(p_org, p_new_owner, p_confirm)` | the form the hub uses: `p_confirm` must be the new owner's display name, or their email when they have none, ignoring case and surrounding spaces |
 
 **`0003_core_policies.sql`** (drop-if-exists, then create)
 
@@ -364,7 +375,7 @@ Owned by the hub, schema `billing` (not exposed).
 - **Trial:** an `after insert` trigger on `public.organizations` (in the hub's billing migration) creates a trialing subscription for all apps, 30 days. One trial per user: if `created_by` already had a trial, the new org starts `expired`.
 - **Member limit:** a trigger on `public.memberships` insert rejects inserts beyond `max_members` when billing is on. **It counts core memberships only**, so Charter portal members never count (§4.5).
 - `public.get_org_billing(p_org)`: definer RPC, requires `is_member(p_org)` **or** `charter.is_portal_member(p_org, null)` (resolved at run time), returns plan, status, dates and apps.
-- The billing migration ends with `update public.instance_settings set billing_enabled = true;`. Self-hosters skip it (`--skip 0001_billing`).
+- The billing migration ends with `update public.instance_settings set billing_enabled = true;`. Self-hosters skip it (`--skip 0002_billing`). (The hub's own schema is `db/migrations/0001_hub.sql`, which applies first.)
 
 ---
 
@@ -464,7 +475,7 @@ scripts/migrate.mjs               §3.3
 ```
 
 - Never edit these in an app repo. Change the hub, bump `shared/VERSION`, then copy them in a PR titled `chore: sync shared vX.Y.Z` (`scripts/sync-shared.mjs`).
-- Each app's CI checks `shared/VERSION` against `package.json` → `"oahShared"`.
+- Each app's CI runs `node scripts/check-shared.mjs` (vendored with the code): it checks `shared/VERSION` against `package.json` → `"oahShared"` and every vendored file against `shared/MANIFEST.json`, so hand edits fail CI. The sync script also copies this spec into `docs/SHARED-SPEC.md`.
 - Shared components must work under TanStack Start SSR (no `window` access during render).
 
 ---

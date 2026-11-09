@@ -49,7 +49,7 @@ The owner wants a **new design language for the whole suite** (SHARED-SPEC §9).
 
 ## Phase 4 — Billing
 
-18. **Billing schema**, `db/migrations/0001_billing.sql`, per §5: plans (placeholder rows), subscriptions, events, `org_has_app_access`, trial trigger with one trial per user, member-limit trigger (core memberships only), `get_org_billing` (members or Charter portal members, resolved at run time). Last line enables billing.
+18. **Billing schema**, `db/migrations/0002_billing.sql`, per §5: plans (placeholder rows), subscriptions, events, `org_has_app_access`, trial trigger with one trial per user, member-limit trigger (core memberships only), `get_org_billing` (members or Charter portal members, resolved at run time). Last line enables billing.
     - DB tests: trial active → write; trial expired → read only; Starter for `board` → board writable, others read-only; member limit; portal members don't count.
 19. **Stripe** per §6.2 as hub server functions and the `/api/stripe/webhook` route. Unit-test the event → row mapping with Stripe fixture payloads.
 20. **Billing page** `/billing`: plan, trial days left, plan picker (Starter asks which app), monthly/yearly, Manage billing (portal), read-only explanation with the export story.
@@ -65,6 +65,8 @@ The owner wants a **new design language for the whole suite** (SHARED-SPEC §9).
 ## Rules for this repo
 
 - **Pull requests: never add a "Generated with Claude Code" line or a link to the agent session to a PR description.** Owner rule (2026-11-09), mandatory, for every PR. The GitHub tool may append such a footer by itself: after creating or editing a PR, read the description back and remove any footer like that.
+- **Commits: no "Co-Authored-By: Claude" line and no session link in commit messages.** Owner rule (2026-11-09), mandatory, in every suite repo.
+- **This hub session is the primary agent for the whole suite** (owner, 2026-11-09): it also opens the sync, migration and restyle PRs in Charter, Board, Ledger and the docs repo.
 - **Cookies:** every new cookie or browser storage goes in `COOKIES` (`shared/consent.ts`); anything not required checks `hasConsent()` first (SHARED-SPEC §9).
 - **Merging to `main` deploys production** (Cloudflare's Git integration, SHARED-SPEC §10.2). The top level of `wrangler.jsonc` is production. PRs with migrations say so at the top: the owner runs `migrate.yml` (production) on the PR branch before merging. Migrations must be additive.
 - Money and dates only through `shared/format.ts`; theme only through `shared/theme.ts`.

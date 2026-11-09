@@ -24,11 +24,12 @@ Read [`AGENTS.md`](AGENTS.md) and [`docs/SHARED-SPEC.md`](docs/SHARED-SPEC.md) b
 
 ```bash
 npm ci
-cp .env.example .env.local   # fill in VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY
-npm run dev                  # http://localhost:3000, running inside workerd
+npm run dev   # http://localhost:3000, inside workerd, against openapphub-staging
 ```
 
-Without Supabase values the site runs, but the sign-in screens say they're not connected.
+Local development uses the staging Supabase project (`wrangler.jsonc` `vars`). To use your own
+project, copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_PUBLISHABLE_KEY`. Add `http://localhost:3000/auth/callback` to the project's redirect URLs.
 
 Checks: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`.
 

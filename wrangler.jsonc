@@ -13,12 +13,13 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
 
-  // Local development (`npm run dev`). Put your own values in .env.local.
+  // Local development (`npm run dev`) uses openapphub-staging, never production.
+  // Override with your own project in .env.local.
   "vars": {
     "VITE_HOSTED": "false",
     "VITE_APP_ID": "hub",
-    "VITE_SUPABASE_URL": "",
-    "VITE_SUPABASE_PUBLISHABLE_KEY": "",
+    "VITE_SUPABASE_URL": "https://mbloxixlykmbuuoaprnx.supabase.co",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_XsbfqXRDX-L_TwmtYGvjDg_qiLKka2X",
     "VITE_HUB_URL": "http://localhost:3000",
     "VITE_COOKIE_DOMAIN": "",
     "VITE_SUITE_URLS": "{\"hub\":\"http://localhost:3000\"}",
@@ -33,9 +34,9 @@
       "vars": {
         "VITE_HOSTED": "true",
         "VITE_APP_ID": "hub",
-        // Placeholder until the owner creates openapphub-staging (SHARED-SPEC §0.1).
-        "VITE_SUPABASE_URL": "https://STAGING_PROJECT_REF.supabase.co",
-        "VITE_SUPABASE_PUBLISHABLE_KEY": "STAGING_PUBLISHABLE_KEY",
+        // openapphub-staging (SHARED-SPEC §0.1). The publishable key is public by design.
+        "VITE_SUPABASE_URL": "https://mbloxixlykmbuuoaprnx.supabase.co",
+        "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_XsbfqXRDX-L_TwmtYGvjDg_qiLKka2X",
         "VITE_HUB_URL": "https://staging.openapphub.org",
         "VITE_COOKIE_DOMAIN": ".openapphub.org",
         "VITE_SUITE_URLS": "{\"hub\":\"https://staging.openapphub.org\",\"charter\":\"https://charter-staging.openapphub.org\",\"board\":\"https://board-staging.openapphub.org\",\"ledger\":\"https://ledger-staging.openapphub.org\"}",

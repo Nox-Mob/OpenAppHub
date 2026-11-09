@@ -19,7 +19,7 @@ If this file and a repo's `AGENTS.md` conflict, this file wins; stop and ask the
 | Apex domain | `openapphub.org` |
 | GitHub org | `Nox-Mob` |
 | Production Supabase project | `openapphub-prod`, a **new, empty** project: ref `ymlesgadawnjupnvgokd` (`https://ymlesgadawnjupnvgokd.supabase.co`). Publishable key in each repo's `wrangler.jsonc` production `vars` |
-| Staging Supabase project | `openapphub-staging`, a **new, empty** project. Project ID and publishable key: **pending from the owner** (use placeholders until then) |
+| Staging Supabase project | `openapphub-staging`, a **new, empty** project: ref `mbloxixlykmbuuoaprnx` (`https://mbloxixlykmbuuoaprnx.supabase.co`). Publishable key in each repo's `wrangler.jsonc` staging `vars`. Local development uses staging, never production |
 | Old projects | `nxungwtxnctcqolfshcr` and `dnsqxiiexkdokgebysrt` are being **deleted**. Never use their IDs. Nothing is copied or parked from them; there is no legacy schema |
 | Production database order | hub core (+ hub billing later) → Charter baseline → Board baseline → Ledger baseline. Staging: the same, plus each repo's seed data, once it exists |
 | Design | **Full refresh** for all four apps (§9). No existing app is the reference. |

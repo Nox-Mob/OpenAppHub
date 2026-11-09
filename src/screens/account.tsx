@@ -1,6 +1,6 @@
 import type { ScreenProps } from "./types";
 import { useRouter } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { openCookieSettings } from "@shared/consent";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
 import { ThemeToggle } from "@shared/ui/ThemeToggle";
@@ -11,6 +11,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { deleteMyAccount } from "@/lib/members";
+import { looksLikeEmail } from "@/lib/org-settings";
+import { ROLE_LABEL } from "@/lib/roles";
+import { must, useAsync } from "@/lib/use-async";
+
+const MIN_PASSWORD = 8;
+type Msg = { ok: boolean; text: string } | null;
+
+function Note({ msg }: { msg: Msg }) {
+  return msg ? (
+    <Alert variant={msg.ok ? "default" : "destructive"} className="mt-3">
+      {msg.text}
+    </Alert>
+  ) : null;
+}
 
 export function AccountScreen({ user, hub }: ScreenProps) {
   const router = useRouter();
@@ -72,6 +86,23 @@ export function AccountScreen({ user, hub }: ScreenProps) {
             </Alert>
           ) : null}
         </Panel>
+        <EmailPanel email={user.email} />
+        <PasswordPanel email={user.email} />
+        <NotificationsPanel />
+        <Panel title="Your organizations">
+          {hub.orgs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">You're not in any organization yet.</p>
+          ) : (
+            <ul className="divide-y text-sm">
+              {hub.orgs.map((o) => (
+                <li key={o.id} className="flex items-center justify-between gap-3 py-2">
+                  <span className="font-medium">{o.name}</span>
+                  <span className="text-muted-foreground">{ROLE_LABEL[o.role]}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
         <Panel title="Appearance and cookies">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-sm text-muted-foreground">Theme</span>
@@ -84,6 +115,7 @@ export function AccountScreen({ user, hub }: ScreenProps) {
             </Button>
           </div>
         </Panel>
+        <SessionsPanel />
         <Panel
           title="Delete your account"
           tone="danger"
@@ -119,5 +151,273 @@ export function AccountScreen({ user, hub }: ScreenProps) {
         </ConfirmDialog>
       ) : null}
     </>
+  );
+}
+
+function EmailPanel({ email }: { email: string | null }) {
+  const [value, setValue] = useState("");
+  const [msg, setMsg] = useState<Msg>(null);
+  const [busy, setBusy] = useState(false);
+  const next = value.trim().toLowerCase();
+  const valid = looksLikeEmail(next) && next !== (email ?? "").toLowerCase();
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !valid) return;
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser(
+      { email: next },
+      { emailRedirectTo: `${window.location.origin}/auth/callback?next=/account` },
+    );
+    setBusy(false);
+    if (error) return setMsg({ ok: false, text: error.message });
+    setValue("");
+    setMsg({
+      ok: true,
+      text: `Check ${next} for a confirmation link. Your email changes once you open it${email ? ` (we may also ask you to confirm from ${email})` : ""}.`,
+    });
+  }
+
+  return (
+    <Panel title="Email address" description={email ? `You sign in with ${email}.` : undefined}>
+      <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={onSubmit}>
+        <div className="flex-1 space-y-2">
+          <Label htmlFor="new-email">New email</Label>
+          <Input
+            id="new-email"
+            type="email"
+            autoComplete="email"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+          />
+        </div>
+        <Button type="submit" disabled={busy || !valid}>
+          {busy ? "Sending…" : "Change email"}
+        </Button>
+      </form>
+      <Note msg={msg} />
+    </Panel>
+  );
+}
+
+function PasswordPanel({ email }: { email: string | null }) {
+  // Google-only accounts have no password yet: they can set one without the current one.
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [again, setAgain] = useState("");
+  const [msg, setMsg] = useState<Msg>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return setHasPassword(true);
+    void supabase.auth.getUser().then(({ data }) => {
+      const identities = data.user?.identities;
+      setHasPassword(identities ? identities.some((i) => i.provider === "email") : true);
+    });
+  }, []);
+
+  const mismatch = again !== "" && again !== next;
+  const ready =
+    next.length >= MIN_PASSWORD && next === again && (hasPassword === false || current !== "");
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !ready) return;
+    setBusy(true);
+    setMsg(null);
+    if (hasPassword && email) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: current });
+      if (error) {
+        setBusy(false);
+        return setMsg({ ok: false, text: "Your current password isn't right." });
+      }
+    }
+    const { error } = await supabase.auth.updateUser({ password: next });
+    setBusy(false);
+    if (error) return setMsg({ ok: false, text: error.message });
+    setCurrent("");
+    setNext("");
+    setAgain("");
+    setHasPassword(true);
+    setMsg({ ok: true, text: "Password changed." });
+  }
+
+  return (
+    <Panel
+      title="Password"
+      description={
+        hasPassword === false
+          ? "You sign in with Google. Add a password to also sign in with your email."
+          : `At least ${MIN_PASSWORD} characters.`
+      }
+    >
+      <form className="space-y-3" onSubmit={onSubmit}>
+        {hasPassword !== false ? (
+          <div className="space-y-2">
+            <Label htmlFor="current-password">Current password</Label>
+            <Input
+              id="current-password"
+              type="password"
+              autoComplete="current-password"
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+            />
+          </div>
+        ) : null}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="new-password">New password</Label>
+            <Input
+              id="new-password"
+              type="password"
+              autoComplete="new-password"
+              minLength={MIN_PASSWORD}
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new-password-again">New password again</Label>
+            <Input
+              id="new-password-again"
+              type="password"
+              autoComplete="new-password"
+              value={again}
+              aria-invalid={mismatch || undefined}
+              onChange={(e) => setAgain(e.target.value)}
+            />
+            {mismatch ? (
+              <p className="text-xs text-destructive">The passwords don't match.</p>
+            ) : null}
+          </div>
+        </div>
+        <Button type="submit" disabled={busy || !ready}>
+          {busy ? "Saving…" : hasPassword === false ? "Set password" : "Change password"}
+        </Button>
+      </form>
+      <Note msg={msg} />
+    </Panel>
+  );
+}
+
+type Prefs = { billing_emails: boolean; org_activity_emails: boolean; product_news: boolean };
+const DEFAULT_PREFS: Prefs = {
+  billing_emails: true,
+  org_activity_emails: true,
+  product_news: false,
+};
+const PREF_ROWS: { key: keyof Prefs; label: string; help: string }[] = [
+  {
+    key: "billing_emails",
+    label: "Billing",
+    help: "Trial reminders, receipts and payment problems for organizations you own or administer.",
+  },
+  {
+    key: "org_activity_emails",
+    label: "Organization activity",
+    help: "When someone joins, leaves or changes roles in your organizations.",
+  },
+  { key: "product_news", label: "Product news", help: "New features, a few times a year." },
+];
+
+function NotificationsPanel() {
+  const supabase = getSupabaseBrowserClient();
+  const saved = useAsync(async () => {
+    if (!supabase) return DEFAULT_PREFS;
+    const rows = (await must(supabase.rpc("hub_get_my_preferences"))) as Prefs[];
+    return rows[0] ?? DEFAULT_PREFS;
+  }, [supabase]);
+  const [draft, setDraft] = useState<Prefs | null>(null);
+  const [msg, setMsg] = useState<Msg>(null);
+  const [busy, setBusy] = useState(false);
+  const prefs = draft ?? saved.data ?? DEFAULT_PREFS;
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!supabase) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("hub_set_my_preferences", {
+      p_billing: prefs.billing_emails,
+      p_org_activity: prefs.org_activity_emails,
+      p_product_news: prefs.product_news,
+    });
+    setBusy(false);
+    setMsg(error ? { ok: false, text: error.message } : { ok: true, text: "Saved." });
+    if (!error) {
+      setDraft(null);
+      await saved.reload();
+    }
+  }
+
+  return (
+    <Panel title="Email notifications" description="Choose what we email you about.">
+      {saved.error ? <Alert variant="destructive">{saved.error}</Alert> : null}
+      <form className="space-y-3" onSubmit={onSubmit}>
+        <ul className="space-y-3">
+          <li className="flex items-start gap-3">
+            <input
+              id="pref-account"
+              type="checkbox"
+              className="mt-1 size-4 accent-primary"
+              checked
+              disabled
+            />
+            <label htmlFor="pref-account" className="text-sm">
+              <span className="font-medium">Account, security and legal notices</span>{" "}
+              <span className="text-muted-foreground">(always on)</span>
+              <span className="block text-muted-foreground">
+                Sign-in and password changes, invitations, and changes to the Terms or Privacy
+                Policy.
+              </span>
+            </label>
+          </li>
+          {PREF_ROWS.map((row) => (
+            <li key={row.key} className="flex items-start gap-3">
+              <input
+                id={`pref-${row.key}`}
+                type="checkbox"
+                className="mt-1 size-4 accent-primary"
+                checked={prefs[row.key]}
+                disabled={saved.loading}
+                onChange={(e) => setDraft({ ...prefs, [row.key]: e.target.checked })}
+              />
+              <label htmlFor={`pref-${row.key}`} className="text-sm">
+                <span className="font-medium">{row.label}</span>
+                <span className="block text-muted-foreground">{row.help}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+        <Button type="submit" disabled={busy || !draft}>
+          {busy ? "Saving…" : "Save"}
+        </Button>
+      </form>
+      <Note msg={msg} />
+    </Panel>
+  );
+}
+
+function SessionsPanel() {
+  const [busy, setBusy] = useState(false);
+  async function signOutEverywhere() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    setBusy(true);
+    await supabase.auth.signOut({ scope: "global" });
+    window.location.assign("/login");
+  }
+  return (
+    <Panel
+      title="Signed-in devices"
+      description="Signs you out of OpenAppHub and every app, on every device, including this one."
+    >
+      <Button variant="outline" disabled={busy} onClick={() => void signOutEverywhere()}>
+        {busy ? "Signing out…" : "Sign out everywhere"}
+      </Button>
+    </Panel>
   );
 }

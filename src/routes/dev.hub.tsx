@@ -49,6 +49,7 @@ function Preview() {
     role,
     billing: null,
     demoTools: true,
+    prefs: { timeZone: "America/Toronto", currency: "CAD" },
   };
   const props = { user, hub };
   const fakeInvite = (async ({ data }: { data: { email: string } }) =>

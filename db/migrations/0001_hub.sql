@@ -27,18 +27,19 @@ create table if not exists hub.waitlist (
 );
 
 -- Terms and privacy acceptance ----------------------------------------------------
+-- When someone signs up they accept the Terms and the Privacy Policy; this
+-- records that they did and when. There are no versions: when the documents
+-- change, everyone is told by email, and continuing to use OpenAppHub means
+-- accepting the new ones.
 
 create table if not exists hub.legal_acceptances (
-  id bigint generated always as identity primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
   document text not null check (document in ('terms', 'privacy')),
-  version text not null,
   accepted_at timestamptz not null,
-  unique (user_id, document, version)
+  primary key (user_id, document)
 );
 
--- Sign-up sends terms_accepted_at / privacy_accepted_at (and the version) in the
--- user's metadata; this records them. Version defaults to the sign-up date.
+-- Sign-up sends terms_accepted_at / privacy_accepted_at in the user's metadata.
 create or replace function hub.record_legal_acceptance()
 returns trigger
 language plpgsql
@@ -57,14 +58,9 @@ begin
       v_at := null;
     end;
     if v_at is not null then
-      insert into hub.legal_acceptances (user_id, document, version, accepted_at)
-      values (
-        new.id,
-        v_doc,
-        coalesce(nullif(v_meta ->> 'legal_version', ''), to_char(v_at at time zone 'UTC', 'YYYY-MM-DD')),
-        v_at
-      )
-      on conflict (user_id, document, version) do nothing;
+      insert into hub.legal_acceptances (user_id, document, accepted_at)
+      values (new.id, v_doc, v_at)
+      on conflict (user_id, document) do nothing;
     end if;
   end loop;
   return new;
@@ -77,13 +73,36 @@ create trigger hub_record_legal_acceptance
   for each row execute function hub.record_legal_acceptance();
 
 -- Accounts created before this migration.
-insert into hub.legal_acceptances (user_id, document, version, accepted_at)
-select u.id, d.doc, to_char((u.raw_user_meta_data ->> (d.doc || '_accepted_at'))::timestamptz at time zone 'UTC', 'YYYY-MM-DD'),
-       (u.raw_user_meta_data ->> (d.doc || '_accepted_at'))::timestamptz
+insert into hub.legal_acceptances (user_id, document, accepted_at)
+select u.id, d.doc, (u.raw_user_meta_data ->> (d.doc || '_accepted_at'))::timestamptz
 from auth.users u
 cross join (values ('terms'), ('privacy')) as d(doc)
 where u.raw_user_meta_data ->> (d.doc || '_accepted_at') ~ '^\d{4}-\d{2}-\d{2}T'
-on conflict (user_id, document, version) do nothing;
+on conflict (user_id, document) do nothing;
+
+-- Organization billing contact ------------------------------------------------------
+-- Where invoices go, when that isn't the owner's own email. Used by billing.
+
+create table if not exists hub.org_settings (
+  org_id uuid primary key references public.organizations (id) on delete cascade,
+  billing_email text
+    check (billing_email is null or (billing_email = lower(btrim(billing_email))
+      and char_length(billing_email) <= 254 and billing_email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')),
+  billing_name text check (billing_name is null or char_length(billing_name) <= 200),
+  updated_at timestamptz not null default now()
+);
+
+-- Email preferences ----------------------------------------------------------------
+-- Account, security and legal notices (sign-in, password and email changes,
+-- changes to the Terms or Privacy Policy) are always sent and aren't listed here.
+
+create table if not exists hub.user_preferences (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  billing_emails boolean not null default true,
+  org_activity_emails boolean not null default true,
+  product_news boolean not null default false,
+  updated_at timestamptz not null default now()
+);
 
 -- Audit of core tables (AGENTS step 16) ---------------------------------------------
 -- No foreign key to organizations: the record of a deleted org is kept.
@@ -165,6 +184,8 @@ alter table hub.waitlist enable row level security;
 alter table hub.legal_acceptances enable row level security;
 alter table hub.audit_log enable row level security;
 alter table hub.platform_operators enable row level security;
+alter table hub.org_settings enable row level security;
+alter table hub.user_preferences enable row level security;
 alter table hub.demo_orgs enable row level security;
 grant all on all tables in schema hub to service_role;
 
@@ -297,6 +318,78 @@ begin
 end;
 $$;
 
+create or replace function public.hub_get_org_billing_contact(p_org uuid)
+returns table (billing_email text, billing_name text)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.has_role(p_org, '{owner,admin}'::public.org_role[]) then
+    raise exception 'Only the owner or an admin can see the billing contact.' using errcode = '42501';
+  end if;
+  return query select s.billing_email, s.billing_name from hub.org_settings s where s.org_id = p_org;
+end;
+$$;
+
+create or replace function public.hub_set_org_billing_contact(p_org uuid, p_email text, p_name text)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_email text := nullif(lower(btrim(coalesce(p_email, ''))), '');
+  v_name text := nullif(btrim(coalesce(p_name, '')), '');
+begin
+  if not public.has_role(p_org, '{owner,admin}'::public.org_role[]) then
+    raise exception 'Only the owner or an admin can change the billing contact.' using errcode = '42501';
+  end if;
+  if v_email is not null and (char_length(v_email) > 254 or v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$') then
+    raise exception 'Enter a valid email address.' using errcode = '22023';
+  end if;
+  insert into hub.org_settings (org_id, billing_email, billing_name, updated_at)
+  values (p_org, v_email, left(v_name, 200), now())
+  on conflict (org_id) do update
+    set billing_email = excluded.billing_email, billing_name = excluded.billing_name, updated_at = now();
+end;
+$$;
+
+create or replace function public.hub_get_my_preferences()
+returns table (billing_emails boolean, org_activity_emails boolean, product_news boolean)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(p.billing_emails, true), coalesce(p.org_activity_emails, true), coalesce(p.product_news, false)
+  from (select auth.uid() as uid) me
+  left join hub.user_preferences p on p.user_id = me.uid
+  where me.uid is not null;
+$$;
+
+create or replace function public.hub_set_my_preferences(p_billing boolean, p_org_activity boolean, p_product_news boolean)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := public._require_uid();
+begin
+  insert into hub.user_preferences (user_id, billing_emails, org_activity_emails, product_news, updated_at)
+  values (v_uid, coalesce(p_billing, true), coalesce(p_org_activity, true), coalesce(p_product_news, false), now())
+  on conflict (user_id) do update
+    set billing_emails = excluded.billing_emails,
+        org_activity_emails = excluded.org_activity_emails,
+        product_news = excluded.product_news,
+        updated_at = now();
+end;
+$$;
+
 revoke all on function
   hub.record_legal_acceptance(),
   hub.audit_core_row(),
@@ -306,7 +399,11 @@ revoke all on function
   public.hub_demo_tools_enabled(),
   public.hub_create_demo_org(text),
   public.hub_delete_demo_org(uuid),
-  public.hub_list_demo_orgs()
+  public.hub_list_demo_orgs(),
+  public.hub_get_org_billing_contact(uuid),
+  public.hub_set_org_billing_contact(uuid, text, text),
+  public.hub_get_my_preferences(),
+  public.hub_set_my_preferences(boolean, boolean, boolean)
 from public, anon, authenticated;
 
 grant execute on function public.hub_join_waitlist(text, text) to anon, authenticated;
@@ -316,5 +413,9 @@ grant execute on function
   public.hub_demo_tools_enabled(),
   public.hub_create_demo_org(text),
   public.hub_delete_demo_org(uuid),
-  public.hub_list_demo_orgs()
+  public.hub_list_demo_orgs(),
+  public.hub_get_org_billing_contact(uuid),
+  public.hub_set_org_billing_contact(uuid, text, text),
+  public.hub_get_my_preferences(),
+  public.hub_set_my_preferences(boolean, boolean, boolean)
 to authenticated;

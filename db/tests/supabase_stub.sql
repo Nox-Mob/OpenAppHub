@@ -27,6 +27,8 @@ create table if not exists auth.users (
   raw_user_meta_data jsonb default '{}'::jsonb,
   created_at timestamptz default now()
 );
+-- Present on real Supabase; added here for the stub.
+alter table auth.users add column if not exists banned_until timestamptz;
 
 do $$
 begin

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { OrgBilling } from "@shared/supabase/billing";
-import type { MyOrg, OrgRole } from "@shared/supabase/org";
+import type { MyOrg, OrgPreferences, OrgRole } from "@shared/supabase/org";
 
 export type HubContext = {
   orgs: MyOrg[];
@@ -8,6 +8,8 @@ export type HubContext = {
   role: OrgRole | null;
   billing: OrgBilling | null;
   demoTools: boolean;
+  /** The current org's time zone and currency, for shared/format.ts. */
+  prefs: OrgPreferences;
 };
 
 const EMPTY: HubContext = {
@@ -16,6 +18,7 @@ const EMPTY: HubContext = {
   role: null,
   billing: null,
   demoTools: false,
+  prefs: { timeZone: "UTC", currency: "USD" },
 };
 
 /**
@@ -42,7 +45,7 @@ export const getHubContext = createServerFn({ method: "GET" }).handler(
         orgs,
         cookie ? org.readOrgCookie(`oah_org=${cookie}`) : null,
       );
-      const [orgBilling, demo] = await Promise.all([
+      const [orgBilling, demo, prefs] = await Promise.all([
         current
           ? billing.getOrgBilling(supabase, current.id).catch(() => null)
           : Promise.resolve(null),
@@ -50,6 +53,7 @@ export const getHubContext = createServerFn({ method: "GET" }).handler(
           ({ data }) => data === true,
           () => false,
         ),
+        current ? org.getOrgPreferences(supabase, current.id) : Promise.resolve(EMPTY.prefs),
       ]);
       return {
         orgs,
@@ -57,6 +61,7 @@ export const getHubContext = createServerFn({ method: "GET" }).handler(
         role: current?.role ?? null,
         billing: orgBilling,
         demoTools: demo,
+        prefs,
       };
     } catch (error) {
       console.error("getHubContext:", error instanceof Error ? error.message : error);

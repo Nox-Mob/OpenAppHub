@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { billingNotice, daysLeft, hasAppAccess, type OrgBilling } from "./billing";
-import { orgCookieString, readOrgCookie, resolveCurrentOrg } from "./org";
+import { getOrgPreferences, orgCookieString, readOrgCookie, resolveCurrentOrg } from "./org";
 
 const A = "11111111-1111-4111-8111-111111111111";
 const B = "22222222-2222-4222-8222-222222222222";
@@ -142,5 +142,27 @@ describe("billingNotice", () => {
   it("daysLeft never goes negative", () => {
     expect(daysLeft("2026-11-01T00:00:00Z", now)).toBe(0);
     expect(daysLeft(null, now)).toBeNull();
+  });
+});
+
+describe("getOrgPreferences", () => {
+  const client = (result: unknown) =>
+    ({
+      from: () => ({
+        select: () => ({ eq: () => ({ maybeSingle: async () => result }) }),
+      }),
+    }) as never;
+  it("reads the org's time zone and currency", async () => {
+    expect(
+      await getOrgPreferences(
+        client({ data: { time_zone: "America/Toronto", currency: "CAD" }, error: null }),
+        A,
+      ),
+    ).toEqual({ timeZone: "America/Toronto", currency: "CAD" });
+  });
+  it("falls back to UTC and USD on an older core", async () => {
+    expect(
+      await getOrgPreferences(client({ data: null, error: { message: "column missing" } }), A),
+    ).toEqual({ timeZone: "UTC", currency: "USD" });
   });
 });

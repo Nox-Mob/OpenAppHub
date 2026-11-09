@@ -16,8 +16,6 @@ export const Route = createFileRoute("/signup")({
 });
 
 const MIN_PASSWORD = 8;
-/** Version of the Terms and Privacy Policy shown at sign-up (bump when they change). */
-const LEGAL_VERSION = "2026-11-09";
 
 function signupsOpen() {
   return import.meta.env.VITE_SIGNUPS_OPEN !== "false";
@@ -93,7 +91,6 @@ function SignupPage() {
           full_name: name.trim(),
           terms_accepted_at: acceptedAt,
           privacy_accepted_at: acceptedAt,
-          legal_version: LEGAL_VERSION,
         },
       },
     });

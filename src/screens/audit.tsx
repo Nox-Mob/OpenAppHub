@@ -72,7 +72,7 @@ export function AuditScreen({ hub }: ScreenProps) {
               className="flex flex-col gap-0.5 py-3 sm:flex-row sm:items-baseline sm:gap-4"
             >
               <time className="w-44 shrink-0 text-xs text-muted-foreground tnum" dateTime={e.at}>
-                {formatDate(e.at, { time: true })}
+                {formatDate(e.at, { time: true, timeZone: hub.prefs.timeZone })}
               </time>
               <p className="text-sm">
                 <span className="font-semibold">{e.actor ? e.actor_name : "System"}</span>{" "}

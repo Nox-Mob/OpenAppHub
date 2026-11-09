@@ -12,7 +12,7 @@ declare
 begin
   -- Legal acceptance recorded from sign-up metadata.
   perform tests.ok((select count(*) from hub.legal_acceptances where user_id = alice) = 2, 'terms and privacy recorded');
-  perform tests.ok((select version from hub.legal_acceptances where user_id = alice and document = 'terms') = '2026-11-09', 'version from date');
+  perform tests.ok((select accepted_at from hub.legal_acceptances where user_id = alice and document = 'terms') = '2026-11-09T10:00:00Z'::timestamptz, 'acceptance time recorded');
   perform tests.ok((select count(*) from hub.legal_acceptances where user_id = bob) = 0, 'no metadata, nothing recorded');
 
   -- Waitlist: anyone can join once; nobody can read it through the API.
@@ -53,6 +53,30 @@ begin
   perform public.delete_organization(org, 'Audited Org 2');
   perform tests.as_super();
   perform tests.ok((select count(*) from hub.audit_log where org_id = org and table_name = 'organizations' and action = 'delete') = 1, 'deletion logged and kept');
+
+  -- Billing contact: owner/admin only, validated.
+  perform tests.as_user(alice);
+  org := public.create_organization('Billing Org');
+  perform public.hub_set_org_billing_contact(org, '  Treasurer@Example.org ', 'Riverside Treasurer');
+  perform tests.ok((select billing_email from public.hub_get_org_billing_contact(org)) = 'treasurer@example.org', 'billing email saved, normalised');
+  perform tests.throws(format('select public.hub_set_org_billing_contact(%L, %L, null)', org, 'nope'), 'invalid billing email refused', 'valid email');
+  perform public.hub_set_org_billing_contact(org, '', '');
+  perform tests.ok((select billing_email from public.hub_get_org_billing_contact(org)) is null, 'cleared');
+  perform tests.as_super();
+  insert into public.memberships (org_id, user_id, role) values (org, carol, 'member');
+  perform tests.as_user(carol);
+  perform tests.throws(format('select * from public.hub_get_org_billing_contact(%L)', org), 'members cannot see the billing contact', 'owner or an admin');
+  perform tests.throws(format('select public.hub_set_org_billing_contact(%L, %L, null)', org, 'x@example.org'), 'members cannot set it', 'owner or an admin');
+
+  -- Email preferences: defaults, then saved per user.
+  perform tests.ok((select product_news from public.hub_get_my_preferences()) = false, 'product news is opt-in');
+  perform tests.ok((select billing_emails from public.hub_get_my_preferences()) = true, 'billing emails on by default');
+  perform public.hub_set_my_preferences(false, true, true);
+  perform tests.ok((select billing_emails::text || org_activity_emails::text || product_news::text from public.hub_get_my_preferences()) = 'falsetruetrue', 'preferences saved');
+  perform tests.as_user(bob);
+  perform tests.ok((select product_news from public.hub_get_my_preferences()) = false, 'other users unaffected');
+  perform tests.as_anon();
+  perform tests.throws($q$select * from public.hub_get_my_preferences()$q$, 'anon has no preferences');
 
   -- Demo tools: operators only, staging only.
   perform tests.as_user(op);

@@ -196,7 +196,7 @@ export function MembersScreen({
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {i.role ? ROLE_LABEL[i.role] : `${i.app} access`} · expires{" "}
-                          {formatDate(i.expires_at)}
+                          {formatDate(i.expires_at, { timeZone: hub.prefs.timeZone })}
                         </p>
                       </div>
                       <Button

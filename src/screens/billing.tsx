@@ -349,8 +349,7 @@ function PlanPicker({
       </ul>
       {!configured ? (
         <Alert className="mt-4">
-          Plans open when prices are announced. Until then, your trial continues and nothing is
-          charged.
+          Plans open when prices are announced. Nothing is charged until you choose one.
         </Alert>
       ) : (
         <p className="mt-4 text-xs text-muted-foreground">

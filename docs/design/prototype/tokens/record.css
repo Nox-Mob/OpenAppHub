@@ -1,0 +1,87 @@
+/* Direction C: RECORD — the official record. Paper and ink, high contrast,
+   serif headings (Source Serif 4) over Source Sans 3, hairline rules,
+   near-square corners, no shadows except dialogs, dense tables. */
+@import url("https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Source+Sans+3:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap");
+
+:root {
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Source Serif 4", Georgia, serif;
+  --font-mono: "Source Code Pro", ui-monospace, monospace;
+  --heading-weight: 600;
+  --heading-tracking: -0.01em;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-base: 0.9375rem; --text-lg: 1.0625rem;
+  --text-xl: 1.375rem; --text-2xl: 1.75rem; --text-3xl: 2.125rem;
+  --radius: 0.125rem;
+  --badge-radius: 0.125rem;
+  --control-h: 2.25rem;
+  --row-h: 2.5rem;
+  --space-card: 1.25rem;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 0 16px 40px oklch(0.15 0.005 95 / 22%);
+  --card-border: 1px;
+
+  --background: oklch(0.99 0.004 95);
+  --foreground: oklch(0.18 0.006 95);
+  --card: oklch(0.995 0.003 95);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.2 0.006 95);
+  --primary-foreground: oklch(0.99 0.004 95);
+  --secondary: oklch(0.955 0.006 95);
+  --secondary-foreground: oklch(0.2 0.006 95);
+  --muted: oklch(0.965 0.006 95);
+  --muted-foreground: oklch(0.45 0.01 95);
+  --accent: oklch(0.95 0.008 95);
+  --accent-foreground: oklch(0.2 0.006 95);
+  --destructive: oklch(0.5 0.19 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.46 0.1 150);
+  --warning: oklch(0.5 0.12 62);
+  --info: oklch(0.45 0.12 255);
+  --border: oklch(0.86 0.008 95);
+  --input: oklch(0.6 0.01 95);
+  --ring: oklch(0.45 0.12 255);
+  --sidebar: oklch(0.975 0.006 95);
+  --sidebar-foreground: var(--foreground);
+  --chart-1: var(--app-accent);
+  --chart-2: oklch(0.8 0.01 95);
+
+  --app-accent: var(--primary);
+  --app-accent-foreground: var(--primary-foreground);
+}
+[data-app="charter"] { --app-accent: oklch(0.44 0.14 22); --app-accent-foreground: oklch(0.99 0 0); }
+[data-app="board"]   { --app-accent: oklch(0.42 0.12 258); --app-accent-foreground: oklch(0.99 0 0); }
+[data-app="ledger"]  { --app-accent: oklch(0.42 0.09 155); --app-accent-foreground: oklch(0.99 0 0); }
+
+[data-app="hub"] { --app-accent: var(--primary); --app-accent-foreground: var(--primary-foreground); }
+
+.dark {
+  --background: oklch(0.165 0.004 95);
+  --foreground: oklch(0.94 0.008 95);
+  --card: oklch(0.19 0.005 95);
+  --popover: oklch(0.21 0.005 95);
+  --primary: oklch(0.94 0.008 95);
+  --primary-foreground: oklch(0.18 0.006 95);
+  --secondary: oklch(0.25 0.006 95);
+  --secondary-foreground: oklch(0.94 0.008 95);
+  --muted: oklch(0.23 0.005 95);
+  --muted-foreground: oklch(0.72 0.01 95);
+  --accent: oklch(0.26 0.006 95);
+  --accent-foreground: oklch(0.94 0.008 95);
+  --destructive: oklch(0.7 0.17 27);
+  --destructive-foreground: oklch(0.165 0.004 95);
+  --success: oklch(0.75 0.12 150);
+  --warning: oklch(0.8 0.12 75);
+  --info: oklch(0.75 0.1 255);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 28%);
+  --ring: oklch(0.75 0.1 255);
+  --sidebar: oklch(0.18 0.004 95);
+  --chart-2: oklch(0.38 0.008 95);
+  --shadow-lg: 0 16px 40px oklch(0 0 0 / 55%);
+}
+.dark[data-app="charter"], .dark [data-app="charter"] { --app-accent: oklch(0.75 0.12 22); --app-accent-foreground: oklch(0.165 0.004 95); }
+.dark[data-app="board"], .dark [data-app="board"]   { --app-accent: oklch(0.76 0.1 258); --app-accent-foreground: oklch(0.165 0.004 95); }
+.dark[data-app="ledger"], .dark [data-app="ledger"]  { --app-accent: oklch(0.76 0.1 155); --app-accent-foreground: oklch(0.165 0.004 95); }

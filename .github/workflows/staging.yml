@@ -1,0 +1,44 @@
+name: Staging database
+
+# Push to main: apply migrations and seed data to the staging database.
+# Deploys are done by Cloudflare's Git integration, not by this workflow.
+# Skips with a notice until STAGING_DATABASE_URL exists.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-db
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+    steps:
+      - name: Check staging is set up
+        id: check
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::notice::STAGING_DATABASE_URL isn't set yet. Skipping staging migrations."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.check.outputs.ready == 'true'
+        uses: actions/checkout@v4
+      - if: steps.check.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.check.outputs.ready == 'true'
+        run: npm ci
+      - if: steps.check.outputs.ready == 'true'
+        name: Migrate staging (with seed)
+        run: node scripts/migrate.mjs --seed

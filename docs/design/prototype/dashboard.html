@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" data-app="ledger">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · prototype</title>
+<script src="prototype.js"></script>
+<link rel="stylesheet" href="prototype.css">
+</head>
+<body data-current="Dashboard" data-banner="trial">
+<template id="page">
+  <div class="page-head">
+    <div><h1>Dashboard</h1><p class="muted small">Fiscal year 2026 · Updated Nov 9, 2026, 9:14 AM</p></div>
+    <div class="actions"><a class="btn btn-outline" href="#">Export</a><a class="btn btn-primary" href="#" data-icon="swap">New transaction</a></div>
+  </div>
+  <section class="grid stats">
+    <div class="card card-pad stat"><div class="label">Cash on hand</div><div class="value">$48,250.12</div><div class="delta">3 accounts</div></div>
+    <div class="card card-pad stat"><div class="label">Income · Nov</div><div class="value">$12,480.00</div><div class="delta"><span class="up">+8.2%</span> vs Oct</div></div>
+    <div class="card card-pad stat"><div class="label">Expenses · Nov</div><div class="value">$9,316.45</div><div class="delta">74% of budget</div></div>
+    <div class="card card-pad stat"><div class="label">Restricted funds</div><div class="value">$15,000.00</div><div class="delta">2 grants</div></div>
+  </section>
+  <section class="grid two">
+    <div class="card">
+      <div class="card-head"><h2>Income and expenses</h2><div class="legend"><span>Income</span><span class="o">Expenses</span></div></div>
+      <div class="chart" role="img" aria-label="Monthly income and expenses, June to November">
+        <div class="month"><div class="bars"><div class="bar in" style="height:52%"></div><div class="bar out" style="height:44%"></div></div><span class="xs muted">Jun</span></div>
+        <div class="month"><div class="bars"><div class="bar in" style="height:61%"></div><div class="bar out" style="height:50%"></div></div><span class="xs muted">Jul</span></div>
+        <div class="month"><div class="bars"><div class="bar in" style="height:48%"></div><div class="bar out" style="height:57%"></div></div><span class="xs muted">Aug</span></div>
+        <div class="month"><div class="bars"><div class="bar in" style="height:70%"></div><div class="bar out" style="height:53%"></div></div><span class="xs muted">Sep</span></div>
+        <div class="month"><div class="bars"><div class="bar in" style="height:76%"></div><div class="bar out" style="height:60%"></div></div><span class="xs muted">Oct</span></div>
+        <div class="month"><div class="bars"><div class="bar in" style="height:83%"></div><div class="bar out" style="height:62%"></div></div><span class="xs muted">Nov</span></div>
+      </div>
+      <div class="table-wrap" style="margin-top:1rem">
+        <table>
+          <thead><tr><th>Date</th><th>Description</th><th class="hide-phone">Fund</th><th class="num">Amount</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">Nov 8, 2026</td><td>Fall food drive donations</td><td class="hide-phone"><span class="badge b-neutral plain">General</span></td><td class="num">$2,350.00</td></tr>
+            <tr><td class="muted">Nov 7, 2026</td><td>Hall rental, November</td><td class="hide-phone"><span class="badge b-neutral plain">General</span></td><td class="num neg">-$650.00</td></tr>
+            <tr><td class="muted">Nov 5, 2026</td><td>City youth grant, Q4</td><td class="hide-phone"><span class="badge b-info plain">Youth grant</span></td><td class="num">$5,000.00</td></tr>
+            <tr><td class="muted">Nov 3, 2026</td><td>Printing: annual report</td><td class="hide-phone"><span class="badge b-neutral plain">General</span></td><td class="num neg">-$316.45</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Needs attention</h2><span class="badge b-warning">3</span></div>
+      <ul class="list">
+        <li><div class="grow"><div class="title">Reconcile checking</div><p class="small muted">14 unmatched lines since Oct 31, 2026</p></div><span class="badge b-warning">Due</span></li>
+        <li><div class="grow"><div class="title">Programs budget at 92%</div><p class="small muted">$9,200.00 of $10,000.00 spent</p></div><span class="badge b-danger">Over soon</span></li>
+        <li><div class="grow"><div class="title">October books</div><p class="small muted">Ready to close</p></div><span class="badge b-success">Ready</span></li>
+        <li><div class="grow"><div class="title">Pledge from Lee Family Trust</div><p class="small muted">$1,200.00 expected Dec 1, 2026</p></div><span class="badge b-outline">Pledged</span></li>
+      </ul>
+    </div>
+  </section>
+</template>
+</body>
+</html>

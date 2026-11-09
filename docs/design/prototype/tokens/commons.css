@@ -1,0 +1,89 @@
+/* Direction B: COMMONS — warm, friendly, for volunteers. Warm whites, charcoal
+   primary, colourful app accents, rounded corners, soft layered shadows,
+   roomy spacing. Figtree for text, Bricolage Grotesque for headings. */
+@import url("https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+:root {
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --heading-weight: 700;
+  --heading-tracking: -0.015em;
+  --text-xs: 0.8125rem; --text-sm: 0.875rem; --text-base: 0.9375rem; --text-lg: 1.0625rem;
+  --text-xl: 1.375rem; --text-2xl: 1.75rem; --text-3xl: 2.25rem;
+  --radius: 0.75rem;
+  --badge-radius: 999px;
+  --control-h: 2.625rem;
+  --row-h: 3.25rem;
+  --space-card: 1.5rem;
+  --shadow-sm: 0 1px 2px oklch(0.3 0.03 50 / 6%), 0 1px 1px oklch(0.3 0.03 50 / 4%);
+  --shadow-md: 0 4px 12px oklch(0.3 0.03 50 / 8%), 0 1px 3px oklch(0.3 0.03 50 / 6%);
+  --shadow-lg: 0 24px 48px oklch(0.3 0.03 50 / 18%), 0 4px 12px oklch(0.3 0.03 50 / 8%);
+  --card-border: 0px;
+
+  --background: oklch(0.975 0.01 80);
+  --foreground: oklch(0.25 0.02 55);
+  --card: oklch(1 0.003 80);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0.003 80);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.29 0.02 55);
+  --primary-foreground: oklch(0.985 0.008 80);
+  --secondary: oklch(0.94 0.015 75);
+  --secondary-foreground: oklch(0.29 0.02 55);
+  --muted: oklch(0.955 0.012 78);
+  --muted-foreground: oklch(0.49 0.025 55);
+  --accent: oklch(0.935 0.02 75);
+  --accent-foreground: oklch(0.29 0.02 55);
+  --destructive: oklch(0.53 0.19 28);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.49 0.11 150);
+  --warning: oklch(0.5 0.12 65);
+  --info: oklch(0.5 0.12 240);
+  --border: oklch(0.91 0.014 75);
+  --input: oklch(0.63 0.025 65);
+  --ring: oklch(0.55 0.14 45);
+  --sidebar: oklch(0.955 0.014 78);
+  --sidebar-foreground: var(--foreground);
+  --chart-1: var(--app-accent);
+  --chart-2: oklch(0.82 0.03 70);
+
+  --app-accent: var(--primary);
+  --app-accent-foreground: var(--primary-foreground);
+}
+[data-app="charter"] { --app-accent: oklch(0.53 0.15 38); --app-accent-foreground: oklch(0.99 0 0); }
+[data-app="board"]   { --app-accent: oklch(0.49 0.14 345); --app-accent-foreground: oklch(0.99 0 0); }
+[data-app="ledger"]  { --app-accent: oklch(0.49 0.1 175); --app-accent-foreground: oklch(0.99 0 0); }
+
+[data-app="hub"] { --app-accent: var(--primary); --app-accent-foreground: var(--primary-foreground); }
+
+.dark {
+  --background: oklch(0.2 0.012 55);
+  --foreground: oklch(0.95 0.01 80);
+  --card: oklch(0.245 0.014 55);
+  --popover: oklch(0.27 0.014 55);
+  --primary: oklch(0.93 0.012 80);
+  --primary-foreground: oklch(0.22 0.015 55);
+  --secondary: oklch(0.3 0.016 55);
+  --secondary-foreground: oklch(0.95 0.01 80);
+  --muted: oklch(0.28 0.014 55);
+  --muted-foreground: oklch(0.74 0.02 75);
+  --accent: oklch(0.31 0.018 55);
+  --accent-foreground: oklch(0.95 0.01 80);
+  --destructive: oklch(0.7 0.17 28);
+  --destructive-foreground: oklch(0.2 0.012 55);
+  --success: oklch(0.76 0.12 150);
+  --warning: oklch(0.82 0.13 80);
+  --info: oklch(0.76 0.1 240);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.75 0.13 50);
+  --sidebar: oklch(0.225 0.013 55);
+  --chart-2: oklch(0.42 0.02 60);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 30%);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 35%);
+  --shadow-lg: 0 24px 48px oklch(0 0 0 / 55%);
+}
+.dark[data-app="charter"], .dark [data-app="charter"] { --app-accent: oklch(0.76 0.13 45); --app-accent-foreground: oklch(0.2 0.012 55); }
+.dark[data-app="board"], .dark [data-app="board"]   { --app-accent: oklch(0.77 0.12 345); --app-accent-foreground: oklch(0.2 0.012 55); }
+.dark[data-app="ledger"], .dark [data-app="ledger"]  { --app-accent: oklch(0.77 0.1 175); --app-accent-foreground: oklch(0.2 0.012 55); }

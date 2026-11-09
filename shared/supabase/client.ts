@@ -9,10 +9,16 @@ import { isHosted } from "./hosted";
 
 export type SupabaseConfig = { url: string; key: string };
 
+/** Placeholder values in wrangler.jsonc (e.g. PROD_PROJECT_REF) count as "not configured". */
+export function isPlaceholder(value: string | undefined): boolean {
+  return !value || value.includes("PROJECT_REF") || /^[A-Z][A-Z0-9_]*$/.test(value);
+}
+
 export function supabaseConfig(): SupabaseConfig | null {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  return url && key ? { url, key } : null;
+  if (isPlaceholder(url) || isPlaceholder(key)) return null;
+  return { url: url as string, key: key as string };
 }
 
 export function cookieOptions() {

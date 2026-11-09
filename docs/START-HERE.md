@@ -22,8 +22,8 @@ Prompt for each repo's agent:
 
 1. **Create `Nox-Mob/OpenAppHub`** and start its agent. Everything else is blocked on its Phase 1–2.
 2. **Disconnect Lovable** from OpenCharterApp, OpenBoardApp and OpenLedgerApp before their database work reaches `main`.
-3. **Back up the production database** (Supabase → Database → Backups, or ask an agent for a `pg_dump` workflow) before Charter's park step.
-4. **Delete the demo accounts on production:** every `@opencharter.test` user, then the `SMOKE_DEMO_PASSWORD` repo secret.
+3. **Create two new Supabase projects**, `openapphub-prod` and `openapphub-staging`, and send their project IDs and publishable keys. (Owner change 2026-11-08: the old projects are deleted; nothing is copied or parked.)
+4. **Delete the `SMOKE_DEMO_PASSWORD` repo secret** (the old demo accounts go away with the old projects).
 5. **Keep sign-ups closed** on both Supabase projects until launch.
 6. Turn on **secret scanning and push protection** on all five repos.
 
@@ -37,16 +37,16 @@ Prompt for each repo's agent:
 
 | # | Repo | Change |
 |---|---|---|
-| 1 | Charter | `0000_park_legacy.sql` (moves old tables aside; deletes nothing) |
-| 2 | Hub | `db/core/*` + `0001_billing.sql` |
-| 3 | Charter | `0001_charter_baseline.sql` |
-| 4 | Board | `0001_board_baseline.sql` |
-| 5 | Ledger | `0001_ledger_baseline.sql` |
-| 6 | — | Wipe Board's old project → **staging**; run `staging.yml` in every repo (this loads the demo) |
+| 1 | Hub | `db/core/*` (+ `0001_billing.sql` once billing is built) |
+| 2 | Charter | `0001_charter_baseline.sql` |
+| 3 | Board | `0001_board_baseline.sql` |
+| 4 | Ledger | `0001_ledger_baseline.sql` |
+
+Staging (`openapphub-staging`) gets the same order, plus each repo's seed data, through `staging.yml`.
 
 You run each with the repo's **Release** (or **Migrate**) workflow in GitHub Actions. Production never deploys by itself: pushing to `main` updates staging only.
 
-The hosted Charter site is down between steps 1 and 3; that's expected.
+Both databases start empty: there is no park step and no legacy schema.
 
 ## Things only you can do
 

@@ -18,21 +18,39 @@ function trimSlash(url: string): string {
 
 /** Absolute URL on the hub, e.g. hubUrl("/billing"). */
 export function hubUrl(path = "/"): string {
-  const base = trimSlash(import.meta.env.VITE_HUB_URL ?? "");
+  const base = trimSlash(import.meta.env.VITE_HUB_URL || suiteUrls().hub || "");
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+export const ALL_APPS = ["hub", ...SUITE_APPS] as const;
+
+export type SuiteUrls = Partial<Record<AppId, string>>;
+
 /**
- * Parses VITE_SUITE_URLS: "charter=https://charter.openapphub.org,board=…,ledger=…".
- * Unknown keys and malformed URLs are ignored.
+ * Parses VITE_SUITE_URLS, a JSON object of app origins (SHARED-SPEC §7.1):
+ *   {"hub":"https://openapphub.org","charter":"https://charter.openapphub.org",
+ *    "board":"https://board.openapphub.org","ledger":"https://ledger.openapphub.org"}
+ * Unknown keys, non-http(s) URLs and malformed values are ignored; invalid JSON
+ * gives {}. Values are normalised to origins.
  */
-export function parseSuiteUrls(raw: string | undefined): Partial<Record<SuiteApp, string>> {
-  const out: Partial<Record<SuiteApp, string>> = {};
-  for (const part of (raw ?? "").split(",")) {
-    const [key, value] = part.split("=").map((s) => s.trim());
-    if (!key || !value || !(SUITE_APPS as readonly string[]).includes(key)) continue;
+export function parseSuiteUrls(raw: unknown): SuiteUrls {
+  let value: unknown = raw;
+  if (typeof raw === "string") {
+    if (!raw.trim()) return {};
     try {
-      out[key as SuiteApp] = new URL(value).origin;
+      value = JSON.parse(raw);
+    } catch {
+      return {};
+    }
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: SuiteUrls = {};
+  for (const app of ALL_APPS) {
+    const url = (value as Record<string, unknown>)[app];
+    if (typeof url !== "string") continue;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") out[app] = parsed.origin;
     } catch {
       // ignore malformed entries
     }
@@ -40,7 +58,7 @@ export function parseSuiteUrls(raw: string | undefined): Partial<Record<SuiteApp
   return out;
 }
 
-export function suiteUrls(): Partial<Record<SuiteApp, string>> {
+export function suiteUrls(): SuiteUrls {
   return parseSuiteUrls(import.meta.env.VITE_SUITE_URLS);
 }
 

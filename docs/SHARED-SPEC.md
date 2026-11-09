@@ -4,6 +4,8 @@
 Place it at `docs/SHARED-SPEC.md` in all four app repos (the docs repo has its own `AGENTS.md`).
 If this file and a repo's `AGENTS.md` conflict, this file wins; stop and ask the owner.
 
+**v2.1 (2026-11-08, owner change):** the suite starts from **fresh databases**. The old Supabase projects are being deleted; nothing is copied or parked, and there is no legacy schema. `VITE_SUITE_URLS` is a JSON object (§7.1). Changes are in §0.1, §3.1 and §7.1.
+
 **v2 (2026-11-08)** replaces v1. It answers the questions raised in each repo's `docs/MIGRATION-NOTES.md` (§0.2). Each repo's notes remain its step-by-step plan; where a note proposed something this spec now settles differently, this spec wins and the agent updates the note in its next PR.
 
 ---
@@ -16,8 +18,10 @@ If this file and a repo's `AGENTS.md` conflict, this file wins; stop and ask the
 |---|---|
 | Apex domain | `openapphub.org` |
 | GitHub org | `Nox-Mob` |
-| Production Supabase project | `nxungwtxnctcqolfshcr` (today's OpenCharterApp project) |
-| Staging Supabase project | `dnsqxiiexkdokgebysrt` (today's OpenBoardApp project, wiped and reused after Board moves) |
+| Production Supabase project | `openapphub-prod`, a **new, empty** project. Project ID and publishable key: **pending from the owner** (use placeholders until then) |
+| Staging Supabase project | `openapphub-staging`, a **new, empty** project. Project ID and publishable key: **pending from the owner** (use placeholders until then) |
+| Old projects | `nxungwtxnctcqolfshcr` and `dnsqxiiexkdokgebysrt` are being **deleted**. Never use their IDs. Nothing is copied or parked from them; there is no legacy schema |
+| Production database order | hub core (+ hub billing later) → Charter baseline → Board baseline → Ledger baseline. Staging: the same, plus each repo's seed data, once it exists |
 | Design | **Full refresh** for all four apps (§9). No existing app is the reference. |
 | Docs site | `https://docs.openapphub.org`, repo `Nox-Mob/OpenAppHub-docs` (§12) |
 | Prices | **Not confirmed** (§6.1). Don't put prices anywhere except `pricing.ts` and the draft plans page. |
@@ -149,7 +153,6 @@ Invitations, ownership transfer, organization creation and deletion, and the mem
 | `charter` | OpenCharterApp | Charter tables | yes |
 | `board` | OpenBoardApp | Board tables | yes |
 | `ledger` | OpenLedgerApp | Ledger tables | yes |
-| `charter_legacy` | OpenCharterApp (temporary) | parked old Charter objects | no |
 
 **A repo only writes migrations for schemas it owns.** Need something in another schema (including core)? Open an issue on that repo.
 
@@ -407,6 +410,9 @@ Hub server functions and routes on its Worker:
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | Worker `vars` | yes | all |
 | `VITE_HOSTED`, `VITE_APP_ID`, `VITE_APP_SCHEMA` | Worker `vars` / code defaults | yes | all |
 | `VITE_HUB_URL`, `VITE_COOKIE_DOMAIN`, `VITE_SUITE_URLS`, `VITE_DOCS_URL` | Worker `vars` | yes | all (hosted) |
+
+`VITE_SUITE_URLS` is a JSON object of app origins, the same shape everywhere: `{"hub":"https://openapphub.org","charter":"https://charter.openapphub.org","board":"https://board.openapphub.org","ledger":"https://ledger.openapphub.org"}`. `shared/supabase/hosted.ts` (`parseSuiteUrls`) parses it; unknown keys and invalid URLs are ignored.
+
 | `SUPABASE_SERVICE_ROLE_KEY` | Worker secret | **NO** | hub, Charter (allowlist §7.2) |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MAP` | Worker secret | **NO** | hub |
 | Charter's gateway encryption key | Worker secret | **NO** | Charter |

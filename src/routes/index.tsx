@@ -1,9 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { docsUrl } from "@shared/docs";
 import { suiteUrls } from "@shared/supabase/hosted";
+import { AppShell } from "@shared/ui/AppShell";
 import { Button } from "@/components/ui/button";
 import { Landing } from "@/components/landing/Landing";
 import { SiteFooter, SiteHeader } from "@/components/site";
 import { APPS } from "@/config/apps";
+import { signOut } from "@/lib/auth-client";
+import { getOrgContext } from "@/lib/orgs";
+import { RouterLink } from "@/lib/router-link";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,17 +28,45 @@ export const Route = createFileRoute("/")({
       { property: "og:type", content: "website" },
     ],
   }),
+  loader: ({ context }) => (context.user ? getOrgContext() : null),
   component: HomePage,
 });
 
 function HomePage() {
   const { user } = Route.useRouteContext();
+  const orgContext = Route.useLoaderData();
+  const router = useRouter();
+  if (!user) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <SiteHeader signedIn={false} />
+        <Landing />
+        <SiteFooter />
+      </div>
+    );
+  }
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader signedIn={!!user} />
-      {user ? <SignedIn name={user.name ?? user.email ?? "there"} /> : <Landing />}
-      <SiteFooter />
-    </div>
+    <AppShell
+      app="hub"
+      nav={[{ label: "Dashboard", href: "/", current: true, icon: <DashboardIcon /> }]}
+      user={{ name: user.name, email: user.email }}
+      orgs={orgContext?.orgs ?? []}
+      currentOrgId={orgContext?.currentOrgId ?? null}
+      onSelectOrg={() => void router.invalidate()}
+      helpHref={docsUrl("hub/")}
+      onSignOut={() => void signOut()}
+      LinkComponent={RouterLink}
+    >
+      <SignedIn name={user.name ?? user.email ?? "there"} />
+    </AppShell>
+  );
+}
+
+function DashboardIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z" />
+    </svg>
   );
 }
 
@@ -41,7 +74,7 @@ function HomePage() {
 function SignedIn({ name }: { name: string }) {
   const urls = suiteUrls();
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6">
+    <>
       <h1 className="text-2xl font-semibold tracking-tight">Welcome, {name}</h1>
       <p className="mt-2 text-muted-foreground">
         You're signed in. Organizations, members and billing are coming next.
@@ -67,6 +100,6 @@ function SignedIn({ name }: { name: string }) {
           );
         })}
       </ul>
-    </main>
+    </>
   );
 }

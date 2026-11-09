@@ -9,6 +9,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
 import { themeInitScript } from "@shared/theme";
+import { CookieConsent } from "@shared/ui/CookieConsent";
 import { getSessionUser } from "@/lib/session";
 import appCss from "../styles.css?url";
 
@@ -74,7 +75,12 @@ function RootComponent() {
     });
     return () => data.subscription.unsubscribe();
   }, [router]);
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <CookieConsent policyHref="/cookies" privacyHref="/privacy" />
+    </>
+  );
 }
 
 function NotFound() {

@@ -489,6 +489,7 @@ The owner wants **one new design language for the whole suite**. Charter and Led
 - **Data:** numbers right-aligned with tabular figures; one money format (`$1,234.56`) and one date format (`Nov 9, 2026`, `Nov 9, 2026, 2:30 PM`) suite-wide, defined in `DESIGN.md` and implemented once in `shared/format.ts`. Every app uses those helpers.
 - **Dark mode:** Light / Dark / System (default System), toggle in the user menu. The choice is the `oah_theme` cookie on the parent domain, so choosing it in one app makes it the default in every app (`shared/theme.ts`, `shared/ui/ThemeToggle.tsx`).
 - **Accessibility:** contrast ≥ 4.5:1, visible focus, full keyboard use, labels on every input.
+- **Cookie consent (GDPR/ePrivacy, owner decision 2026-11-09):** every app renders the shared `CookieConsent` once. Required cookies (session, `oah_org`, `oah_consent`) are always on; anything else (today: `oah_theme`) is off until the visitor opts in, with "Accept" and "Reject" equally easy and choices changeable any time. One choice covers the suite. **Any new cookie or browser storage** is added to `COOKIES` in `shared/consent.ts`, and non-required ones check `hasConsent()` first. No advertising or tracking cookies without an owner decision and a new consent category.
 - **Restyling an app** happens in its own PRs, separate from data and auth work, with before/after screenshots, **without changing behaviour**. Visible text stays the same unless the owner approves, because the docs quote it.
 - Later revisions are token changes plus a `shared` sync.
 

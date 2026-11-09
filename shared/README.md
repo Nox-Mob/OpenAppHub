@@ -2,14 +2,32 @@
 
 Canonical shared code for the OpenAppHub suite (SHARED-SPEC §8). Apps vendor a read-only copy;
 never edit it in an app repo. Change it here, bump `VERSION`, then sync it into each app
-(`scripts/sync-shared.mjs`, coming in step 8).
+(`scripts/sync-shared.mjs`, step 8).
 
-| Path                             | What                                                               |
-| -------------------------------- | ------------------------------------------------------------------ |
-| `design/`                        | Tokens, Tailwind mapping and preset, `DESIGN.md` (read it first)   |
-| `format.ts`                      | The suite's money and date formats: use these, never local helpers |
-| `theme.ts`, `ui/ThemeToggle.tsx` | Light / dark / system, shared across the suite                     |
-| `supabase/`                      | Cookie-session browser client, hosted-mode helpers                 |
-| `docs.ts`                        | Links into docs.openapphub.org                                     |
+| Path                  | What                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `design/`             | Tokens, Tailwind mapping and preset, `DESIGN.md` (read it first)                                                                                                   |
+| `ui/`                 | `AppShell`, `SuiteSwitcher`, `OrgSwitcher`, `BillingBanner`, `HelpLink`, `InvitationPage`, `ThemeToggle`, `CookieConsent`, `CookieTable` (import from `shared/ui`) |
+| `format.ts`           | The suite's money and date formats: use these, never local helpers                                                                                                 |
+| `theme.ts`            | Light / dark / system, shared across the suite (saved only with consent)                                                                                           |
+| `consent.ts`          | Cookie consent: categories, the catalogue of every cookie, `hasConsent()`, `openCookieSettings()`                                                                  |
+| `supabase/client.ts`  | Cookie-session browser client (§4.1)                                                                                                                               |
+| `supabase/hosted.ts`  | `isHosted()`, `hubUrl()`, `loginRedirect()`, `suiteUrls()`, cookie domain                                                                                          |
+| `supabase/org.ts`     | Current organization (`oah_org` cookie), `listMyOrgs()`                                                                                                            |
+| `supabase/billing.ts` | `getOrgBilling()` (feature-detected), access rule, banner wording                                                                                                  |
+| `docs.ts`             | Links into docs.openapphub.org                                                                                                                                     |
+| `apps.ts`             | App names, taglines and marks                                                                                                                                      |
 
-Version `0.x` is pre-release: the shared shell components (step 7) aren't in yet; `1.0.0` follows.
+## Requirements in an app
+
+- React 19, Tailwind v4 with `design/tailwind.css` imported (see `DESIGN.md`), so Tailwind scans
+  `shared/` for classes.
+- `@supabase/supabase-js` and `@supabase/ssr`.
+- No icon library, no Radix: shared UI uses inline icons and plain elements, so it doesn't
+  depend on the apps' versions of those.
+- Everything renders under SSR (no `window` during render); `shared/ui/ssr.test.tsx` checks it.
+
+## Versions
+
+- `1.0.0`: design system, shared UI and helpers complete (AGENTS step 7).
+- `1.1.0`: cookie consent (banner, settings, cookie catalogue); the theme is saved only with consent.

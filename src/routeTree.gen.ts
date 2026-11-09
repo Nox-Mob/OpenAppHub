@@ -20,6 +20,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AppAccountRouteImport } from './routes/_app.account'
 import { Route as AppAuditRouteImport } from './routes/_app.audit'
+import { Route as AppBillingRouteImport } from './routes/_app.billing'
 import { Route as AppMembersRouteImport } from './routes/_app.members'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppWelcomeRouteImport } from './routes/_app.welcome'
@@ -85,6 +86,11 @@ const AppAuditRoute = AppAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBillingRoute = AppBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMembersRoute = AppMembersRouteImport.update({
   id: '/members',
   path: '/members',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/account': typeof AppAccountRoute
   '/audit': typeof AppAuditRoute
+  '/billing': typeof AppBillingRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
   '/welcome': typeof AppWelcomeRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/account': typeof AppAccountRoute
   '/audit': typeof AppAuditRoute
+  '/billing': typeof AppBillingRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
   '/welcome': typeof AppWelcomeRoute
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_app/account': typeof AppAccountRoute
   '/_app/audit': typeof AppAuditRoute
+  '/_app/billing': typeof AppBillingRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/welcome': typeof AppWelcomeRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/account'
     | '/audit'
+    | '/billing'
     | '/members'
     | '/settings'
     | '/welcome'
@@ -239,6 +249,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/account'
     | '/audit'
+    | '/billing'
     | '/members'
     | '/settings'
     | '/welcome'
@@ -262,6 +273,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_app/account'
     | '/_app/audit'
+    | '/_app/billing'
     | '/_app/members'
     | '/_app/settings'
     | '/_app/welcome'
@@ -370,6 +382,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/billing': {
+      id: '/_app/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AppBillingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/members': {
       id: '/_app/members'
       path: '/members'
@@ -446,6 +465,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
   AppAuditRoute: typeof AppAuditRoute
+  AppBillingRoute: typeof AppBillingRoute
   AppMembersRoute: typeof AppMembersRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppWelcomeRoute: typeof AppWelcomeRoute
@@ -456,6 +476,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAccountRoute: AppAccountRoute,
   AppAuditRoute: AppAuditRoute,
+  AppBillingRoute: AppBillingRoute,
   AppMembersRoute: AppMembersRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppWelcomeRoute: AppWelcomeRoute,

@@ -31,6 +31,7 @@ const ICONS = {
     "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 14H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3.1V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z",
   ),
   audit: icon("M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8zM14 3v5h5M9 13h6M9 17h6"),
+  billing: icon("M2 5h20v14H2zM2 10h20M6 15h4"),
   demo: icon("M12 2 2 7l10 5 10-5-10-5ZM2 17l10 5 10-5M2 12l10 5 10-5"),
 };
 
@@ -56,6 +57,7 @@ export function HubShell({
     nav.push(item("Members", "/members", ICONS.members));
     nav.push(item("Settings", "/settings", ICONS.settings));
     if (canManage(hub.role)) nav.push(item("Audit log", "/audit", ICONS.audit));
+    if (hub.billing) nav.push(item("Billing", "/billing", ICONS.billing));
   }
   if (hub.demoTools) nav.push(item("Demo organizations", "/admin/demo", ICONS.demo));
   return (

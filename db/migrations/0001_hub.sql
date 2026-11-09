@@ -92,6 +92,12 @@ create table if not exists hub.org_settings (
   updated_at timestamptz not null default now()
 );
 
+-- Guided setup (the dashboard's "Get set up" list): when the owner or an admin
+-- confirmed the time zone and currency, and when they dismissed the list.
+alter table hub.org_settings
+  add column if not exists setup_preferences_at timestamptz,
+  add column if not exists setup_dismissed_at timestamptz;
+
 -- Email preferences ----------------------------------------------------------------
 -- Account, security and legal notices (sign-in, password and email changes,
 -- changes to the Terms or Privacy Policy) are always sent and aren't listed here.
@@ -390,6 +396,67 @@ begin
 end;
 $$;
 
+-- Guided setup status for the dashboard (owner/admin). Invitations count only
+-- while pending; members include the owner.
+create or replace function public.hub_org_setup_status(p_org uuid)
+returns table (
+  preferences_done boolean,
+  dismissed boolean,
+  member_count int,
+  pending_invitations int,
+  has_billing_contact boolean
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.has_role(p_org, '{owner,admin}'::public.org_role[]) then
+    raise exception 'Only the owner or an admin can see the setup steps.' using errcode = '42501';
+  end if;
+  return query
+    select
+      s.setup_preferences_at is not null,
+      s.setup_dismissed_at is not null,
+      (select count(*)::int from public.memberships m where m.org_id = p_org),
+      (select count(*)::int from public.invitations i
+        where i.org_id = p_org and i.role is not null and i.accepted_at is null
+          and i.revoked_at is null and i.expires_at > now()),
+      s.billing_email is not null
+    from (select 1) one
+    left join hub.org_settings s on s.org_id = p_org;
+end;
+$$;
+
+-- p_step: 'preferences' (time zone and currency confirmed), 'dismiss' or 'reopen'.
+create or replace function public.hub_mark_org_setup(p_org uuid, p_step text)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.has_role(p_org, '{owner,admin}'::public.org_role[]) then
+    raise exception 'Only the owner or an admin can change the setup steps.' using errcode = '42501';
+  end if;
+  if p_step not in ('preferences', 'dismiss', 'reopen') then
+    raise exception 'Unknown setup step.' using errcode = '22023';
+  end if;
+  insert into hub.org_settings (org_id, setup_preferences_at, setup_dismissed_at)
+  values (p_org,
+          case when p_step = 'preferences' then now() end,
+          case when p_step = 'dismiss' then now() end)
+  on conflict (org_id) do update set
+    setup_preferences_at = case when p_step = 'preferences'
+      then coalesce(hub.org_settings.setup_preferences_at, now()) else hub.org_settings.setup_preferences_at end,
+    setup_dismissed_at = case when p_step = 'dismiss' then now()
+      when p_step = 'reopen' then null else hub.org_settings.setup_dismissed_at end,
+    updated_at = now();
+end;
+$$;
+
 revoke all on function
   hub.record_legal_acceptance(),
   hub.audit_core_row(),
@@ -403,7 +470,9 @@ revoke all on function
   public.hub_get_org_billing_contact(uuid),
   public.hub_set_org_billing_contact(uuid, text, text),
   public.hub_get_my_preferences(),
-  public.hub_set_my_preferences(boolean, boolean, boolean)
+  public.hub_set_my_preferences(boolean, boolean, boolean),
+  public.hub_org_setup_status(uuid),
+  public.hub_mark_org_setup(uuid, text)
 from public, anon, authenticated;
 
 grant execute on function public.hub_join_waitlist(text, text) to anon, authenticated;
@@ -417,5 +486,7 @@ grant execute on function
   public.hub_get_org_billing_contact(uuid),
   public.hub_set_org_billing_contact(uuid, text, text),
   public.hub_get_my_preferences(),
-  public.hub_set_my_preferences(boolean, boolean, boolean)
+  public.hub_set_my_preferences(boolean, boolean, boolean),
+  public.hub_org_setup_status(uuid),
+  public.hub_mark_org_setup(uuid, text)
 to authenticated;

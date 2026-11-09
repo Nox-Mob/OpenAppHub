@@ -40,3 +40,15 @@ describe("options", () => {
     expect(looksLikeEmail("billing@riverside")).toBe(false);
   });
 });
+
+describe("guesses", () => {
+  it("guesses a currency from the language", async () => {
+    const { guessCurrency } = await import("./org-settings");
+    expect(guessCurrency("en-CA")).toBe("CAD");
+    expect(guessCurrency("fr-FR")).toBe("EUR");
+    expect(guessCurrency("en_GB")).toBe("GBP");
+    expect(guessCurrency("en")).toBe("USD");
+    expect(guessCurrency("es-AR")).toBe("USD");
+    expect(guessCurrency(undefined)).toBe("USD");
+  });
+});

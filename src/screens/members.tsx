@@ -239,14 +239,18 @@ export function MembersScreen({
   );
 }
 
-function InvitePanel({
+export function InvitePanel({
   orgId,
-  invite,
+  invite = sendInvitation,
   onInvited,
+  title = "Invite someone",
+  description,
 }: {
   orgId: string;
-  invite: typeof sendInvitation;
-  onInvited: () => void;
+  invite?: typeof sendInvitation;
+  onInvited?: () => void;
+  title?: string;
+  description?: string;
 }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "member" | "viewer">("member");
@@ -266,11 +270,11 @@ function InvitePanel({
     if ("error" in res) return setError(res.error);
     setResult({ ...res, to: email.trim() });
     setEmail("");
-    onInvited();
+    onInvited?.();
   }
 
   return (
-    <Panel title="Invite someone">
+    <Panel title={title} description={description}>
       <form className="space-y-3" onSubmit={onSubmit}>
         <div className="space-y-2">
           <Label htmlFor="invite-email">Email</Label>

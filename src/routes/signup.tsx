@@ -21,6 +21,11 @@ function signupsOpen() {
   return import.meta.env.VITE_SIGNUPS_OPEN !== "false";
 }
 
+/** Where a new account goes: `next` when given (safely), otherwise the guided setup. */
+function afterSignup(next: string | undefined): string {
+  return next ? safeNext(next, window.location.origin) : "/welcome";
+}
+
 function SignupPage() {
   const { next } = Route.useSearch();
   const [name, setName] = useState("");
@@ -56,10 +61,12 @@ function SignupPage() {
   if (sentTo) {
     return (
       <AuthCard title="Check your email" footer={footer}>
-        <p className="text-sm text-muted-foreground">
-          We sent a confirmation link to <strong className="text-foreground">{sentTo}</strong>. Open
-          it to finish creating your account.
-        </p>
+        <CheckEmail
+          email={sentTo}
+          redirectTo={callbackUrl(afterSignup(next))}
+          joining={joining}
+          onStartOver={() => setSentTo(null)}
+        />
       </AuthCard>
     );
   }
@@ -78,7 +85,7 @@ function SignupPage() {
     }
     setBusy(true);
     setError("");
-    const target = safeNext(next, window.location.origin);
+    const target = afterSignup(next);
     const acceptedAt = new Date().toISOString();
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -108,7 +115,7 @@ function SignupPage() {
     if (!supabase) return;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: callbackUrl(safeNext(next, window.location.origin)) },
+      options: { redirectTo: callbackUrl(afterSignup(next)) },
     });
     if (error) setError(authErrorMessage(error));
   }
@@ -200,6 +207,18 @@ function SignupPage() {
               {busy ? "Creating account…" : "Create account"}
             </Button>
           </form>
+          {joining ? null : (
+            <div className="rounded-md border bg-muted/40 p-3 text-sm">
+              <p className="font-medium">What happens next</p>
+              <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-muted-foreground">
+                <li>Confirm your email.</li>
+                <li>Name your organization and invite the people who run it with you.</li>
+                <li>
+                  Open OpenCharterApp, OpenBoardApp or OpenLedgerApp. Every app is free to try.
+                </li>
+              </ol>
+            </div>
+          )}
         </div>
       )}
     </AuthCard>
@@ -260,5 +279,69 @@ function Waitlist() {
         We only use your email to tell you when sign-ups open.
       </p>
     </form>
+  );
+}
+
+function CheckEmail({
+  email,
+  redirectTo,
+  joining,
+  onStartOver,
+}: {
+  email: string;
+  redirectTo: string;
+  joining: boolean;
+  onStartOver: () => void;
+}) {
+  const [state, setState] = useState<"idle" | "sending" | "sent" | string>("idle");
+  async function resend() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    setState("sending");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: redirectTo },
+    });
+    setState(error ? authErrorMessage(error) : "sent");
+  }
+  return (
+    <div className="space-y-4 text-sm">
+      <p className="text-muted-foreground">
+        We sent a confirmation link to <strong className="text-foreground">{email}</strong>. Open it
+        on this device to finish creating your account.
+      </p>
+      <p className="text-muted-foreground">
+        {joining
+          ? "After that, you'll go straight back to finish joining your association."
+          : "After that, we'll help you set up your organization: its name, time zone and currency, and who to invite. It takes about two minutes."}
+      </p>
+      <div className="rounded-md border bg-muted/40 p-3 text-muted-foreground">
+        <p className="font-medium text-foreground">Nothing there?</p>
+        <ul className="mt-1 list-disc space-y-0.5 pl-5">
+          <li>It can take a minute or two. Check your spam or promotions folder.</li>
+          <li>The link works once. If it has expired, send it again.</li>
+        </ul>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={state === "sending" || state === "sent"}
+            onClick={() => void resend()}
+          >
+            {state === "sending" ? "Sending…" : state === "sent" ? "Sent again" : "Send it again"}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onStartOver}>
+            Use a different email
+          </Button>
+        </div>
+        {state !== "idle" && state !== "sending" && state !== "sent" ? (
+          <Alert variant="destructive" className="mt-3">
+            {state}
+          </Alert>
+        ) : null}
+      </div>
+    </div>
   );
 }

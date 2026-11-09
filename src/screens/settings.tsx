@@ -2,7 +2,6 @@ import type { ScreenProps } from "./types";
 import { useRouter } from "@tanstack/react-router";
 import { useMemo, useState, type FormEvent } from "react";
 import { APP_NAMES } from "@shared/apps";
-import { formatDate, formatMoney } from "@shared/format";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
 import { SUITE_APPS, suiteUrls } from "@shared/supabase/hosted";
 import type { OrgRole } from "@shared/supabase/org";
@@ -18,6 +17,7 @@ import {
   CURRENCIES,
   confirmTextFor,
   confirmationMatches,
+  formatPreview,
   looksLikeEmail,
   timeZones,
   type TransferCandidate,
@@ -131,6 +131,8 @@ function RegionalPanel({ orgId, canEdit }: { orgId: string; canEdit: boolean }) 
       p_time_zone: z,
       p_currency: c,
     });
+    // Ticks "Time zone and currency" in the dashboard's setup list (hub only).
+    if (!error) await supabase.rpc("hub_mark_org_setup", { p_org: orgId, p_step: "preferences" });
     setBusy(false);
     setMsg(error ? { ok: false, text: error.message } : { ok: true, text: "Saved." });
     if (!error) {
@@ -206,14 +208,6 @@ function RegionalPanel({ orgId, canEdit }: { orgId: string; canEdit: boolean }) 
   );
 }
 
-function formatPreview(timeZone: string, currency: string): string {
-  try {
-    return `${formatDate(new Date(), { time: true, timeZone })} · ${formatMoney(123456, { currency })}`;
-  } catch {
-    return "";
-  }
-}
-
 function BillingContactPanel({ orgId }: { orgId: string }) {
   const supabase = getSupabaseBrowserClient();
   const current = useAsync(async () => {
@@ -252,6 +246,7 @@ function BillingContactPanel({ orgId }: { orgId: string }) {
 
   return (
     <Panel
+      id="billing-contact"
       title="Billing contact"
       description="Where invoices and receipts go. Leave empty to send them to the owner."
     >

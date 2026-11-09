@@ -30,7 +30,7 @@ function NewOrgPage() {
     if (error) return setError(error.message);
     setCurrentOrg(data as string);
     await router.invalidate();
-    await router.navigate({ to: "/" });
+    await router.navigate({ to: "/welcome", search: { step: "region" } });
   }
 
   return (

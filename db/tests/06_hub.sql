@@ -68,6 +68,23 @@ begin
   perform tests.throws(format('select * from public.hub_get_org_billing_contact(%L)', org), 'members cannot see the billing contact', 'owner or an admin');
   perform tests.throws(format('select public.hub_set_org_billing_contact(%L, %L, null)', org, 'x@example.org'), 'members cannot set it', 'owner or an admin');
 
+  -- Guided setup: owner/admin only; preferences step and dismiss/reopen.
+  perform tests.throws(format('select * from public.hub_org_setup_status(%L)', org), 'members cannot see setup steps', 'owner or an admin');
+  perform tests.throws(format('select public.hub_mark_org_setup(%L, %L)', org, 'dismiss'), 'members cannot change setup steps', 'owner or an admin');
+  perform tests.as_user(alice);
+  perform tests.ok((select not preferences_done and not dismissed and member_count = 2 and pending_invitations = 0 and not has_billing_contact
+                    from public.hub_org_setup_status(org)), 'fresh setup status');
+  perform public.create_invitation(org, 'newbie@example.org', 'member', null, '{}'::jsonb, 14);
+  perform public.hub_mark_org_setup(org, 'preferences');
+  perform tests.ok((select preferences_done and pending_invitations = 1 from public.hub_org_setup_status(org)), 'preferences step and pending invitation counted');
+  perform public.hub_mark_org_setup(org, 'dismiss');
+  perform tests.ok((select dismissed and preferences_done from public.hub_org_setup_status(org)), 'dismissed, preferences kept');
+  perform public.hub_mark_org_setup(org, 'reopen');
+  perform tests.ok((select not dismissed from public.hub_org_setup_status(org)), 'reopened');
+  perform tests.throws(format('select public.hub_mark_org_setup(%L, %L)', org, 'bogus'), 'unknown step refused', 'Unknown setup step');
+  perform tests.ok((select billing_email is null from public.hub_get_org_billing_contact(org)), 'setup marks keep the billing contact');
+  perform tests.as_user(carol);
+
   -- Email preferences: defaults, then saved per user.
   perform tests.ok((select product_news from public.hub_get_my_preferences()) = false, 'product news is opt-in');
   perform tests.ok((select billing_emails from public.hub_get_my_preferences()) = true, 'billing emails on by default');

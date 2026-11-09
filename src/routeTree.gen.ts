@@ -22,6 +22,7 @@ import { Route as AppAccountRouteImport } from './routes/_app.account'
 import { Route as AppAuditRouteImport } from './routes/_app.audit'
 import { Route as AppMembersRouteImport } from './routes/_app.members'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppWelcomeRouteImport } from './routes/_app.welcome'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as DevHubRouteImport } from './routes/dev.hub'
 import { Route as DevShellRouteImport } from './routes/dev.shell'
@@ -93,6 +94,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppWelcomeRoute = AppWelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => AppRoute,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AppAuditRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
+  '/welcome': typeof AppWelcomeRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/dev/hub': typeof DevHubRoute
   '/dev/shell': typeof DevShellRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/audit': typeof AppAuditRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
+  '/welcome': typeof AppWelcomeRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/dev/hub': typeof DevHubRoute
   '/dev/shell': typeof DevShellRoute
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   '/_app/audit': typeof AppAuditRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/welcome': typeof AppWelcomeRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/dev/hub': typeof DevHubRoute
   '/dev/shell': typeof DevShellRoute
@@ -201,6 +210,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/members'
     | '/settings'
+    | '/welcome'
     | '/auth/callback'
     | '/dev/hub'
     | '/dev/shell'
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/members'
     | '/settings'
+    | '/welcome'
     | '/auth/callback'
     | '/dev/hub'
     | '/dev/shell'
@@ -242,6 +253,7 @@ export interface FileRouteTypes {
     | '/_app/audit'
     | '/_app/members'
     | '/_app/settings'
+    | '/_app/welcome'
     | '/auth/callback'
     | '/dev/hub'
     | '/dev/shell'
@@ -359,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/welcome': {
+      id: '/_app/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof AppWelcomeRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
@@ -409,6 +428,7 @@ interface AppRouteChildren {
   AppAuditRoute: typeof AppAuditRoute
   AppMembersRoute: typeof AppMembersRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppWelcomeRoute: typeof AppWelcomeRoute
   AppAdminDemoRoute: typeof AppAdminDemoRoute
   AppOrgsNewRoute: typeof AppOrgsNewRoute
 }
@@ -418,6 +438,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAuditRoute: AppAuditRoute,
   AppMembersRoute: AppMembersRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppWelcomeRoute: AppWelcomeRoute,
   AppAdminDemoRoute: AppAdminDemoRoute,
   AppOrgsNewRoute: AppOrgsNewRoute,
 }

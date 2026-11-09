@@ -106,7 +106,9 @@ export function Panel({
   description,
   children,
   tone,
+  id,
 }: {
+  id?: string;
   title: string;
   description?: ReactNode;
   children: ReactNode;
@@ -114,7 +116,8 @@ export function Panel({
 }) {
   return (
     <section
-      className={`rounded-lg border bg-card p-5 shadow-sm ${tone === "danger" ? "border-destructive/40" : ""}`}
+      id={id}
+      className={`scroll-mt-20 rounded-lg border bg-card p-5 shadow-sm ${tone === "danger" ? "border-destructive/40" : ""}`}
       aria-label={title}
     >
       <h2 className={`text-base font-semibold ${tone === "danger" ? "text-destructive" : ""}`}>
@@ -129,15 +132,18 @@ export function Panel({
 export function NoOrganization() {
   return (
     <Panel
-      title="You're not in an organization yet"
-      description="Create one, or ask someone to invite you to theirs."
+      title="Set up your organization"
+      description="Name your association, board or nonprofit, choose its time zone and currency, and invite the people who run it with you. It takes about two minutes."
     >
       <a
-        href="/orgs/new"
+        href="/welcome"
         className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground"
       >
-        Create organization
+        Get started
       </a>
+      <p className="mt-4 text-sm text-muted-foreground">
+        Were you invited to someone else's organization? Open the invitation link they emailed you.
+      </p>
     </Panel>
   );
 }

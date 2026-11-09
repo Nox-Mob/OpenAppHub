@@ -46,3 +46,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: bash db/tests/run.sh
+      - name: Self-hosted check (core SQL alone, no hub or billing)
+        run: |
+          psql "$DATABASE_URL" -c 'create database selfhosted'
+          DATABASE_URL="${DATABASE_URL%/*}/selfhosted" bash db/tests/run-selfhosted.sh

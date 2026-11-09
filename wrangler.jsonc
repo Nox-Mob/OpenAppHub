@@ -49,9 +49,9 @@
       "vars": {
         "VITE_HOSTED": "true",
         "VITE_APP_ID": "hub",
-        // Placeholder until the owner creates openapphub-prod (SHARED-SPEC §0.1).
-        "VITE_SUPABASE_URL": "https://PROD_PROJECT_REF.supabase.co",
-        "VITE_SUPABASE_PUBLISHABLE_KEY": "PROD_PUBLISHABLE_KEY",
+        // openapphub-prod (SHARED-SPEC §0.1). The publishable key is public by design.
+        "VITE_SUPABASE_URL": "https://ymlesgadawnjupnvgokd.supabase.co",
+        "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_EbrHHQxIvTGPgEgjEkkpDQ_FROfdRln",
         "VITE_HUB_URL": "https://openapphub.org",
         "VITE_COOKIE_DOMAIN": ".openapphub.org",
         "VITE_SUITE_URLS": "{\"hub\":\"https://openapphub.org\",\"charter\":\"https://charter.openapphub.org\",\"board\":\"https://board.openapphub.org\",\"ledger\":\"https://ledger.openapphub.org\"}",

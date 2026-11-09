@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" data-app="charter">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Members · prototype</title>
+<script src="prototype.js"></script>
+<link rel="stylesheet" href="prototype.css">
+</head>
+<body data-current="Members">
+<template id="page">
+  <div class="page-head">
+    <div><h1>Members</h1><p class="muted small">248 members across 6 chapters</p></div>
+    <div class="actions"><a class="btn btn-outline" href="#">Import</a><a class="btn btn-primary" href="#" data-icon="users">Add member</a></div>
+  </div>
+  <div class="tabs" role="tablist">
+    <span class="tab" role="tab" aria-selected="true">All <span class="count">248</span></span>
+    <span class="tab" role="tab">Good standing <span class="count">201</span></span>
+    <span class="tab" role="tab">Grace period <span class="count">29</span></span>
+    <span class="tab" role="tab">Lapsed <span class="count">18</span></span>
+  </div>
+  <div class="card">
+    <div class="toolbar">
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="input" aria-label="Search members" placeholder="Search name or email"></div>
+      <select class="select" aria-label="Chapter"><option>All chapters</option></select>
+      <select class="select" aria-label="Level"><option>All levels</option></select>
+    </div>
+    <div class="table-wrap">
+      <table class="cards">
+        <thead><tr><th class="hide-phone" style="width:2.5rem"><input type="checkbox" aria-label="Select all"></th><th>Member</th><th>Chapter</th><th>Level</th><th>Standing</th><th class="num">Dues paid</th><th>Renews</th></tr></thead>
+        <tbody>
+          <tr><td class="hide-phone"><input type="checkbox" aria-label="Select"></td><td class="cell-main"><div class="person"><span class="avatar">AO</span><div><div class="name">Amara Okafor</div><div class="email">amara.okafor@example.org</div></div></div></td><td class="cell-meta">North Shore</td><td class="hide-phone">Individual</td><td class="cell-side"><span class="badge b-success">Good</span></td><td class="num cell-meta" data-label="Paid">$60.00</td><td class="cell-meta" data-label="Renews">Mar 1, 2027</td></tr>
+          <tr class="selected"><td class="hide-phone"><input type="checkbox" checked aria-label="Select"></td><td class="cell-main"><div class="person"><span class="avatar">JT</span><div><div class="name">Jonas Tremblay</div><div class="email">jonas.t@example.org</div></div></div></td><td class="cell-meta">Downtown</td><td class="hide-phone">Family</td><td class="cell-side"><span class="badge b-warning">Grace</span></td><td class="num cell-meta" data-label="Paid">$95.00</td><td class="cell-meta" data-label="Renews">Nov 30, 2026</td></tr>
+          <tr><td class="hide-phone"><input type="checkbox" aria-label="Select"></td><td class="cell-main"><div class="person"><span class="avatar">PS</span><div><div class="name">Priya Shah</div><div class="email">priya.shah@example.org</div></div></div></td><td class="cell-meta">North Shore</td><td class="hide-phone">Student</td><td class="cell-side"><span class="badge b-success">Good</span></td><td class="num cell-meta" data-label="Paid">$20.00</td><td class="cell-meta" data-label="Renews">Sep 1, 2027</td></tr>
+          <tr><td class="hide-phone"><input type="checkbox" aria-label="Select"></td><td class="cell-main"><div class="person"><span class="avatar">ML</span><div><div class="name">Marcus Lee</div><div class="email">mlee@example.org</div></div></div></td><td class="cell-meta">Westside</td><td class="hide-phone">Individual</td><td class="cell-side"><span class="badge b-danger">Lapsed</span></td><td class="num cell-meta" data-label="Paid">$0.00</td><td class="cell-meta" data-label="Renews">Oct 1, 2026</td></tr>
+          <tr><td class="hide-phone"><input type="checkbox" aria-label="Select"></td><td class="cell-main"><div class="person"><span class="avatar">SG</span><div><div class="name">Sofia García</div><div class="email">sofia.garcia@example.org</div></div></div></td><td class="cell-meta">Downtown</td><td class="hide-phone">Lifetime</td><td class="cell-side"><span class="badge b-success">Good</span></td><td class="num cell-meta" data-label="Paid">$1,200.00</td><td class="cell-meta" data-label="Renews">Never</td></tr>
+          <tr><td class="hide-phone"><input type="checkbox" aria-label="Select"></td><td class="cell-main"><div class="person"><span class="avatar">HN</span><div><div class="name">Hana Nakamura</div><div class="email">hana.n@example.org</div></div></div></td><td class="cell-meta">Riverside</td><td class="hide-phone">Individual</td><td class="cell-side"><span class="badge b-outline">Pending</span></td><td class="num cell-meta" data-label="Paid">$0.00</td><td class="cell-meta" data-label="Renews">—</td></tr>
+          <tr><td class="hide-phone"><input type="checkbox" aria-label="Select"></td><td class="cell-main"><div class="person"><span class="avatar">DB</span><div><div class="name">David Brennan</div><div class="email">d.brennan@example.org</div></div></div></td><td class="cell-meta">Westside</td><td class="hide-phone">Family</td><td class="cell-side"><span class="badge b-success">Good</span></td><td class="num cell-meta" data-label="Paid">$95.00</td><td class="cell-meta" data-label="Renews">Jan 15, 2027</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-foot"><span>1–7 of 248</span><div class="actions"><a class="btn btn-outline btn-sm" href="#">Previous</a><a class="btn btn-outline btn-sm" href="#">Next</a></div></div>
+  </div>
+</template>
+</body>
+</html>

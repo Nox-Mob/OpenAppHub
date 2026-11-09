@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en" data-app="board">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schedule a meeting · prototype</title>
+<script src="prototype.js"></script>
+<link rel="stylesheet" href="prototype.css">
+</head>
+<body data-current="Meetings">
+<template id="page">
+  <div class="page-head">
+    <div><h1>Meetings</h1><p class="muted small">Board of Directors</p></div>
+    <div class="actions"><a class="btn btn-primary" href="#" data-icon="cal">Schedule meeting</a></div>
+  </div>
+  <div class="card">
+    <div class="table-wrap"><table class="cards">
+      <thead><tr><th>Meeting</th><th>Date</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="cell-main"><strong>Regular board meeting</strong></td><td class="cell-meta">Oct 14, 2026, 7:00 PM</td><td class="cell-side"><span class="badge b-success">Minutes approved</span></td></tr>
+        <tr><td class="cell-main"><strong>Budget workshop</strong></td><td class="cell-meta">Sep 30, 2026, 6:30 PM</td><td class="cell-side"><span class="badge b-info">Awaiting approval</span></td></tr>
+        <tr><td class="cell-main"><strong>Regular board meeting</strong></td><td class="cell-meta">Sep 9, 2026, 7:00 PM</td><td class="cell-side"><span class="badge b-success">Minutes approved</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</template>
+<template id="overlay">
+  <div class="overlay">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+      <div class="dialog-head"><div><h2 id="dlg-title">Schedule a meeting</h2><p>Members get the agenda by email once you publish it.</p></div><button class="icon-btn" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <div class="dialog-body">
+        <div class="field"><label for="t">Title</label><input id="t" class="input" value="Regular board meeting"></div>
+        <div class="row-2">
+          <div class="field"><label for="d">Date</label><input id="d" class="input invalid" value="Nov 2, 2026" aria-invalid="true" aria-describedby="d-err"><span class="error-text" id="d-err">Choose a date in the future.</span></div>
+          <div class="field"><label for="tm">Start time</label><input id="tm" class="input" value="7:00 PM"></div>
+        </div>
+        <div class="field"><span class="label">Meeting type</span>
+          <div class="choice-group" role="radiogroup" aria-label="Meeting type">
+            <label class="choice selected"><input type="radio" name="k" checked><span><strong>Regular</strong><br><span class="xs muted">Monthly business</span></span></label>
+            <label class="choice"><input type="radio" name="k"><span><strong>Special</strong><br><span class="xs muted">One topic, called early</span></span></label>
+            <label class="choice"><input type="radio" name="k"><span><strong>Annual</strong><br><span class="xs muted">Elections and reports</span></span></label>
+          </div>
+        </div>
+        <div class="field"><label for="loc">Location</label><select id="loc" class="select"><option>Community hall, Room B</option></select></div>
+        <div class="field"><label for="n">Notes for members</label><textarea id="n" class="textarea" placeholder="Parking, dial-in details…"></textarea><span class="hint">Shown on the agenda.</span></div>
+        <label class="check"><input type="checkbox" checked><span>Send a reminder the day before</span></label>
+      </div>
+      <div class="dialog-foot"><button class="btn btn-outline">Cancel</button><button class="btn btn-primary focus-demo">Schedule meeting</button></div>
+    </div>
+  </div>
+</template>
+</body>
+</html>

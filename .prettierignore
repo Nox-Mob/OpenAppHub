@@ -7,3 +7,5 @@ package-lock.json
 docs/SHARED-SPEC.md
 docs/START-HERE.md
 AGENTS.md
+docs/design/prototype
+docs/design/contrast.md

@@ -5,6 +5,8 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   AppShell,
+  CookieConsent,
+  CookieTable,
   BillingBanner,
   HelpLink,
   InvitationPage,
@@ -78,6 +80,11 @@ describe("shared UI renders under SSR", () => {
     expect(
       renderToString(<HelpLink path="hub/accounts/invitations/">How invitations work</HelpLink>),
     ).toContain("https://docs.openapphub.org/hub/accounts/invitations/");
+  });
+
+  it("CookieConsent renders nothing on the server; CookieTable renders", () => {
+    expect(renderToString(<CookieConsent policyHref="/cookies" />)).toBe("");
+    expect(renderToString(<CookieTable />)).toContain("oah_consent");
   });
 
   it("InvitationPage starts in a loading state", () => {

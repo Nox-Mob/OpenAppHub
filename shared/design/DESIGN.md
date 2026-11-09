@@ -137,6 +137,29 @@ back, accepts on an explicit click (`accept_invitation`), then runs `onAccepted`
 invitations whose `app` is this app. An invitation for **another** app is sent to that app's
 `/invite/<token>` **before** it's accepted, so the follow-up always runs where it belongs.
 
+## Cookie consent (every app)
+
+Render the banner **once** in the root layout, next to the router outlet:
+
+```tsx
+import { CookieConsent } from "../shared/ui";
+<CookieConsent policyHref={isHosted() ? hubUrl("/cookies") : "/cookies"} privacyHref={...} />
+```
+
+- **Required** cookies (sign-in session, `oah_org`, `oah_consent`) are always on and have no switch.
+- **Preferences** (`oah_theme`) are **off until the visitor agrees** (GDPR/ePrivacy require opt-in).
+  Without consent the theme still works for the browser session only.
+- "Accept all" and "Reject non-essential" look the same, nothing optional is pre-selected, and
+  choices can be changed any time: `openCookieSettings()` (in `AppShell`'s user menu already; add
+  a footer link on public pages).
+- One choice covers the whole suite (`oah_consent` on the suite domain, 180 days, then we ask again).
+- Withdrawing consent deletes preference cookies immediately.
+- **Adding a cookie or browser storage:** add it to `COOKIES` in `shared/consent.ts` with its
+  category, purpose and duration (the banner and cookie policy read that list). Anything not
+  required must check `hasConsent("<category>")` first. A new category means a new entry in
+  `CookieConsent`'s list and a bump of `CONSENT_VERSION`, so everyone is asked again.
+- Self-hosted apps show the same list on their own page with `<CookieTable />`.
+
 ## Money and dates (every app)
 
 Use `shared/format.ts`. Never `toFixed(2)`, `toLocaleString()`, `toLocaleDateString()` or a local helper.

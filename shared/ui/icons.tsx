@@ -60,3 +60,9 @@ export const MailIcon = (p: P) => (
     {...p}
   />
 );
+export const CookieIcon = (p: P) => (
+  <Svg
+    d="M21 12.5A9 9 0 1 1 11.5 3a3 3 0 0 0 4 4 3 3 0 0 0 5.5 5.5ZM8.5 9.5h.01M14 15h.01M9 15.5h.01"
+    {...p}
+  />
+);

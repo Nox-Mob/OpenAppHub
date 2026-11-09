@@ -2,6 +2,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { docsUrl } from "@shared/docs";
+import { openCookieSettings } from "@shared/consent";
 import { ThemeToggle } from "@shared/ui/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth-client";
@@ -150,6 +151,16 @@ export function SiteFooter() {
             <Link className={link} to="/privacy">
               Privacy Policy
             </Link>
+          </li>
+          <li>
+            <Link className={link} to="/cookies">
+              Cookie policy
+            </Link>
+          </li>
+          <li>
+            <button type="button" className={link} onClick={() => openCookieSettings()}>
+              Cookie settings
+            </button>
           </li>
         </FooterCol>
       </div>

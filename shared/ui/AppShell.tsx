@@ -2,17 +2,19 @@
 // SuiteSwitcher, OrgSwitcher, Help and the user menu (theme toggle, sign out),
 // BillingBanner underneath. Below 768px the sidebar becomes a drawer.
 // Router-agnostic (pass your router's Link as LinkComponent) and SSR-safe.
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { APP_MARKS, APP_NAMES } from "../apps";
 import type { OrgBilling } from "../supabase/billing";
 import type { AppId } from "../supabase/hosted";
 import { BillingBanner } from "./BillingBanner";
 import { Dropdown, itemClass } from "./Dropdown";
-import { CloseIcon, HelpIcon, LogOutIcon, MenuIcon, UserIcon } from "./icons";
+import { CloseIcon, CookieIcon, HelpIcon, LogOutIcon, MenuIcon, UserIcon } from "./icons";
 import { PlainLink, type LinkLike } from "./link";
 import { OrgSwitcher, type SwitcherOrg } from "./OrgSwitcher";
 import { SuiteSwitcher } from "./SuiteSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
+import { useFocusTrap } from "./useFocusTrap";
+import { openCookieSettings } from "../consent";
 
 export type NavItem = {
   label: string;
@@ -119,40 +121,7 @@ function Drawer({
   children: ReactNode;
 }) {
   const panel = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  useEffect(() => {
-    if (!open) return;
-    const previous = document.activeElement as HTMLElement | null;
-    const focusables = () =>
-      Array.from(
-        panel.current?.querySelectorAll<HTMLElement>("a[href], button:not([disabled])") ?? [],
-      );
-    focusables()[0]?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
-      if (e.key !== "Tab") return;
-      const els = focusables();
-      const first = els[0];
-      const last = els[els.length - 1];
-      if (!first || !last) return;
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
-      previous?.focus();
-    };
-  }, [open]);
+  useFocusTrap(panel, open, onClose);
 
   if (!open) return null;
   return (
@@ -226,6 +195,17 @@ function UserMenu({
             <HelpIcon className="text-muted-foreground" />
             Help
           </a>
+          <button
+            type="button"
+            className={itemClass}
+            onClick={() => {
+              close();
+              openCookieSettings();
+            }}
+          >
+            <CookieIcon className="text-muted-foreground" />
+            Cookie settings
+          </button>
           <button
             type="button"
             className={itemClass}

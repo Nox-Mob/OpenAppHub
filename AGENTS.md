@@ -49,7 +49,7 @@ The owner wants a **new design language for the whole suite** (SHARED-SPEC §9).
 
 ## Phase 4 — Billing
 
-18. **Billing schema**, `db/migrations/0001_billing.sql`, per §5: plans (placeholder rows), subscriptions, events, `org_has_app_access`, trial trigger with one trial per user, member-limit trigger (core memberships only), `get_org_billing` (members or Charter portal members, resolved at run time). Last line enables billing.
+18. **Billing schema**, `db/migrations/0002_billing.sql`, per §5: plans (placeholder rows), subscriptions, events, `org_has_app_access`, trial trigger with one trial per user, member-limit trigger (core memberships only), `get_org_billing` (members or Charter portal members, resolved at run time). Last line enables billing.
     - DB tests: trial active → write; trial expired → read only; Starter for `board` → board writable, others read-only; member limit; portal members don't count.
 19. **Stripe** per §6.2 as hub server functions and the `/api/stripe/webhook` route. Unit-test the event → row mapping with Stripe fixture payloads.
 20. **Billing page** `/billing`: plan, trial days left, plan picker (Starter asks which app), monthly/yearly, Manage billing (portal), read-only explanation with the export story.

@@ -365,7 +365,7 @@ Owned by the hub, schema `billing` (not exposed).
 - **Trial:** an `after insert` trigger on `public.organizations` (in the hub's billing migration) creates a trialing subscription for all apps, 30 days. One trial per user: if `created_by` already had a trial, the new org starts `expired`.
 - **Member limit:** a trigger on `public.memberships` insert rejects inserts beyond `max_members` when billing is on. **It counts core memberships only**, so Charter portal members never count (§4.5).
 - `public.get_org_billing(p_org)`: definer RPC, requires `is_member(p_org)` **or** `charter.is_portal_member(p_org, null)` (resolved at run time), returns plan, status, dates and apps.
-- The billing migration ends with `update public.instance_settings set billing_enabled = true;`. Self-hosters skip it (`--skip 0001_billing`).
+- The billing migration ends with `update public.instance_settings set billing_enabled = true;`. Self-hosters skip it (`--skip 0002_billing`). (The hub's own schema is `db/migrations/0001_hub.sql`, which applies first.)
 
 ---
 

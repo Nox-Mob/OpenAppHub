@@ -3,7 +3,7 @@
   "private": true,
   "sideEffects": false,
   "type": "module",
-  "oahShared": "1.1.0",
+  "oahShared": "1.1.1",
   "engines": {
     "node": ">=22"
   },

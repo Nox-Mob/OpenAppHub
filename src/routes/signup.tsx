@@ -16,6 +16,8 @@ export const Route = createFileRoute("/signup")({
 });
 
 const MIN_PASSWORD = 8;
+/** Version of the Terms and Privacy Policy shown at sign-up (bump when they change). */
+const LEGAL_VERSION = "2026-11-09";
 
 function signupsOpen() {
   return import.meta.env.VITE_SIGNUPS_OPEN !== "false";
@@ -48,9 +50,7 @@ function SignupPage() {
   if (!signupsOpen()) {
     return (
       <AuthCard title="Sign-ups are closed for now" footer={footer}>
-        <p className="text-sm text-muted-foreground">
-          OpenAppHub isn't open to new accounts yet. If you already have an account, sign in.
-        </p>
+        <Waitlist />
       </AuthCard>
     );
   }
@@ -88,11 +88,12 @@ function SignupPage() {
       options: {
         emailRedirectTo: callbackUrl(target),
         // full_name becomes the profile's display name (handle_new_user, §3.2).
-        // Acceptance is recorded here until hub.legal_acceptances exists.
+        // The database copies the acceptance into hub.legal_acceptances.
         data: {
           full_name: name.trim(),
           terms_accepted_at: acceptedAt,
           privacy_accepted_at: acceptedAt,
+          legal_version: LEGAL_VERSION,
         },
       },
     });
@@ -205,5 +206,62 @@ function SignupPage() {
         </div>
       )}
     </AuthCard>
+  );
+}
+
+function Waitlist() {
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"idle" | "busy" | "done">("idle");
+  const [error, setError] = useState("");
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    setState("busy");
+    setError("");
+    const { error } = await supabase.rpc("hub_join_waitlist", {
+      p_email: email,
+      p_source: "signup",
+    });
+    if (error) {
+      setState("idle");
+      setError(error.message);
+      return;
+    }
+    setState("done");
+  }
+  if (state === "done") {
+    return (
+      <p className="text-sm text-muted-foreground" role="status">
+        Thanks. We'll email <strong className="text-foreground">{email}</strong> when OpenAppHub
+        opens to new accounts.
+      </p>
+    );
+  }
+  return (
+    <form className="space-y-4" onSubmit={onSubmit}>
+      <p className="text-sm text-muted-foreground">
+        OpenAppHub isn't open to new accounts yet. Leave your email and we'll let you know when it
+        is.
+      </p>
+      <div className="space-y-2">
+        <Label htmlFor="waitlist-email">Email</Label>
+        <Input
+          id="waitlist-email"
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
+      {error ? <Alert variant="destructive">{error}</Alert> : null}
+      <Button type="submit" className="w-full" disabled={state === "busy"}>
+        {state === "busy" ? "Adding you…" : "Join the waitlist"}
+      </Button>
+      <p className="text-xs text-muted-foreground">
+        We only use your email to tell you when sign-ups open.
+      </p>
+    </form>
   );
 }

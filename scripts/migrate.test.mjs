@@ -10,10 +10,10 @@ const file = (version, sql = `-- ${version}`) => ({
 
 describe("migrate.mjs", () => {
   it("parses flags", () => {
-    const o = parseArgs(["--seed", "--dry-run", "--skip", "0001_billing.sql", "--skip", "x"]);
+    const o = parseArgs(["--seed", "--dry-run", "--skip", "0002_billing.sql", "--skip", "x"]);
     expect(o.seed).toBe(true);
     expect(o.dryRun).toBe(true);
-    expect([...o.skip]).toEqual(["0001_billing", "x"]);
+    expect([...o.skip]).toEqual(["0002_billing", "x"]);
     expect(() => parseArgs(["--nope"])).toThrow();
     expect(() => parseArgs(["--skip"])).toThrow();
   });
@@ -21,14 +21,14 @@ describe("migrate.mjs", () => {
   it("applies core first, skips recorded files and honours --skip", () => {
     const groups = [
       { key: "core", files: [file("0001_core"), file("0002_core_functions")] },
-      { key: "openapphub", files: [file("0001_billing")] },
+      { key: "openapphub", files: [file("0002_billing")] },
     ];
     const applied = new Map([["core/0001_core", checksum("-- 0001_core")]]);
-    const { steps, changed } = plan(groups, applied, new Set(["0001_billing"]));
+    const { steps, changed } = plan(groups, applied, new Set(["0002_billing"]));
     expect(changed).toEqual([]);
     expect(steps.map((s) => [s.key, s.version, s.skipped])).toEqual([
       ["core", "0002_core_functions", false],
-      ["openapphub", "0001_billing", true],
+      ["openapphub", "0002_billing", true],
     ]);
   });
 

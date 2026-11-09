@@ -11,14 +11,15 @@ Read [`AGENTS.md`](AGENTS.md) and [`docs/SHARED-SPEC.md`](docs/SHARED-SPEC.md) b
 
 ## Status
 
-| Area                                                                            | State                                      |
-| ------------------------------------------------------------------------------- | ------------------------------------------ |
-| Scaffold, Worker config, security headers, CI/staging/release/migrate workflows | Done                                       |
-| Migration runner (`scripts/migrate.mjs`)                                        | Done                                       |
-| Core SQL (`db/core/0001–0003`) and DB tests                                     | Done                                       |
-| Sign in (email + password, Google), sign up, email confirmation, password reset | Done (needs Supabase)                      |
-| Design system (Phase 2): "Civic, slightly warm", dark mode, money/date formats  | Done: `shared/design/`, `shared/format.ts` |
-| Organizations, members, invitations, ownership, billing screens                 | Not started                                |
+| Area                                                                                                                    | State                                      |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Scaffold, Worker config, security headers, CI/staging/release/migrate workflows                                         | Done                                       |
+| Migration runner (`scripts/migrate.mjs`)                                                                                | Done                                       |
+| Core SQL (`db/core/0001–0003`) and DB tests                                                                             | Done                                       |
+| Sign in (email + password, Google), sign up, email confirmation, password reset                                         | Done (needs Supabase)                      |
+| Design system (Phase 2): "Civic, slightly warm", dark mode, money/date formats                                          | Done: `shared/design/`, `shared/format.ts` |
+| Organizations, members, invitations (with email), ownership, account deletion, dashboard, audit log, staging demo tools | Done                                       |
+| Billing (Phase 4)                                                                                                       | Not started                                |
 
 ## Local development
 

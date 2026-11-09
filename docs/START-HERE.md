@@ -37,7 +37,7 @@ Prompt for each repo's agent:
 
 | # | Repo | Change |
 |---|---|---|
-| 1 | Hub | `db/core/*` (+ `0001_billing.sql` once billing is built) |
+| 1 | Hub | `db/core/*` (+ `0002_billing.sql` once billing is built) |
 | 2 | Charter | `0001_charter_baseline.sql` |
 | 3 | Board | `0001_board_baseline.sql` |
 | 4 | Ledger | `0001_ledger_baseline.sql` |

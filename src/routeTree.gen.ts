@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
@@ -17,13 +18,24 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AppAccountRouteImport } from './routes/_app.account'
+import { Route as AppAuditRouteImport } from './routes/_app.audit'
+import { Route as AppMembersRouteImport } from './routes/_app.members'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as DevHubRouteImport } from './routes/dev.hub'
 import { Route as DevShellRouteImport } from './routes/dev.shell'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AppAdminDemoRouteImport } from './routes/_app.admin.demo'
+import { Route as AppOrgsNewRouteImport } from './routes/_app.orgs.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CookiesRoute = CookiesRouteImport.update({
@@ -61,9 +73,34 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAccountRoute = AppAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAuditRoute = AppAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMembersRoute = AppMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevHubRoute = DevHubRouteImport.update({
+  id: '/dev/hub',
+  path: '/dev/hub',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DevShellRoute = DevShellRouteImport.update({
@@ -76,6 +113,16 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAdminDemoRoute = AppAdminDemoRouteImport.update({
+  id: '/admin/demo',
+  path: '/admin/demo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOrgsNewRoute = AppOrgsNewRouteImport.update({
+  id: '/orgs/new',
+  path: '/orgs/new',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -86,9 +133,16 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/account': typeof AppAccountRoute
+  '/audit': typeof AppAuditRoute
+  '/members': typeof AppMembersRoute
+  '/settings': typeof AppSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/dev/hub': typeof DevHubRoute
   '/dev/shell': typeof DevShellRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/admin/demo': typeof AppAdminDemoRoute
+  '/orgs/new': typeof AppOrgsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -99,13 +153,21 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/account': typeof AppAccountRoute
+  '/audit': typeof AppAuditRoute
+  '/members': typeof AppMembersRoute
+  '/settings': typeof AppSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/dev/hub': typeof DevHubRoute
   '/dev/shell': typeof DevShellRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/admin/demo': typeof AppAdminDemoRoute
+  '/orgs/new': typeof AppOrgsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
   '/cookies': typeof CookiesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -113,9 +175,16 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/_app/account': typeof AppAccountRoute
+  '/_app/audit': typeof AppAuditRoute
+  '/_app/members': typeof AppMembersRoute
+  '/_app/settings': typeof AppSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/dev/hub': typeof DevHubRoute
   '/dev/shell': typeof DevShellRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/_app/admin/demo': typeof AppAdminDemoRoute
+  '/_app/orgs/new': typeof AppOrgsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -128,9 +197,16 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/terms'
+    | '/account'
+    | '/audit'
+    | '/members'
+    | '/settings'
     | '/auth/callback'
+    | '/dev/hub'
     | '/dev/shell'
     | '/invite/$token'
+    | '/admin/demo'
+    | '/orgs/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -141,12 +217,20 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/terms'
+    | '/account'
+    | '/audit'
+    | '/members'
+    | '/settings'
     | '/auth/callback'
+    | '/dev/hub'
     | '/dev/shell'
     | '/invite/$token'
+    | '/admin/demo'
+    | '/orgs/new'
   id:
     | '__root__'
     | '/'
+    | '/_app'
     | '/cookies'
     | '/forgot-password'
     | '/login'
@@ -154,13 +238,21 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/terms'
+    | '/_app/account'
+    | '/_app/audit'
+    | '/_app/members'
+    | '/_app/settings'
     | '/auth/callback'
+    | '/dev/hub'
     | '/dev/shell'
     | '/invite/$token'
+    | '/_app/admin/demo'
+    | '/_app/orgs/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   CookiesRoute: typeof CookiesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
@@ -169,6 +261,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  DevHubRoute: typeof DevHubRoute
   DevShellRoute: typeof DevShellRoute
   InviteTokenRoute: typeof InviteTokenRoute
 }
@@ -180,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cookies': {
@@ -231,11 +331,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/account': {
+      id: '/_app/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AppAccountRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/audit': {
+      id: '/_app/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AppAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/members': {
+      id: '/_app/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
       fullPath: '/auth/callback'
       preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev/hub': {
+      id: '/dev/hub'
+      path: '/dev/hub'
+      fullPath: '/dev/hub'
+      preLoaderRoute: typeof DevHubRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dev/shell': {
@@ -252,11 +387,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/admin/demo': {
+      id: '/_app/admin/demo'
+      path: '/admin/demo'
+      fullPath: '/admin/demo'
+      preLoaderRoute: typeof AppAdminDemoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/orgs/new': {
+      id: '/_app/orgs/new'
+      path: '/orgs/new'
+      fullPath: '/orgs/new'
+      preLoaderRoute: typeof AppOrgsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAccountRoute: typeof AppAccountRoute
+  AppAuditRoute: typeof AppAuditRoute
+  AppMembersRoute: typeof AppMembersRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppAdminDemoRoute: typeof AppAdminDemoRoute
+  AppOrgsNewRoute: typeof AppOrgsNewRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAccountRoute: AppAccountRoute,
+  AppAuditRoute: AppAuditRoute,
+  AppMembersRoute: AppMembersRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppAdminDemoRoute: AppAdminDemoRoute,
+  AppOrgsNewRoute: AppOrgsNewRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   CookiesRoute: CookiesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
@@ -265,6 +435,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  DevHubRoute: DevHubRoute,
   DevShellRoute: DevShellRoute,
   InviteTokenRoute: InviteTokenRoute,
 }

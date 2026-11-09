@@ -19,7 +19,7 @@ DATABASE_URL=postgres://… node scripts/migrate.mjs [--seed] [--dry-run] [--ski
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `--seed`        | Also runs `db/seed/*.sql` (recorded as `<repo>:seed`). **Staging only.**                                                                                                                   |
 | `--dry-run`     | Prints the plan; changes nothing (apart from creating `ops` if missing).                                                                                                                   |
-| `--skip <name>` | Skips a migration by file name, with or without `.sql`. Self-hosters skip the hub's billing with `--skip 0001_billing`. Skipped files aren't recorded, so they're skipped again next time. |
+| `--skip <name>` | Skips a migration by file name, with or without `.sql`. Self-hosters skip the hub's billing with `--skip 0002_billing`. Skipped files aren't recorded, so they're skipped again next time. |
 | `--repo <key>`  | Overrides the repo key.                                                                                                                                                                    |
 
 Connection strings for GitHub Actions are the Supabase **Session pooler** strings (port 5432 on

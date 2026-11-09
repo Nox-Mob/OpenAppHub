@@ -33,3 +33,22 @@ DATABASE_URL=postgres://… npm run db:test
 
 Applies `db/tests/supabase_stub.sql` (no-op on real Supabase), runs the migrations, re-applies
 `db/core` to prove it's idempotent, then runs `db/tests/[0-9]*.sql`. Use a throwaway database.
+
+## `sync-shared.mjs` — copy shared code into an app
+
+The hub holds the canonical `shared/`, `db/core/`, `scripts/migrate.mjs` and `docs/SHARED-SPEC.md`
+(SHARED-SPEC §8). To update an app:
+
+```bash
+node scripts/sync-shared.mjs ../OpenBoardApp --dry-run   # see what would change
+node scripts/sync-shared.mjs ../OpenBoardApp             # copy
+```
+
+It mirrors `shared/` (without the hub's tests) and `db/core/` (files removed here are removed
+there), copies `scripts/migrate.mjs`, `scripts/check-shared.mjs` and `docs/SHARED-SPEC.md`, writes
+`shared/MANIFEST.json` (a sha256 per file) and sets `"oahShared"` in the app's `package.json` to
+`shared/VERSION`. Then open a PR in the app titled `chore: sync shared vX.Y.Z`.
+
+In the app, CI runs `node scripts/check-shared.mjs`: it fails if a vendored file was edited by
+hand, is missing, or if `oahShared` doesn't match `shared/VERSION`. Shared code is only ever
+changed in the hub.

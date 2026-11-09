@@ -139,6 +139,7 @@ Invitations, ownership transfer, organization creation and deletion, and the mem
 - Every PR must pass CI: typecheck, lint, tests, build, and (if SQL changed) the DB test job.
 - The PR description lists: what changed, migration files, owner steps, how it was tested, and the **docs** impact (§12).
 - **PR descriptions never include a "Generated with Claude Code" line or a link to the agent session** (owner rule, mandatory).
+- **Commit messages never include a "Co-Authored-By: Claude" line or a session link** (owner rule, mandatory).
 - **Agents never apply migrations to production, never deploy production, and never run destructive SQL** (`drop`, `truncate`, unqualified `delete`, `alter … drop column`) except inside reviewed migration files the owner approved.
 - Agents never create, read or print real secrets.
 - The repo's own `AGENTS.md` rules still apply unless this spec replaces them. Each repo's `MIGRATION-NOTES.md` §7 (or equivalent) lists which rules are replaced and in which step.
@@ -464,7 +465,7 @@ scripts/migrate.mjs               §3.3
 ```
 
 - Never edit these in an app repo. Change the hub, bump `shared/VERSION`, then copy them in a PR titled `chore: sync shared vX.Y.Z` (`scripts/sync-shared.mjs`).
-- Each app's CI checks `shared/VERSION` against `package.json` → `"oahShared"`.
+- Each app's CI runs `node scripts/check-shared.mjs` (vendored with the code): it checks `shared/VERSION` against `package.json` → `"oahShared"` and every vendored file against `shared/MANIFEST.json`, so hand edits fail CI. The sync script also copies this spec into `docs/SHARED-SPEC.md`.
 - Shared components must work under TanStack Start SSR (no `window` access during render).
 
 ---

@@ -42,9 +42,9 @@ Prompt for each repo's agent:
 | 3 | Board | `0001_board_baseline.sql` |
 | 4 | Ledger | `0001_ledger_baseline.sql` |
 
-Staging (`openapphub-staging`) gets the same order, plus each repo's seed data, through `staging.yml`.
+Staging (`openapphub-staging`) gets the same order, plus each repo's seed data: the hub through `staging.yml`, each app through its **Migrate** workflow (target `staging` adds the seed).
 
-You run each with the repo's **Release** (or **Migrate**) workflow in GitHub Actions. Production never deploys by itself: pushing to `main` updates staging only.
+You run each with the repo's **Migrate** workflow in GitHub Actions. Migrations never apply themselves to production; merging to `main` deploys the code, so migrate production first.
 
 Both databases start empty: there is no park step and no legacy schema.
 

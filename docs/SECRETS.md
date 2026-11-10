@@ -24,6 +24,10 @@ Notes:
 - If the password contains `@`, `:`, `/`, `#` or `?`, URL-encode it (`@` → `%40`), or reset it to
   letters and digits only.
 - `STAGING_REF` and `PROD_REF` aren't really secret; they can also be Actions **variables**.
+- **The app repos** (OpenCharterApp, openboardapp, OpenLedgerApp) need the same two secrets,
+  `STAGING_DATABASE_URL` and `PROD_DATABASE_URL`, with the same values, for their own
+  `migrate.yml`. They can be repository secrets or secrets on the `staging` / `production`
+  environments (the workflow runs in the environment named by its target).
 - **Not needed any more:** `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Deploys use your
   Cloudflare Git connection (section 3), not GitHub Actions.
 
@@ -91,6 +95,10 @@ On **both** projects, Supabase → **Authentication**:
 | Sign In / Providers → "Allow new users to sign up" | **off until launch**                                                                                                                                         | on, if you want to test sign-up                                                                                                                                      |
 | Emails → SMTP Settings                             | custom SMTP before launch                                                                                                                                    | optional                                                                                                                                                             |
 | Emails → Templates → **Invite user**               | Wording of the invitation email for people new to OpenAppHub (its link brings them to the invitation page)                                                   | same                                                                                                                                                                 |
+
+On **both** projects, Supabase → **Project Settings → Data API → Exposed schemas**: add `charter`,
+`board` and `ledger` (keep `public`; never add `billing`, `hub` or `ops`). The apps' clients read
+their own schema through it once they switch over; adding it before is harmless.
 
 Later, when the other apps go live, add their callback URLs too (for example
 `https://charter.openapphub.org/auth/callback`).

@@ -11,14 +11,22 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { APPS } from "@/config/apps";
 import { HELP } from "@/config/help";
-import { PLANS, PRICE_TBA, type Plan, type PlanId } from "@/config/pricing";
+import {
+  EDITORS_NOTE,
+  PLANS,
+  PRICE_TBA,
+  TRIAL_EDITORS,
+  type Plan,
+  type PlanId,
+} from "@/config/pricing";
 import type { openBillingPortal, startCheckout } from "@/lib/billing";
 import { canManage } from "@/lib/roles";
+import type { PlanAmounts } from "@/lib/stripe/core";
 import { useAsync } from "@/lib/use-async";
 
 // Suite billing (AGENTS step 20, SHARED-SPEC §6.2). The database decides access
 // (get_org_billing); this page explains it and starts Stripe Checkout or the
-// Customer Portal. Prices only from src/config/pricing.ts.
+// Customer Portal. Prices come from Stripe by lookup key (billingConfigured).
 
 type Interval = "month" | "year";
 type AppChoice = "charter" | "board" | "ledger";
@@ -45,8 +53,10 @@ export function BillingScreen({
   checkoutConfigured,
   checkoutResult,
   actions,
+  prices = {},
 }: ScreenProps & {
   checkoutConfigured: boolean;
+  prices?: PlanAmounts;
   checkoutResult?: "done" | "cancelled" | undefined;
   actions: BillingActions;
 }) {
@@ -96,6 +106,7 @@ export function BillingScreen({
               orgId={org.id}
               configured={checkoutConfigured}
               checkout={actions.checkout}
+              prices={prices}
             />
           ) : (
             <Panel title="Choose a plan">
@@ -153,7 +164,7 @@ function CurrentPlan({
 
   const plan = b.plan_id ? plans.data?.find((p) => p.id === b.plan_id) : null;
   const paying = b.status === "active" || b.status === "past_due";
-  const limit = paying ? (plan ? plan.max_members : undefined) : 10;
+  const limit = paying ? (plan ? plan.max_members : undefined) : TRIAL_EDITORS;
   const days = daysLeft(b.trial_ends_at);
   const date = (d: string | null) => (d ? formatDate(d, { timeZone }) : "");
   const readOnly = !(["charter", "board", "ledger"] as const).some((a) => hasAppAccess(b, a));
@@ -194,7 +205,7 @@ function CurrentPlan({
       </div>
       <p className="mt-2 text-sm text-muted-foreground" data-testid="plan-summary">
         {b.status === "trialing" && !readOnly
-          ? `Every app, up to 10 members. ${days === 0 ? "Ends today" : `${days} ${days === 1 ? "day" : "days"} left`}, until ${date(b.trial_ends_at)}. No card needed.`
+          ? `Every app, up to ${TRIAL_EDITORS} editors. ${days === 0 ? "Ends today" : `${days} ${days === 1 ? "day" : "days"} left`}, until ${date(b.trial_ends_at)}. No card needed.`
           : b.status === "active" && b.cancel_at_period_end
             ? `Cancelled: it ends on ${date(b.current_period_end)}. After that, the apps become read-only.`
             : b.status === "active"
@@ -216,7 +227,7 @@ function CurrentPlan({
         </div>
         {manager ? (
           <div>
-            <dt className="text-muted-foreground">Members</dt>
+            <dt className="text-muted-foreground">Editors</dt>
             <dd className="font-medium" data-testid="member-usage">
               {members.data ?? "…"}
               {limit === null ? " (no limit)" : limit !== undefined ? ` of ${limit}` : ""}
@@ -247,10 +258,10 @@ function CurrentPlan({
   );
 }
 
-// Suite prices are in US dollars (pricing.ts), whatever the organization's currency.
-function price(plan: Plan, interval: Interval): string {
-  const cents = interval === "month" ? plan.monthlyCents : plan.yearlyCents;
-  if (cents === null) return PRICE_TBA;
+// Suite prices are in US dollars (from Stripe), whatever the organization's currency.
+function price(plan: Plan, interval: Interval, prices: PlanAmounts): string {
+  const cents = prices[plan.id]?.[interval];
+  if (cents === undefined) return PRICE_TBA;
   return `${formatMoney(cents, { currency: "USD" })} / ${interval}`;
 }
 
@@ -258,10 +269,12 @@ function PlanPicker({
   orgId,
   configured,
   checkout,
+  prices,
 }: {
   orgId: string;
   configured: boolean;
   checkout: typeof startCheckout;
+  prices: PlanAmounts;
 }) {
   const [interval, setInterval] = useState<Interval>("month");
   const [app, setApp] = useState<AppChoice | "">("");
@@ -313,7 +326,7 @@ function PlanPicker({
           >
             <p className="font-semibold">{p.name}</p>
             <p className="text-sm text-muted-foreground">{p.tagline}</p>
-            <p className="mt-3 text-lg font-semibold">{price(p, interval)}</p>
+            <p className="mt-3 text-lg font-semibold">{price(p, interval, prices)}</p>
             <ul className="mt-3 flex-1 space-y-1 text-sm text-muted-foreground">
               {p.features.map((f) => (
                 <li key={f}>{f}</li>
@@ -339,7 +352,7 @@ function PlanPicker({
             <Button
               className="mt-4"
               variant={p.highlighted ? "default" : "outline"}
-              disabled={!configured || busy !== null}
+              disabled={!configured || prices[p.id]?.[interval] === undefined || busy !== null}
               onClick={() => void choose(p.id)}
             >
               {busy === p.id ? "Opening checkout…" : `Choose ${p.name}`}
@@ -353,7 +366,8 @@ function PlanPicker({
         </Alert>
       ) : (
         <p className="mt-4 text-xs text-muted-foreground">
-          Payment is handled by Stripe. You can cancel at any time from Manage billing.
+          {EDITORS_NOTE} Payment is handled by Stripe. You can cancel at any time from Manage
+          billing.
         </p>
       )}
       {error ? (

@@ -8,39 +8,82 @@ import {
   formEncode,
   mapStatus,
   parseApps,
-  parsePriceMap,
-  planForPrice,
-  priceFor,
+  appsForPlan,
+  planAmounts,
+  planFromLookupKey,
+  toPlanPrices,
   signStripePayload,
   verifyStripeSignature,
   type StripeEvent,
 } from "./core";
 
 const ORG = "11111111-1111-4111-8111-111111111111";
-const MAP = parsePriceMap(
-  JSON.stringify({
-    starter: { month: "price_StarterMonth", year: "price_StarterYear" },
-    suite: { month: "price_SuiteMonth", year: "price_SuiteYear" },
-    plus: { month: "price_PlusMonth", year: "bad value" },
-    gold: { month: "price_Gold" },
-  }),
-);
+const PRICES = toPlanPrices([
+  {
+    id: "price_SM",
+    active: true,
+    lookup_key: "starter_month",
+    unit_amount: 500,
+    currency: "usd",
+    recurring: { interval: "month" },
+  },
+  {
+    id: "price_SY",
+    active: true,
+    lookup_key: "suite_year",
+    unit_amount: 10000,
+    currency: "usd",
+    recurring: { interval: "year" },
+  },
+  {
+    id: "price_wrong",
+    active: true,
+    lookup_key: "plus_year",
+    unit_amount: 1,
+    recurring: { interval: "month" },
+  },
+  {
+    id: "price_old",
+    active: false,
+    lookup_key: "plus_month",
+    unit_amount: 2,
+    recurring: { interval: "month" },
+  },
+  {
+    id: "price_gold",
+    active: true,
+    lookup_key: "gold_month",
+    unit_amount: 3,
+    recurring: { interval: "month" },
+  },
+  {
+    id: "price_none",
+    active: true,
+    lookup_key: null,
+    unit_amount: 4,
+    recurring: { interval: "month" },
+  },
+]);
 
-describe("price map", () => {
-  it("keeps only known plans and valid price ids", () => {
-    expect(MAP).toEqual({
-      starter: { month: "price_StarterMonth", year: "price_StarterYear" },
-      suite: { month: "price_SuiteMonth", year: "price_SuiteYear" },
-      plus: { month: "price_PlusMonth" },
+describe("prices by lookup key", () => {
+  it("keeps active prices whose key matches a plan and its interval", () => {
+    expect(PRICES).toEqual({
+      starter: { month: { id: "price_SM", cents: 500, currency: "usd" } },
+      suite: { year: { id: "price_SY", cents: 10000, currency: "usd" } },
     });
-    expect(priceFor(MAP!, "plus", "year")).toBeNull();
-    expect(planForPrice(MAP!, "price_SuiteYear")).toEqual({ plan: "suite", interval: "year" });
-    expect(planForPrice(MAP!, "price_unknown")).toBeNull();
+    expect(planAmounts(PRICES)).toEqual({ starter: { month: 500 }, suite: { year: 10000 } });
+    expect(toPlanPrices("nope")).toEqual({});
   });
-  it("is null when missing or not JSON", () => {
-    expect(parsePriceMap(undefined)).toBeNull();
-    expect(parsePriceMap("not json")).toBeNull();
-    expect(parsePriceMap("{}")).toBeNull();
+  it("reads plan and interval from a lookup key", () => {
+    expect(planFromLookupKey("suite_year")).toEqual({ plan: "suite", interval: "year" });
+    expect(planFromLookupKey("suite_week")).toBeNull();
+    expect(planFromLookupKey(undefined)).toBeNull();
+  });
+  it("Suite and Plus give every app; Starter one", () => {
+    expect(appsForPlan("suite", ["board"])).toEqual(["charter", "board", "ledger"]);
+    expect(appsForPlan("plus", [])).toEqual(["charter", "board", "ledger"]);
+    expect(appsForPlan("starter", ["ledger", "board"])).toEqual(["ledger"]);
+    expect(appsForPlan(null, ["board"])).toEqual(["board"]);
   });
 });
 
@@ -75,7 +118,7 @@ describe("webhook signature", () => {
 
 describe("events → billing rows (Stripe fixtures)", () => {
   it("checkout.session.completed: the org, plan and app from the checkout", () => {
-    expect(eventToAction(checkoutDone as StripeEvent, MAP)).toEqual({
+    expect(eventToAction(checkoutDone as StripeEvent)).toEqual({
       kind: "subscription",
       org: ORG,
       customer: "cus_Riverside",
@@ -87,21 +130,21 @@ describe("events → billing rows (Stripe fixtures)", () => {
       cancelAtPeriodEnd: false,
     });
   });
-  it("customer.subscription.updated: the price decides the plan; period end from the item", () => {
-    expect(eventToAction(subUpdated as StripeEvent, MAP)).toEqual({
+  it("customer.subscription.updated: the price's lookup key decides the plan and apps", () => {
+    expect(eventToAction(subUpdated as StripeEvent)).toEqual({
       kind: "subscription",
       org: ORG,
       customer: "cus_Riverside",
       subscription: "sub_Riverside",
       plan: "suite",
       status: "active",
-      apps: ["board"],
+      apps: ["charter", "board", "ledger"],
       periodEnd: new Date(1797811200 * 1000).toISOString(),
       cancelAtPeriodEnd: true,
     });
   });
   it("customer.subscription.deleted: canceled, found by subscription id", () => {
-    const a = eventToAction(subDeleted as StripeEvent, MAP);
+    const a = eventToAction(subDeleted as StripeEvent);
     expect(a).toMatchObject({
       kind: "subscription",
       org: null,
@@ -112,7 +155,7 @@ describe("events → billing rows (Stripe fixtures)", () => {
     });
   });
   it("invoice.payment_failed: past due (new and old API shapes)", () => {
-    expect(eventToAction(invoiceFailed as StripeEvent, MAP)).toEqual({
+    expect(eventToAction(invoiceFailed as StripeEvent)).toEqual({
       kind: "status",
       subscription: "sub_Riverside",
       status: "past_due",
@@ -122,7 +165,7 @@ describe("events → billing rows (Stripe fixtures)", () => {
       type: "invoice.payment_failed",
       data: { object: { subscription: "sub_Old" } },
     };
-    expect(eventToAction(old, MAP)).toEqual({
+    expect(eventToAction(old)).toEqual({
       kind: "status",
       subscription: "sub_Old",
       status: "past_due",
@@ -134,16 +177,16 @@ describe("events → billing rows (Stripe fixtures)", () => {
       type: "checkout.session.completed",
       data: { object: { mode: "payment" } },
     };
-    expect(eventToAction(payment, MAP).kind).toBe("ignore");
-    expect(
-      eventToAction({ id: "e", type: "charge.refunded", data: { object: {} } }, MAP).kind,
-    ).toBe("ignore");
+    expect(eventToAction(payment).kind).toBe("ignore");
+    expect(eventToAction({ id: "e", type: "charge.refunded", data: { object: {} } }).kind).toBe(
+      "ignore",
+    );
   });
   it("rejects org ids that aren't UUIDs", () => {
     const evt = structuredClone(checkoutDone) as StripeEvent;
     evt.data.object["client_reference_id"] = "'; drop table";
     (evt.data.object["metadata"] as Record<string, string>)["org_id"] = "nope";
-    expect(eventToAction(evt, MAP)).toMatchObject({ org: null });
+    expect(eventToAction(evt)).toMatchObject({ org: null });
   });
 });
 

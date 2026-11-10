@@ -53,13 +53,29 @@ export const openBillingPortal = createServerFn({ method: "POST" })
     }
   });
 
-/** Whether checkout can work on this server (prices and key configured). */
+/** Whether checkout can work on this server, and the plans' prices from Stripe. */
 export const billingConfigured = createServerFn({ method: "GET" }).handler(async () => {
-  const { parsePriceMap } = await import("./stripe/core");
+  const [core, { planAmounts }] = await Promise.all([
+    import("./billing-core"),
+    import("./stripe/core"),
+  ]);
+  const secret = process.env["STRIPE_SECRET_KEY"] || null;
+  const prices = await core.fetchPlanPrices({ secret });
+  const amounts = planAmounts(prices);
   return {
     checkout:
-      !!process.env["STRIPE_SECRET_KEY"] &&
-      !!process.env["SUPABASE_SERVICE_ROLE_KEY"] &&
-      !!parsePriceMap(process.env["STRIPE_PRICE_MAP"]),
+      !!secret && !!process.env["SUPABASE_SERVICE_ROLE_KEY"] && Object.keys(amounts).length > 0,
+    prices: amounts,
   };
+});
+
+/** The plans' prices for the public landing page (amounts only, no ids). */
+export const planPrices = createServerFn({ method: "GET" }).handler(async () => {
+  const [core, { planAmounts }] = await Promise.all([
+    import("./billing-core"),
+    import("./stripe/core"),
+  ]);
+  return planAmounts(
+    await core.fetchPlanPrices({ secret: process.env["STRIPE_SECRET_KEY"] || null }),
+  );
 });

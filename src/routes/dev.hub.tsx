@@ -118,6 +118,11 @@ function Preview() {
         <BillingScreen
           {...props}
           checkoutConfigured={configured}
+          prices={{
+            starter: { month: 500, year: 5000 },
+            suite: { month: 1000, year: 10000 },
+            plus: { month: 2500, year: 25000 },
+          }}
           actions={{
             checkout: (async () => ({ url: "/dev/hub?screen=billing&checkout=1" })) as never,
             portal: (async () => ({ url: "/dev/hub?screen=billing&portal=1" })) as never,

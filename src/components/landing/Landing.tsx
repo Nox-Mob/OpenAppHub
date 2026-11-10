@@ -1,6 +1,6 @@
 // The public landing page (AGENTS step 21): the three apps and what they do,
-// how the suite works, plans (prices come from src/config/pricing.ts and stay
-// "Price TBA" until confirmed), self-hosting, FAQ.
+// how the suite works, plans (prices from Stripe by lookup key, "Price TBA" when
+// there's none), self-hosting, FAQ.
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -16,7 +16,8 @@ import { docsUrl } from "@shared/docs";
 import { formatMoney } from "@shared/format";
 import { Button } from "@/components/ui/button";
 import { APPS, type AppInfo } from "@/config/apps";
-import { PLANS, PRICE_TBA, TRIAL, type Plan } from "@/config/pricing";
+import { EDITORS_NOTE, PLANS, PRICE_TBA, TRIAL, type Plan } from "@/config/pricing";
+import type { PlanAmounts } from "@/lib/stripe/core";
 import { cn } from "@/lib/utils";
 import { signupsOpen } from "@/components/site";
 import { BoardPreview, CharterPreview, LedgerPreview, PREVIEWS } from "./previews";
@@ -248,17 +249,28 @@ function HowItWorks() {
   );
 }
 
-function price(plan: Plan) {
-  return plan.monthlyCents === null ? PRICE_TBA : `${formatMoney(plan.monthlyCents)}/month`;
+function price(plan: Plan, prices: PlanAmounts) {
+  const month = prices[plan.id]?.month;
+  return month === undefined ? PRICE_TBA : `${formatMoney(month, { currency: "USD" })}/month`;
 }
 
-function Pricing() {
+function yearly(plan: Plan, prices: PlanAmounts) {
+  const year = prices[plan.id]?.year;
+  return year === undefined ? null : `or ${formatMoney(year, { currency: "USD" })}/year`;
+}
+
+function Pricing({ prices }: { prices: PlanAmounts }) {
+  const priced = Object.keys(prices).length > 0;
   return (
     <Section
       id="pricing"
       eyebrow="Pricing"
       title="Simple plans for each organization"
-      intro={`${TRIAL.summary} Prices will be announced before new accounts open.`}
+      intro={
+        priced
+          ? `${TRIAL.summary} One price per organization, in US dollars.`
+          : `${TRIAL.summary} Prices will be announced before new accounts open.`
+      }
     >
       <div className="grid gap-6 md:grid-cols-3">
         {PLANS.map((plan) => (
@@ -276,7 +288,10 @@ function Pricing() {
             ) : null}
             <h3 className="text-lg font-semibold">{plan.name}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
-            <p className="mt-5 text-2xl font-semibold tracking-tight">{price(plan)}</p>
+            <p className="mt-5 text-2xl font-semibold tracking-tight">{price(plan, prices)}</p>
+            {yearly(plan, prices) ? (
+              <p className="text-sm text-muted-foreground">{yearly(plan, prices)}</p>
+            ) : null}
             <ul className="mt-5 flex-1 space-y-2.5 text-sm">
               {plan.features.map((f) => (
                 <li key={f} className="flex gap-2">
@@ -304,9 +319,8 @@ function Pricing() {
         ))}
       </div>
       <p className="mt-6 text-sm text-muted-foreground">
-        Members means the people who sign in to run your organization. Dues-paying members in
-        OpenCharterApp don't count toward the limit. If a plan lapses, your data becomes read-only
-        and you can still export everything.
+        {EDITORS_NOTE} If a plan lapses, your data becomes read-only and you can still export
+        everything.
       </p>
     </Section>
   );
@@ -419,7 +433,7 @@ function FinalCta() {
   );
 }
 
-export function Landing() {
+export function Landing({ prices = {} }: { prices?: PlanAmounts }) {
   return (
     <main>
       <Hero />
@@ -435,7 +449,7 @@ export function Landing() {
         ))}
       </Section>
       <HowItWorks />
-      <Pricing />
+      <Pricing prices={prices} />
       <SelfHosting />
       <Faq />
       <FinalCta />

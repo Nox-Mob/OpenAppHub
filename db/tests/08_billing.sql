@@ -96,21 +96,39 @@ begin
   perform tests.as_anon();
   perform tests.throws(format('select * from public.get_org_billing(%L)', org), 'anon cannot read billing', 'permission denied');
 
-  -- Member limit: Starter allows 10; the 11th is refused. Core memberships only.
+  -- Editor limit (0003): Starter allows 5 editors (owner, admin, member); viewers never count.
   perform tests.as_super();
   update billing.subscriptions set plan_id = 'starter', status = 'active', apps = '{board}' where org_id = org;
-  for i in 1..9 loop
+  for i in 1..4 loop
     extra := tests.create_user(format('m%s@example.org', i));
     insert into public.memberships (org_id, user_id, role) values (org, extra, 'member');
   end loop;
-  perform tests.ok((select count(*) from public.memberships where org_id = org) = 10, 'ten members on starter');
+  perform tests.ok((select count(*) from public.memberships where org_id = org) = 5, 'five editors on starter');
   perform tests.throws(format('insert into public.memberships (org_id, user_id, role) values (%L, %L, %L)', org, bob, 'member'),
-                       '11th member refused on starter', 'allows 10 members');
+                       '6th editor refused on starter', 'allows 5 editors');
+  for i in 1..6 loop
+    extra := tests.create_user(format('v%s@example.org', i));
+    insert into public.memberships (org_id, user_id, role) values (org, extra, 'viewer');
+  end loop;
+  perform tests.ok((select count(*) from public.memberships where org_id = org and role = 'viewer') = 6, 'viewers never count');
+  perform tests.throws(format('update public.memberships set role = %L where org_id = %L and user_id = %L', 'member', org, extra),
+                       'raising a viewer past the limit is refused', 'allows 5 editors');
+  update public.memberships set role = 'admin' where org_id = org and role = 'member'
+    and user_id = (select user_id from public.memberships where org_id = org and role = 'member' limit 1);
+  perform tests.ok(true, 'changing an editor''s role is never refused');
+  update billing.subscriptions set plan_id = 'suite' where org_id = org;
+  update public.memberships set role = 'member' where org_id = org and user_id = extra;
+  perform tests.ok((select role::text from public.memberships where org_id = org and user_id = extra) = 'member', 'suite: room for more editors');
+  delete from public.memberships where org_id = org and role = 'viewer';
   update billing.subscriptions set plan_id = 'plus' where org_id = org;
+  for i in 1..15 loop
+    extra := tests.create_user(format('p%s@example.org', i));
+    insert into public.memberships (org_id, user_id, role) values (org, extra, 'member');
+  end loop;
   insert into public.memberships (org_id, user_id, role) values (org, bob, 'member');
-  perform tests.ok((select count(*) from public.memberships where org_id = org) = 11, 'plus: no member limit');
+  perform tests.ok((select count(*) from public.memberships where org_id = org) = 22, 'plus: no editor limit');
   perform tests.as_user(alice);
-  perform tests.ok(public.billing_member_count(org) = 11, 'owner sees the member count');
+  perform tests.ok(public.billing_member_count(org) = 22, 'owner sees the editor count');
   perform tests.as_user(bob);
   perform tests.throws(format('select public.billing_member_count(%L)', org), 'members cannot see the count', 'owner or an admin');
   perform tests.ok((select status from public.get_org_billing(org)) = 'active', 'members can read billing');
@@ -130,9 +148,9 @@ begin
   perform tests.as_user(stranger);
   perform tests.throws(format('select * from public.get_org_billing(%L)', org), 'strangers cannot read billing', 'not a member');
   perform tests.as_super();
-  perform tests.ok((select count(*) from public.memberships where org_id = org) = 11, 'portal members are not memberships');
+  perform tests.ok((select count(*) from public.memberships where org_id = org) = 22, 'portal members are not memberships');
 
-  -- Trial limit: 10 members while trialing.
+  -- Trial limit: 10 editors while trialing.
   perform tests.as_user(carol);
   second := public.create_organization('Carol Org');
   perform tests.as_super();
@@ -141,7 +159,7 @@ begin
     insert into public.memberships (org_id, user_id, role) values (second, extra, 'member');
   end loop;
   perform tests.throws(format('insert into public.memberships (org_id, user_id, role) values (%L, %L, %L)', second, stranger, 'member'),
-                       'trial: 11th member refused', 'allows 10 members');
+                       'trial: 11th editor refused', 'allows 10 editors');
 
   -- Billing off (self-hosted): no limit and full access.
   update public.instance_settings set billing_enabled = false where id;

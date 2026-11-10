@@ -40,3 +40,26 @@ export async function stripePost<T>(
   }
   return body as T;
 }
+
+export async function stripeGet<T>(
+  secret: string,
+  path: string,
+  params: Record<string, unknown>,
+  fetchImpl: typeof fetch = fetch,
+): Promise<T> {
+  const query = formEncode(params);
+  const res = await fetchImpl(`${API}${path}${query ? `?${query}` : ""}`, {
+    headers: { authorization: `Bearer ${secret}` },
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    error?: { message?: string; code?: string };
+  };
+  if (!res.ok) {
+    throw new StripeError(
+      body.error?.message ?? "Stripe request failed",
+      res.status,
+      body.error?.code,
+    );
+  }
+  return body as T;
+}

@@ -11,15 +11,15 @@ Read [`AGENTS.md`](AGENTS.md) and [`docs/SHARED-SPEC.md`](docs/SHARED-SPEC.md) b
 
 ## Status
 
-| Area                                                                                                                                              | State                                                 |
-| ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Scaffold, Worker config, security headers, CI/staging/release/migrate workflows                                                                   | Done                                                  |
-| Migration runner (`scripts/migrate.mjs`)                                                                                                          | Done                                                  |
-| Core SQL (`db/core/0001–0004`) and DB tests                                                                                                       | Done                                                  |
-| Sign in (email + password, Google), sign up, email confirmation, password reset                                                                   | Done (needs Supabase)                                 |
-| Design system (Phase 2): "Civic, slightly warm", dark mode, money/date formats                                                                    | Done: `shared/design/`, `shared/format.ts`            |
-| Organizations, members, invitations (with email), ownership, account and org settings, account deletion, dashboard, audit log, staging demo tools | Done                                                  |
-| Billing (Phase 4)                                                                                                                                 | Built; checkout waits for prices (`STRIPE_PRICE_MAP`) |
+| Area                                                                                                                                              | State                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Scaffold, Worker config, security headers, CI/staging/release/migrate workflows                                                                   | Done                                         |
+| Migration runner (`scripts/migrate.mjs`)                                                                                                          | Done                                         |
+| Core SQL (`db/core/0001–0004`) and DB tests                                                                                                       | Done                                         |
+| Sign in (email + password, Google), sign up, email confirmation, password reset                                                                   | Done (needs Supabase)                        |
+| Design system (Phase 2): "Civic, slightly warm", dark mode, money/date formats                                                                    | Done: `shared/design/`, `shared/format.ts`   |
+| Organizations, members, invitations (with email), ownership, account and org settings, account deletion, dashboard, audit log, staging demo tools | Done                                         |
+| Billing (Phase 4)                                                                                                                                 | Built; prices come from Stripe by lookup key |
 
 ## Local development
 

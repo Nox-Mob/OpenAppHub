@@ -58,3 +58,34 @@ See `docs/SECRETS.md` for what goes in each value.
 - **First deploy (PR 1):** merge, then run Actions → Migrate → production (the workflow only appears once it's on `main`). Staging is migrated automatically by `staging.yml` on the merge. The home page and sign-in don't need the core tables; anyone who signs up in between gets a profile from the 0002 backfill. After this, migrate production _before_ merging PRs with migrations.
 - Supabase (production): turn off **Allow new users to sign up** until launch (the app hides the form, but the Auth API still accepts sign-ups). Turn on Google when ready (off on both projects).
 - Secret scanning and push protection on the repo.
+
+## 4. What's left (2026-11-09, after hub Phases 1–4 merged and migrated)
+
+### Hub
+
+| Item                                                                                       | Waiting on                                                        |
+| ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| Prices in `src/config/pricing.ts`, `STRIPE_PRICE_MAP`, publish `hub/hosting/plans.md`      | Owner (prices)                                                    |
+| Stripe test run: trial → checkout → renewal → failed payment → cancel → read-only → export | Owner, after the price map                                        |
+| Billing and organization-activity emails (preferences are already saved)                   | A way to send email from the Worker (custom SMTP or an email API) |
+| Dashboard summaries from the apps' `api_*` views (step 15, optional)                       | Each app's integration step                                       |
+| `gen-types.yml`                                                                            | Nothing; low priority                                             |
+| Open sign-ups (`VITE_SIGNUPS_OPEN`, Supabase setting)                                      | Launch                                                            |
+
+### Each app (Charter, Board, Ledger): same order, one PR per step
+
+1. **Hygiene** (v2.2): lockfile on the public registry, `.env` untracked, `wrangler.jsonc` (top level = production), security headers, Lovable pieces removed where nothing depends on them.
+2. **Rest of vendoring:** `migrate.yml`, a CI `db` job that runs `scripts/migrate.mjs` and `db/tests`, old migration paths retired.
+3. **Baseline migration** (`0001_<app>_baseline.sql`): the app's schema on top of core. The biggest step in each app.
+4. Seed, DB tests, Supabase client on the app schema, org scoping (`oah_org`).
+5. **Hosted vs self-hosted** switch, billing banner, export, integration views.
+6. Design (shared tokens and `AppShell`), help links, docs.
+
+### Self-hosting: what must stay true
+
+Every app runs alone on its own server and database (SHARED-SPEC §1, §4):
+
+- **Database:** `db/core` + the app's own `db/migrations`. No `hub` or `billing` schema; `billing_enabled` stays false, so `has_app_access()` always allows. CI proves core alone works: `db/tests/run-selfhosted.sh` here, and each app's `db` job once it has one.
+- **Core never depends on the hub.** Hub-only calls (`hub_*`, `get_org_billing`) are feature-detected in shared code and return "not there" quietly.
+- **App:** with `VITE_HOSTED=false` (the default) the app keeps its own sign-in, sign-up, organization creation, invitations and ownership screens, and never links to openapphub.org. With `VITE_HOSTED=true` those link to the hub.
+- **Install:** `npm ci` (or `bun install`) must work from the public registry, with no private caches.

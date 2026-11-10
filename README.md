@@ -39,6 +39,7 @@ Checks: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`.
 ```bash
 DATABASE_URL=postgres://… npm run db:migrate   # db/core then db/migrations
 DATABASE_URL=postgres://… npm run db:test      # migrations + SQL tests (use a throwaway DB)
+DATABASE_URL=postgres://… npm run db:test:selfhosted   # core alone, as on a self-hosted app (another empty DB)
 ```
 
 See [`scripts/README.md`](scripts/README.md).

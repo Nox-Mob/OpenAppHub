@@ -19,6 +19,7 @@
     "test:watch": "vitest",
     "db:migrate": "node scripts/migrate.mjs",
     "db:test": "bash db/tests/run.sh",
+    "db:test:selfhosted": "bash db/tests/run-selfhosted.sh",
     "cf-typegen": "wrangler types",
     "build:staging": "CLOUDFLARE_ENV=staging vite build"
   },

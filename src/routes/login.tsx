@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authErrorMessage, callbackUrl, goTo, validateNextSearch } from "@/lib/auth-client";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD_PUBLIC, demoLoginEnabled } from "@/lib/demo-accounts";
 import { currentOrigin, safeNext } from "@/lib/next";
 
 export const Route = createFileRoute("/login")({
@@ -30,19 +31,23 @@ function LoginPage() {
   const configured = supabaseConfig() !== null;
   const nextSearch = next ? { next } : {};
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function signIn(account: { email: string; password: string }) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
     setBusy(true);
     setError("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword(account);
     if (error) {
       setError(authErrorMessage(error));
       setBusy(false);
       return;
     }
     goTo(safeNext(next, window.location.origin));
+  }
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    void signIn({ email, password });
   }
 
   async function onGoogle() {
@@ -118,6 +123,29 @@ function LoginPage() {
               {busy ? "Signing in…" : "Sign in"}
             </Button>
           </form>
+          {demoLoginEnabled() ? (
+            <div className="space-y-2 rounded-lg border border-dashed p-4">
+              <p className="text-sm font-medium">Staging demo</p>
+              <p className="text-sm text-muted-foreground">
+                Both accounts reset every 12 hours. Password: <code>{DEMO_PASSWORD_PUBLIC}</code>
+              </p>
+              {DEMO_ACCOUNTS.map((a) => (
+                <Button
+                  key={a.email}
+                  type="button"
+                  variant="outline"
+                  className="h-auto w-full flex-col items-start gap-0.5 py-2 text-left"
+                  disabled={busy}
+                  onClick={() => void signIn({ email: a.email, password: DEMO_PASSWORD_PUBLIC })}
+                >
+                  <span>{a.label}</span>
+                  <span className="whitespace-normal text-xs font-normal text-muted-foreground">
+                    {a.description}
+                  </span>
+                </Button>
+              ))}
+            </div>
+          ) : null}
         </div>
       )}
     </AuthCard>

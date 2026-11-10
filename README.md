@@ -63,11 +63,12 @@ See [`.env.example`](.env.example).
 built with `npm run build:staging`. Run `migrate.yml` against production **before** merging a PR
 that adds migrations.
 
-| Workflow      | Trigger         | Does                                                        |
-| ------------- | --------------- | ----------------------------------------------------------- |
-| `ci.yml`      | every PR / push | typecheck, lint, format, tests, build, DB tests             |
-| `staging.yml` | push to `main`  | migrate staging with seed (skips until the secret exists)   |
-| `migrate.yml` | owner, manual   | migrations only, staging or production (dry run by default) |
+| Workflow         | Trigger         | Does                                                        |
+| ---------------- | --------------- | ----------------------------------------------------------- |
+| `ci.yml`         | every PR / push | typecheck, lint, format, tests, build, DB tests             |
+| `staging.yml`    | push to `main`  | migrate staging with seed (skips until the secret exists)   |
+| `demo-reset.yml` | every 12 hours  | reset the suite demo on staging (`hub.reset_suite_demo()`)  |
+| `migrate.yml`    | owner, manual   | migrations only, staging or production (dry run by default) |
 
 Secrets and variables, and what goes in each: [`docs/SECRETS.md`](docs/SECRETS.md).
 

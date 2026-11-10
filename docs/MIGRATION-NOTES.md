@@ -74,18 +74,36 @@ See `docs/SECRETS.md` for what goes in each value.
 
 ### Each app (Charter, Board, Ledger): same order, one PR per step
 
-1. **Hygiene** (v2.2): lockfile on the public registry, `.env` untracked, `wrangler.jsonc` (top level = production), security headers, Lovable pieces removed where nothing depends on them.
+1. **Hygiene** (v2.2): lockfile on the public registry, `.env` untracked, `wrangler.jsonc` (top level = production), security headers, Lovable pieces removed where nothing depends on them. **Done and merged in all three.**
 2. **Rest of vendoring:** `migrate.yml`, a CI `db` job that runs `scripts/migrate.mjs` and `db/tests`, old migration paths retired.
 3. **Baseline migration** (`0001_<app>_baseline.sql`): the app's schema on top of core. The biggest step in each app.
 4. Seed, DB tests, Supabase client on the app schema, org scoping (`oah_org`).
 5. **Hosted vs self-hosted** switch, billing banner, export, integration views.
 6. Design (shared tokens and `AppShell`), help links, docs.
 
+Steps 2 and 3 are one open PR per app (2026-11-10), not yet applied to any database:
+
+| App     | PR                        | Schema    | Runner key       | Performance test (CI budget 3 s, local 1 s) |
+| ------- | ------------------------- | --------- | ---------------- | ------------------------------------------- |
+| Charter | Nox-Mob/OpenCharterApp#17 | `charter` | `opencharterapp` | 5,000, 10,000, 20,000 members               |
+| Board   | Nox-Mob/openboardapp#9    | `board`   | `openboardapp`   | 5,000, 20,000, 50,000 meetings              |
+| Ledger  | Nox-Mob/OpenLedgerApp#12  | `ledger`  | `openledgerapp`  | 5,000, 20,000, 50,000 transactions          |
+
+What they share:
+
+- **CI mirrors Charter's:** a database job (Postgres 17, `db/ci/supabase-stub.sql` for Supabase's auth and storage, the runner applying `db/core` then `db/migrations`, then `db/tests/*.sql`) and a performance job that grows one organization next to many others and fails over budget, then checks the security catalogue (row level security on every table, nothing callable signed out).
+- **`migrate.yml`** in each repo (owner, by hand): staging (with `--seed`) or production, dry run by default. The core files are already recorded under `core`, so only the app's baseline is applied.
+- **Row rules are set-based** in all three (`org_id in (select <app>.readable_org_ids())`, Charter `unit_id in (select charter.permitted_units(...))`). The per-row form from SHARED-SPEC's example (`public.is_member(org_id)`) was 5–15× slower at these sizes: Ledger's balances took 1.7 s at 5,000 transactions, Board's export 2.4 s at 20,000 meetings.
+- **Package names are unique** (`openboardapp`, `openledgerapp`), because the runner records migrations under the package name.
+- **The old `supabase/migrations` stays frozen** in each repo for self-hosters until the app's client switches to its schema; no workflow applies it to the shared database.
+
+**Owner, per app repo:** add `STAGING_DATABASE_URL` and `PROD_DATABASE_URL` (same values as the hub's, `docs/SECRETS.md` §1); run Actions → Migrate on staging (dry run, then for real), then production (Charter: on the PR's branch before merging); add `charter`, `board` and `ledger` to the exposed schemas on both projects (`docs/SECRETS.md` §4).
+
 ### Self-hosting: what must stay true
 
 Every app runs alone on its own server and database (SHARED-SPEC §1, §4):
 
-- **Database:** `db/core` + the app's own `db/migrations`. No `hub` or `billing` schema; `billing_enabled` stays false, so `has_app_access()` always allows. CI proves core alone works: `db/tests/run-selfhosted.sh` here, and each app's `db` job once it has one.
+- **Database:** `db/core` + the app's own `db/migrations`. No `hub` or `billing` schema; `billing_enabled` stays false, so `has_app_access()` always allows. CI proves core alone works: `db/tests/run-selfhosted.sh` here, and each app's database job (core plus the app's migrations, no hub or billing).
 - **Core never depends on the hub.** Hub-only calls (`hub_*`, `get_org_billing`) are feature-detected in shared code and return "not there" quietly.
 - **App:** with `VITE_HOSTED=false` (the default) the app keeps its own sign-in, sign-up, organization creation, invitations and ownership screens, and never links to openapphub.org. With `VITE_HOSTED=true` those link to the hub.
 - **Install:** `npm ci` (or `bun install`) must work from the public registry, with no private caches.

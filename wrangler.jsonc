@@ -45,7 +45,10 @@
         "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_XsbfqXRDX-L_TwmtYGvjDg_qiLKka2X",
         "VITE_HUB_URL": "https://staging.openapphub.org",
         "VITE_COOKIE_DOMAIN": ".openapphub.org",
-        "VITE_SUITE_URLS": "{\"hub\":\"https://staging.openapphub.org\",\"charter\":\"https://charter-staging.openapphub.org\",\"board\":\"https://board-staging.openapphub.org\",\"ledger\":\"https://ledger-staging.openapphub.org\"}",
+        // The apps' staging sites are their Workers' previews of branch `staging`.
+        "VITE_SUITE_URLS": "{\"hub\":\"https://staging.openapphub.org\",\"charter\":\"https://staging.charter.staging.openapphub.org\",\"board\":\"https://staging.board.staging.openapphub.org\",\"ledger\":\"https://staging.ledger.staging.openapphub.org\"}",
+        // Sign-in may also return to any branch preview: <branch>.<one of these>.
+        "VITE_PREVIEW_DOMAINS": "charter.staging.openapphub.org,board.staging.openapphub.org,ledger.staging.openapphub.org",
         "VITE_DOCS_URL": "https://docs.openapphub.org",
         "VITE_SIGNUPS_OPEN": "true",
         // Sign-in buttons for the suite demo accounts (db/seed/0002_suite_demo.sql). Staging only.

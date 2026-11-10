@@ -523,9 +523,9 @@ The owner wants **one new design language for the whole suite**. Charter and Led
 | | Production | Staging |
 |---|---|---|
 | Hub | `openapphub.org` | `staging.openapphub.org` |
-| Charter | `charter.openapphub.org` | `charter-staging.openapphub.org` |
-| Board | `board.openapphub.org` | `board-staging.openapphub.org` |
-| Ledger | `ledger.openapphub.org` | `ledger-staging.openapphub.org` |
+| Charter | `charter.openapphub.org` | `staging.charter.staging.openapphub.org` (Worker preview of branch `staging`) |
+| Board | `board.openapphub.org` | `staging.board.staging.openapphub.org` (Worker preview of branch `staging`) |
+| Ledger | `ledger.openapphub.org` | `staging.ledger.staging.openapphub.org` (Worker preview of branch `staging`) |
 | Docs | `docs.openapphub.org` | — |
 
 Old domains (for example `opencharterapp.org`) redirect to the new ones once the app is live there.

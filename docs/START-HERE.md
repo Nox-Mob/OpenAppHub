@@ -69,9 +69,9 @@ Both databases start empty: there is no park step and no legacy schema.
 | | Production | Staging |
 |---|---|---|
 | Hub | `openapphub.org` | `staging.openapphub.org` |
-| Charter | `charter.openapphub.org` | `charter-staging.openapphub.org` |
-| Board | `board.openapphub.org` | `board-staging.openapphub.org` |
-| Ledger | `ledger.openapphub.org` | `ledger-staging.openapphub.org` |
+| Charter | `charter.openapphub.org` | `staging.charter.staging.openapphub.org` (Worker preview of branch `staging`) |
+| Board | `board.openapphub.org` | `staging.board.staging.openapphub.org` (Worker preview of branch `staging`) |
+| Ledger | `ledger.openapphub.org` | `staging.ledger.staging.openapphub.org` (Worker preview of branch `staging`) |
 | Docs | `docs.openapphub.org` | — |
 
 Redirect `opencharterapp.org` (and any other old domains) once each app is live on its new address.

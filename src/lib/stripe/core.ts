@@ -10,47 +10,65 @@ export type SuiteAppId = "charter" | "board" | "ledger";
 export const PLAN_KEYS: readonly PlanKey[] = ["starter", "suite", "plus"];
 export const SUITE_APP_IDS: readonly SuiteAppId[] = ["charter", "board", "ledger"];
 
-export type PriceMap = Partial<Record<PlanKey, Partial<Record<Interval, string>>>>;
+// Prices live in Stripe, found by lookup key "<plan>_<interval>" (for example
+// "suite_year"), so the owner changes prices in Stripe without touching code.
 
-/** STRIPE_PRICE_MAP (docs/SECRETS.md): {"starter":{"month":"price_…","year":"price_…"},…}. */
-export function parsePriceMap(raw: string | undefined | null): PriceMap | null {
-  if (!raw) return null;
-  let data: unknown;
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  if (!data || typeof data !== "object") return null;
-  const map: PriceMap = {};
-  for (const plan of PLAN_KEYS) {
-    const entry = (data as Record<string, unknown>)[plan];
-    if (!entry || typeof entry !== "object") continue;
-    for (const interval of ["month", "year"] as const) {
-      const price = (entry as Record<string, unknown>)[interval];
-      if (typeof price === "string" && /^price_[A-Za-z0-9]+$/.test(price)) {
-        (map[plan] ??= {})[interval] = price;
-      }
-    }
-  }
-  return Object.keys(map).length ? map : null;
+export type PlanPrice = { id: string; cents: number | null; currency: string };
+export type PlanPrices = Partial<Record<PlanKey, Partial<Record<Interval, PlanPrice>>>>;
+/** Display amounts only (no price ids), safe to send to any browser. */
+export type PlanAmounts = Partial<Record<PlanKey, Partial<Record<Interval, number>>>>;
+
+export const lookupKey = (plan: PlanKey, interval: Interval) => `${plan}_${interval}`;
+export const LOOKUP_KEYS: readonly string[] = PLAN_KEYS.flatMap((p) =>
+  (["month", "year"] as const).map((i) => lookupKey(p, i)),
+);
+
+export function planFromLookupKey(key: unknown): { plan: PlanKey; interval: Interval } | null {
+  if (typeof key !== "string") return null;
+  const m = /^(starter|suite|plus)_(month|year)$/.exec(key);
+  return m ? { plan: m[1] as PlanKey, interval: m[2] as Interval } : null;
 }
 
-export function priceFor(map: PriceMap, plan: PlanKey, interval: Interval): string | null {
-  return map[plan]?.[interval] ?? null;
+/** Stripe's price list (active prices with our lookup keys) → plan prices. */
+export function toPlanPrices(list: unknown): PlanPrices {
+  const out: PlanPrices = {};
+  if (!Array.isArray(list)) return out;
+  for (const raw of list) {
+    if (!raw || typeof raw !== "object") continue;
+    const p = raw as Record<string, unknown>;
+    const key = planFromLookupKey(p["lookup_key"]);
+    const recurring = p["recurring"] as { interval?: unknown } | null | undefined;
+    if (!key || p["active"] === false || typeof p["id"] !== "string") continue;
+    if (recurring?.interval !== key.interval) continue; // a "suite_year" key on a monthly price
+    (out[key.plan] ??= {})[key.interval] ??= {
+      id: p["id"],
+      cents: typeof p["unit_amount"] === "number" ? p["unit_amount"] : null,
+      currency: typeof p["currency"] === "string" ? p["currency"] : "usd",
+    };
+  }
+  return out;
 }
 
-export function planForPrice(
-  map: PriceMap,
-  price: string | null | undefined,
-): { plan: PlanKey; interval: Interval } | null {
-  if (!price) return null;
+export function planAmounts(prices: PlanPrices): PlanAmounts {
+  const out: PlanAmounts = {};
   for (const plan of PLAN_KEYS) {
     for (const interval of ["month", "year"] as const) {
-      if (map[plan]?.[interval] === price) return { plan, interval };
+      const cents = prices[plan]?.[interval]?.cents;
+      if (typeof cents === "number") (out[plan] ??= {})[interval] = cents;
     }
   }
-  return null;
+  return out;
+}
+
+/**
+ * Apps a plan gives. Suite and Plus give every app, whatever the subscription's
+ * metadata says, so a plan change made in Stripe can't leave the wrong apps.
+ * Starter gives the one app chosen at checkout (the first, if several were saved).
+ */
+export function appsForPlan(plan: PlanKey | null, fromMetadata: SuiteAppId[]): SuiteAppId[] {
+  if (plan === "suite" || plan === "plus") return [...SUITE_APP_IDS];
+  if (plan === "starter") return fromMetadata.slice(0, 1);
+  return fromMetadata;
 }
 
 // Webhook signatures -----------------------------------------------------------
@@ -169,32 +187,33 @@ const org = (v: unknown): string | null => (typeof v === "string" && UUID.test(v
 const isoFromUnix = (v: unknown): string | null =>
   typeof v === "number" && Number.isFinite(v) ? new Date(v * 1000).toISOString() : null;
 
-function subscriptionAction(s: Record<string, unknown>, map: PriceMap | null): BillingAction {
+function subscriptionAction(s: Record<string, unknown>): BillingAction {
   const id = str(s["id"]);
   if (!id) return { kind: "ignore", reason: "subscription without id" };
   const m = meta(s);
   const items = (s["items"] as { data?: Record<string, unknown>[] } | undefined)?.data ?? [];
   const first = items[0] ?? {};
-  const price = idOf(first["price"]);
-  const fromPrice = map ? planForPrice(map, price) : null;
+  const price = first["price"] as { lookup_key?: unknown } | undefined;
+  const fromPrice = planFromLookupKey(price?.lookup_key);
   // current_period_end moved from the subscription to its items in newer API versions.
   const periodEnd =
     isoFromUnix(s["current_period_end"]) ?? isoFromUnix(first["current_period_end"]);
+  const subPlan = fromPrice?.plan ?? plan(m["plan"]);
   return {
     kind: "subscription",
     org: org(m["org_id"]),
     customer: idOf(s["customer"]),
     subscription: id,
-    plan: fromPrice?.plan ?? plan(m["plan"]),
+    plan: subPlan,
     status: mapStatus(s["status"]),
-    apps: parseApps(m["apps"]),
+    apps: appsForPlan(subPlan, parseApps(m["apps"])),
     periodEnd,
     cancelAtPeriodEnd: s["cancel_at_period_end"] === true || typeof s["cancel_at"] === "number",
   };
 }
 
 /** What a webhook event means for billing.subscriptions. */
-export function eventToAction(event: StripeEvent, map: PriceMap | null): BillingAction {
+export function eventToAction(event: StripeEvent): BillingAction {
   const o = event.data?.object ?? {};
   switch (event.type) {
     case "checkout.session.completed": {
@@ -209,16 +228,16 @@ export function eventToAction(event: StripeEvent, map: PriceMap | null): Billing
         subscription,
         plan: plan(m["plan"]),
         status: o["payment_status"] === "unpaid" ? "incomplete" : "active",
-        apps: parseApps(m["apps"]),
+        apps: appsForPlan(plan(m["plan"]), parseApps(m["apps"])),
         periodEnd: null,
         cancelAtPeriodEnd: false,
       };
     }
     case "customer.subscription.created":
     case "customer.subscription.updated":
-      return subscriptionAction(o, map);
+      return subscriptionAction(o);
     case "customer.subscription.deleted": {
-      const a = subscriptionAction(o, map);
+      const a = subscriptionAction(o);
       return a.kind === "subscription" ? { ...a, status: "canceled", cancelAtPeriodEnd: false } : a;
     }
     case "invoice.payment_failed": {

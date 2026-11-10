@@ -25,6 +25,7 @@
             "price": {
               "id": "price_SuiteMonth",
               "object": "price",
+              "lookup_key": "suite_month",
               "recurring": { "interval": "month" }
             }
           }

@@ -60,7 +60,7 @@ Both databases start empty: there is no park step and no legacy schema.
 `PROD_DATABASE_URL`, `STAGING_DATABASE_URL`, `SUPABASE_ACCESS_TOKEN`, `PROD_REF`, `STAGING_REF`. (No Cloudflare secrets: deploys use Cloudflare's Git integration; merging to `main` deploys production. What goes in each secret: the hub's `docs/SECRETS.md`.)
 
 **Worker secrets**
-- Hub: `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MAP`.
+- Hub: `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
 - Charter: `SUPABASE_SERVICE_ROLE_KEY` (dues only) and its gateway encryption key.
 - Ledger: `BACKUP_SIGNING_SEED` (never change it).
 

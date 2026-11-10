@@ -42,21 +42,14 @@ staging), with that environment's value. They're readable only by server code, n
 | `SUPABASE_SERVICE_ROLE_KEY` | The Supabase **secret** key for that project. It bypasses all security rules, so it's used only for invitation emails, account deletion and staging demo tools (SHARED-SPEC §7.2). Starts with `sb_secret_` (or a long `eyJ…` JWT if you use the legacy `service_role` key) | Supabase → project → **Project Settings → API Keys → Secret keys** (create one named `hub-worker`)                                                                                                                                                                                                                                                           | **In use**: sends invitation emails and deletes accounts. Without it, invitations still work (the inviter gets a link to share) and account deletion is refused |
 | `STRIPE_SECRET_KEY`         | Stripe secret API key: `sk_test_…` on staging, `sk_live_…` on production at launch (use `sk_test_` on both until then). A **restricted key** (`rk_…`) with Checkout, Customers, Subscriptions, Billing Portal and Webhook read/write also works                             | Stripe → **Developers → API keys**                                                                                                                                                                                                                                                                                                                           | Phase 4 (billing)                                                                                                                                               |
 | `STRIPE_WEBHOOK_SECRET`     | The signing secret of the webhook endpoint, `whsec_…`. Different for each endpoint                                                                                                                                                                                          | Stripe → Developers → **Webhooks** → add endpoint `https://openapphub.org/api/stripe/webhook` (staging: `https://staging.openapphub.org/api/stripe/webhook`) → **Signing secret**. Events to send: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed` | Phase 4                                                                                                                                                         |
-| `STRIPE_PRICE_MAP`          | JSON mapping each plan and billing interval to a Stripe **price ID** (prices stay out of code). Format below                                                                                                                                                                | Stripe → **Product catalog** → each product → each price → copy `price_…`                                                                                                                                                                                                                                                                                    | Phase 4. **Until it's set, the Billing page shows the plans but checkout stays off** ("Plans open when prices are announced")                                   |
 
-`STRIPE_PRICE_MAP` format (one line when you paste it):
-
-```json
-{
-  "starter": { "month": "price_123", "year": "price_456" },
-  "suite": { "month": "price_789", "year": "price_abc" },
-  "plus": { "month": "price_def", "year": "price_ghi" }
-}
-```
-
-Plan keys match the `billing.plans` rows (`starter`, `suite`, `plus` for now; prices aren't
-confirmed yet, SHARED-SPEC §6.1). Test-mode and live-mode price IDs differ, so staging and
-production have different maps.
+**Prices are not a secret any more:** the hub finds them in Stripe by **lookup key**. Each price
+needs the key `<plan>_<interval>`: `starter_month`, `starter_year`, `suite_month`, `suite_year`,
+`plus_month`, `plus_year` (Product catalog → product → price → Lookup key), in the sandbox and in
+live mode. To change a price, create the new price in Stripe and move the lookup key to it
+("Transfer lookup key"); the site picks it up within 5 minutes and existing subscribers keep their
+old price. A plan with no active price shows "Price TBA" and can't be chosen. Delete any
+`STRIPE_PRICE_MAP` secret left on the Workers; nothing reads it.
 
 Later, if the hub sends email itself rather than through Supabase Auth: `SMTP_HOST`,
 `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`. Not needed while Supabase sends the emails

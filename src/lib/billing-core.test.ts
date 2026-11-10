@@ -1,15 +1,44 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { BillingError, createCheckout, createPortal, handleWebhook } from "./billing-core";
+import {
+  BillingError,
+  clearPriceCache,
+  createCheckout,
+  createPortal,
+  fetchPlanPrices,
+  handleWebhook,
+} from "./billing-core";
 import subUpdated from "./stripe/fixtures/customer.subscription.updated.json";
 import { signStripePayload } from "./stripe/core";
 
 const ORG = "11111111-1111-4111-8111-111111111111";
-const PRICE_MAP = JSON.stringify({
-  starter: { month: "price_StarterMonth" },
-  suite: { month: "price_SuiteMonth", year: "price_SuiteYear" },
-});
-const CONFIG = { secret: "sk_test_x", priceMap: PRICE_MAP, webhookSecret: "whsec_test" };
+const CONFIG = { secret: "sk_test_x", webhookSecret: "whsec_test" };
+const STRIPE_PRICES = [
+  {
+    id: "price_StarterMonth",
+    active: true,
+    lookup_key: "starter_month",
+    unit_amount: 500,
+    currency: "usd",
+    recurring: { interval: "month" },
+  },
+  {
+    id: "price_SuiteMonth",
+    active: true,
+    lookup_key: "suite_month",
+    unit_amount: 1000,
+    currency: "usd",
+    recurring: { interval: "month" },
+  },
+  {
+    id: "price_SuiteYear",
+    active: true,
+    lookup_key: "suite_year",
+    unit_amount: 10000,
+    currency: "usd",
+    recurring: { interval: "year" },
+  },
+];
 
 type Rpc = (name: string, args?: Record<string, unknown>) => { data: unknown; error: unknown };
 
@@ -36,8 +65,13 @@ const manager = (status = "trialing") =>
 
 function stripeFetch() {
   const calls: { path: string; body: string }[] = [];
-  const impl = vi.fn(async (url: string, init: RequestInit) => {
-    const path = new URL(url).pathname;
+  const impl = vi.fn(async (url: string, init: RequestInit = {}) => {
+    const u = new URL(url);
+    const path = u.pathname;
+    if (path === "/v1/prices") {
+      calls.push({ path: `GET ${path}`, body: u.search });
+      return new Response(JSON.stringify({ data: STRIPE_PRICES }), { status: 200 });
+    }
     calls.push({ path, body: String(init.body) });
     const json =
       path === "/v1/customers"
@@ -50,7 +84,38 @@ function stripeFetch() {
   return { impl: impl as unknown as typeof fetch, calls };
 }
 
+describe("fetchPlanPrices", () => {
+  it("asks Stripe for our lookup keys and caches the answer", async () => {
+    clearPriceCache();
+    const s = stripeFetch();
+    const prices = await fetchPlanPrices({ secret: "sk_test_x", fetchImpl: s.impl, now: 1000 });
+    expect(prices.suite?.year?.id).toBe("price_SuiteYear");
+    expect(decodeURIComponent(s.calls[0]!.body)).toContain("lookup_keys[0]=starter_month");
+    expect(decodeURIComponent(s.calls[0]!.body)).toContain("active=true");
+    await fetchPlanPrices({ secret: "sk_test_x", fetchImpl: s.impl, now: 2000 });
+    expect(s.calls).toHaveLength(1);
+    await fetchPlanPrices({ secret: "sk_test_x", fetchImpl: s.impl, now: 1000 + 6 * 60 * 1000 });
+    expect(s.calls).toHaveLength(2);
+  });
+  it("is empty without a key, and keeps the last answer when Stripe fails", async () => {
+    clearPriceCache();
+    expect(await fetchPlanPrices({ secret: null })).toEqual({});
+    const s = stripeFetch();
+    await fetchPlanPrices({ secret: "sk_test_x", fetchImpl: s.impl, now: 0 });
+    const failing = vi.fn(
+      async () => new Response("{}", { status: 500 }),
+    ) as unknown as typeof fetch;
+    const again = await fetchPlanPrices({
+      secret: "sk_test_x",
+      fetchImpl: failing,
+      now: 10 * 60 * 1000,
+    });
+    expect(again.starter?.month?.cents).toBe(500);
+  });
+});
+
 describe("createCheckout", () => {
+  beforeEach(() => clearPriceCache());
   it("creates the customer once and a subscription checkout with the org in metadata", async () => {
     const service = client((name) => ({
       data: name === "billing_customer_for_org" ? null : null,
@@ -69,12 +134,16 @@ describe("createCheckout", () => {
       fetchImpl: s.impl,
     });
     expect(res.url).toContain("checkout.stripe.com");
-    expect(s.calls.map((c) => c.path)).toEqual(["/v1/customers", "/v1/checkout/sessions"]);
+    expect(s.calls.map((c) => c.path)).toEqual([
+      "GET /v1/prices",
+      "/v1/customers",
+      "/v1/checkout/sessions",
+    ]);
     expect(service.rpc).toHaveBeenCalledWith("billing_set_customer", {
       p_org: ORG,
       p_customer: "cus_New",
     });
-    const body = decodeURIComponent(s.calls[1]!.body);
+    const body = decodeURIComponent(s.calls[2]!.body);
     expect(body).toContain("mode=subscription");
     expect(body).toContain(`client_reference_id=${ORG}`);
     expect(body).toContain("line_items[0][price]=price_StarterMonth");
@@ -97,8 +166,8 @@ describe("createCheckout", () => {
       origin: "https://openapphub.org",
       fetchImpl: s.impl,
     });
-    expect(s.calls.map((c) => c.path)).toEqual(["/v1/checkout/sessions"]);
-    expect(decodeURIComponent(s.calls[0]!.body)).toContain("customer=cus_Old");
+    expect(s.calls.map((c) => c.path)).toEqual(["GET /v1/prices", "/v1/checkout/sessions"]);
+    expect(decodeURIComponent(s.calls[1]!.body)).toContain("customer=cus_Old");
   });
   it("refuses members, missing setup, Starter without an app, and a second subscription", async () => {
     const base = { config: CONFIG, orgId: ORG, origin: "https://x", fetchImpl: stripeFetch().impl };
@@ -109,6 +178,16 @@ describe("createCheckout", () => {
     ).rejects.toThrow("Only the owner or an admin");
     await expect(
       createCheckout({ ...base, userClient: manager(), service, plan: "plus", interval: "month" }),
+    ).rejects.toThrow("isn't available yet");
+    await expect(
+      createCheckout({
+        ...base,
+        config: { ...CONFIG, secret: null },
+        userClient: manager(),
+        service,
+        plan: "suite",
+        interval: "month",
+      }),
     ).rejects.toThrow("Payments aren't set up");
     await expect(
       createCheckout({

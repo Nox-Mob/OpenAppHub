@@ -10,7 +10,18 @@
       "status": "canceled",
       "current_period_end": 1797811200,
       "metadata": {},
-      "items": { "object": "list", "data": [{ "price": "price_SuiteYear" }] }
+      "items": {
+        "object": "list",
+        "data": [
+          {
+            "price": {
+              "id": "price_SuiteYear",
+              "lookup_key": "suite_year",
+              "recurring": { "interval": "year" }
+            }
+          }
+        ]
+      }
     }
   }
 }

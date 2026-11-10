@@ -1,8 +1,8 @@
-// Plans shown on the landing page. Prices are NOT confirmed (SHARED-SPEC §6.1):
-// they stay null, shown as "Price TBA", until the owner sets them. This file and
-// the draft docs plans page are the only places prices may ever appear.
-// Limits mirror the placeholder billing.plans rows (§6.1); the database is what
-// enforces them.
+// Plans shown on the landing and billing pages. Prices are NOT here: they come
+// from Stripe by lookup key ("<plan>_<interval>", src/lib/stripe/core.ts), so the
+// owner changes them in Stripe. Without Stripe (or a missing price) a plan shows
+// "Price TBA". Limits mirror billing.plans (editors, 0003_editor_limits.sql); the
+// database is what enforces them.
 
 export type PlanId = "starter" | "suite" | "plus";
 
@@ -10,10 +10,6 @@ export type Plan = {
   id: PlanId;
   name: string;
   tagline: string;
-  /** Price per month in cents, or null while unconfirmed. */
-  monthlyCents: number | null;
-  /** Price per year in cents, or null while unconfirmed. */
-  yearlyCents: number | null;
   features: string[];
   highlighted?: boolean;
 };
@@ -23,19 +19,15 @@ export const PLANS: Plan[] = [
     id: "starter",
     name: "Starter",
     tagline: "One app for a small team",
-    monthlyCents: null,
-    yearlyCents: null,
-    features: ["Choose 1 app: Charter, Board or Ledger", "Up to 10 members", "Export at any time"],
+    features: ["Choose 1 app: Charter, Board or Ledger", "Up to 5 editors", "Export at any time"],
   },
   {
     id: "suite",
     name: "Suite",
     tagline: "Every app, one organization",
-    monthlyCents: null,
-    yearlyCents: null,
     features: [
       "All three apps",
-      "Up to 25 members",
+      "Up to 15 editors",
       "One sign-in across the apps",
       "Export at any time",
     ],
@@ -45,11 +37,9 @@ export const PLANS: Plan[] = [
     id: "plus",
     name: "Plus",
     tagline: "For larger organizations",
-    monthlyCents: null,
-    yearlyCents: null,
     features: [
       "All three apps",
-      "Unlimited members",
+      "Unlimited editors",
       "One sign-in across the apps",
       "Export at any time",
     ],
@@ -62,3 +52,10 @@ export const TRIAL = {
 };
 
 export const PRICE_TBA = "Price TBA";
+
+/** Editors on the trial (billing.trial_member_limit). */
+export const TRIAL_EDITORS = 10;
+
+/** Who counts toward a plan's limit, in plain words. */
+export const EDITORS_NOTE =
+  "Editors are everyone who can change your data: owners, admins and members. Viewers, and dues-paying members in OpenCharterApp, don't count toward the limit.";

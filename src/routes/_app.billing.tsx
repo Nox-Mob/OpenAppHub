@@ -23,6 +23,7 @@ function Page() {
       user={ctx.user}
       hub={ctx.hub}
       checkoutConfigured={config.checkout}
+      prices={config.prices}
       checkoutResult={checkout}
       actions={{ checkout: startCheckout, portal: openBillingPortal }}
     />

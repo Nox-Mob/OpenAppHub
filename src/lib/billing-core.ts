@@ -6,12 +6,13 @@
 // customer and to write what Stripe reports. Who may pay is checked as the
 // signed-in user first (owner or admin of the organization).
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { stripePost, StripeError } from "./stripe/api";
+import { stripeGet, stripePost, StripeError } from "./stripe/api";
 import {
   eventToAction,
-  parsePriceMap,
-  priceFor,
+  LOOKUP_KEYS,
+  toPlanPrices,
   verifyStripeSignature,
+  type PlanPrices,
   type Interval,
   type PlanKey,
   type StripeEvent,
@@ -22,9 +23,45 @@ export class BillingError extends Error {}
 
 export type StripeConfig = {
   secret: string | null;
-  priceMap: string | null;
   webhookSecret: string | null;
 };
+
+// Prices come from Stripe by lookup key (core.ts), cached for a few minutes per
+// Worker instance so the landing page doesn't call Stripe on every visit.
+const PRICE_TTL_MS = 5 * 60 * 1000;
+let priceCache: { secret: string; at: number; prices: PlanPrices } | null = null;
+
+export function clearPriceCache() {
+  priceCache = null;
+}
+
+/** Active prices with our lookup keys; {} when Stripe isn't set up or can't be reached. */
+export async function fetchPlanPrices(opts: {
+  secret: string | null;
+  fetchImpl?: typeof fetch;
+  now?: number;
+}): Promise<PlanPrices> {
+  if (!opts.secret) return {};
+  const now = opts.now ?? Date.now();
+  if (priceCache && priceCache.secret === opts.secret && now - priceCache.at < PRICE_TTL_MS) {
+    return priceCache.prices;
+  }
+  try {
+    const list = await stripeGet<{ data?: unknown }>(
+      opts.secret,
+      "/prices",
+      { active: true, limit: 100, lookup_keys: [...LOOKUP_KEYS] },
+      opts.fetchImpl,
+    );
+    const prices = toPlanPrices(list.data);
+    priceCache = { secret: opts.secret, at: now, prices };
+    return prices;
+  } catch (e) {
+    if (e instanceof StripeError) console.error("stripe prices failed:", e.status, e.code ?? "");
+    else console.error("stripe prices failed");
+    return priceCache?.secret === opts.secret ? priceCache.prices : {};
+  }
+}
 
 const NOT_SET_UP =
   "Payments aren't set up on this site yet. Your trial and your data are unaffected.";
@@ -82,9 +119,7 @@ export async function createCheckout(opts: {
   fetchImpl?: typeof fetch;
 }): Promise<{ url: string }> {
   const user = await requireManager(opts.userClient, opts.orgId);
-  const map = parsePriceMap(opts.config.priceMap);
-  const price = map ? priceFor(map, opts.plan, opts.interval) : null;
-  if (!opts.config.secret || !opts.service || !price) throw new BillingError(NOT_SET_UP);
+  if (!opts.config.secret || !opts.service) throw new BillingError(NOT_SET_UP);
   if (opts.plan === "starter" && !opts.app) {
     throw new BillingError("Choose the app you want with Starter.");
   }
@@ -96,6 +131,14 @@ export async function createCheckout(opts: {
   if (row?.status === "active" || row?.status === "past_due") {
     throw new BillingError("You already have a plan. Use Manage billing to change it.");
   }
+
+  const prices = await fetchPlanPrices({
+    secret: opts.config.secret,
+    ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}),
+  });
+  const price = prices[opts.plan]?.[opts.interval]?.id;
+  if (!price)
+    throw new BillingError("That plan isn't available yet. Try another, or check back soon.");
 
   const { data: orgRow } = await opts.userClient
     .from("organizations")
@@ -215,7 +258,7 @@ export async function handleWebhook(opts: {
   }
   if (isNew === false) return { status: 200, body: "duplicate" };
 
-  const action = eventToAction(event, parsePriceMap(opts.config.priceMap));
+  const action = eventToAction(event);
   try {
     if (action.kind === "subscription") {
       const { error } = await opts.service.rpc("billing_apply_subscription", {
@@ -248,7 +291,6 @@ export async function handleWebhook(opts: {
 export function stripeConfigFromEnv(env: Record<string, string | undefined>): StripeConfig {
   return {
     secret: env["STRIPE_SECRET_KEY"] || null,
-    priceMap: env["STRIPE_PRICE_MAP"] || null,
     webhookSecret: env["STRIPE_WEBHOOK_SECRET"] || null,
   };
 }

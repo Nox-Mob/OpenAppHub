@@ -53,7 +53,7 @@ The owner wants a **new design language for the whole suite** (SHARED-SPEC §9).
     - DB tests: trial active → write; trial expired → read only; Starter for `board` → board writable, others read-only; member limit; portal members don't count.
 19. **Stripe** per §6.2 as hub server functions and the `/api/stripe/webhook` route. Unit-test the event → row mapping with Stripe fixture payloads.
 20. **Billing page** `/billing`: plan, trial days left, plan picker (Starter asks which app), monthly/yearly, Manage billing (portal), read-only explanation with the export story.
-21. **Landing page** at `/` (signed out): the three apps, a pricing table from `src/config/pricing.ts`, self-hosting links, **Docs** link in header and footer.
+21. **Landing page** at `/` (signed out): the three apps, a pricing table (plans from `src/config/pricing.ts`, prices from Stripe by lookup key), self-hosting links, **Docs** link in header and footer.
 
 ## Phase 5 — Docs
 
@@ -75,13 +75,13 @@ The owner wants a **new design language for the whole suite** (SHARED-SPEC §9).
 - Changes to `db/core/` bump `shared/VERSION` and must stay idempotent and self-hostable: no core function may depend on `billing` or `hub` except through run-time resolution that degrades safely.
 - Service-role use only as listed in §7.2.
 - Never log full Stripe objects or tokens; log event id and type.
-- Prices only in `pricing.ts` (and the draft docs page).
+- Prices only in Stripe (lookup keys `<plan>_<interval>`), never in code.
 
 ## Owner steps to list in PRs
 
 - Create the repo; enable secret scanning and push protection.
 - GitHub secrets: `STAGING_DATABASE_URL`, `PROD_DATABASE_URL`, `SUPABASE_ACCESS_TOKEN`, `STAGING_REF`, `PROD_REF` (contents: `docs/SECRETS.md`). No Cloudflare secrets: deploys use Cloudflare's Git integration.
-- Worker secrets: `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MAP`.
+- Worker secrets: `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
 - Stripe products and prices (test mode first), webhook endpoint `https://openapphub.org/api/stripe/webhook`, Customer Portal on.
 - Supabase Auth: Site URL `https://openapphub.org`; redirect URLs for every production and staging origin; custom SMTP before launch.
 - Cloudflare: Worker `openapphub` connected to `main` (build `npm run build`, deploy `npx wrangler deploy`); optional `openapphub-staging` (build `npm run build:staging`); custom domains `openapphub.org` and `staging.openapphub.org`.

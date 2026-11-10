@@ -1,0 +1,14 @@
+{
+  // Shared code is vendored into apps with stricter settings than the hub's. This checks it
+  // under the strictest of them (npm run check:shared-strict, in CI).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true
+  },
+  "include": ["shared/**/*.ts", "shared/**/*.tsx"],
+  "exclude": ["shared/**/*.test.ts", "shared/**/*.test.tsx"]
+}

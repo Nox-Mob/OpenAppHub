@@ -19,6 +19,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - name: Shared code under the apps' strictest settings
+        run: npm run check:shared-strict
       - run: npm run lint
       - run: npm run format:check
       - run: npm test

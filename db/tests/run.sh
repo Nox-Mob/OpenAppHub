@@ -27,4 +27,6 @@ if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f db/tests/seed_guard.sql >/dev/n
 else
   echo "── seed guard: refused a database with real organizations (ok)"
 fi
+echo "── db/tests/suite_demo.sql"
+if ! psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f db/tests/suite_demo.sql >/dev/null; then status=1; fi
 exit $status

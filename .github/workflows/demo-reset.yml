@@ -1,0 +1,32 @@
+name: Demo reset
+
+# Every 12 hours: put the suite demo on staging back to its starting state
+# (demo@demo.openapphub.org's Riverside Community Association in every app, and an
+# empty test@demo.openapphub.org). Runs hub.reset_suite_demo() from
+# db/seed/0002_suite_demo.sql. Staging only: the function refuses any database not
+# marked staging. Skips with a notice until STAGING_DATABASE_URL exists.
+on:
+  schedule:
+    - cron: "17 5,17 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-db
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+    steps:
+      - name: Reset the suite demo
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::notice::STAGING_DATABASE_URL isn't set yet. Skipping the demo reset."
+            exit 0
+          fi
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -qtA -c "select hub.reset_suite_demo()"

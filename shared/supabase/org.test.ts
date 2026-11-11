@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { billingNotice, daysLeft, hasAppAccess, type OrgBilling } from "./billing";
+import { billingNotice, daysLeft, hasAppAccess, isReadOnly, type OrgBilling } from "./billing";
 import { appOrgUrl } from "../apps";
 import {
   getOrgPreferences,
@@ -204,5 +204,20 @@ describe("opening an app in an organization", () => {
     );
     expect(appOrgUrl("hub", "https://example.org", id)).toBe("https://example.org");
     expect(appOrgUrl("board", "https://board.example.org", null)).toBe("https://board.example.org");
+  });
+});
+
+describe("isReadOnly (S-05: write controls off)", () => {
+  it("no billing (self-hosted) is never read-only", () => {
+    expect(isReadOnly(null, "board", now)).toBe(false);
+    expect(isReadOnly(undefined, "board", now)).toBe(false);
+  });
+
+  it("read-only exactly when the app has no access", () => {
+    expect(isReadOnly(base, "board", now)).toBe(false);
+    expect(isReadOnly({ ...base, trial_ends_at: "2026-11-01T00:00:00Z" }, "board", now)).toBe(true);
+    const starter = { ...base, status: "active" as const, plan_id: "starter", apps: ["board"] };
+    expect(isReadOnly(starter, "ledger", now)).toBe(true);
+    expect(isReadOnly({ ...base, status: "canceled" as const }, "hub", now)).toBe(false);
   });
 });

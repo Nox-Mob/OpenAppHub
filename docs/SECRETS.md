@@ -51,6 +51,16 @@ live mode. To change a price, create the new price in Stripe and move the lookup
 old price. A plan with no active price shows "Price TBA" and can't be chosen. Delete any
 `STRIPE_PRICE_MAP` secret left on the Workers; nothing reads it.
 
+**Where they stand (2026-11-11):**
+
+| Worker                    | `SUPABASE_SERVICE_ROLE_KEY` | `STRIPE_SECRET_KEY` | `STRIPE_WEBHOOK_SECRET`                              |
+| ------------------------- | --------------------------- | ------------------- | ---------------------------------------------------- |
+| `openapphub` (production) | not set                     | set                 | set                                                  |
+| `openapphub-staging`      | not set                     | not set             | set (sandbox endpoint `we_1UaUhWBMqAfLJdPPpMpH0k2b`) |
+
+Neither Stripe nor Supabase returns an existing secret key, so a missing one is created new (Stripe:
+roll or create the sandbox key; Supabase: create a secret key) and pasted straight into the Worker.
+
 Later, if the hub sends email itself rather than through Supabase Auth: `SMTP_HOST`,
 `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`. Not needed while Supabase sends the emails
 (set custom SMTP in Supabase instead, section 4).
@@ -59,15 +69,16 @@ Later, if the hub sends email itself rather than through Supabase Auth: `SMTP_HO
 
 Workers & Pages → the Worker → **Settings → Build**:
 
-| Worker                          | Branch                         | Build command           | Deploy command        | Build variables |
-| ------------------------------- | ------------------------------ | ----------------------- | --------------------- | --------------- |
-| `openapphub` (production)       | `main`                         | `npm run build`         | `npx wrangler deploy` | none needed     |
-| `openapphub-staging` (optional) | `main` (or a `staging` branch) | `npm run build:staging` | `npx wrangler deploy` | none needed     |
+| Worker                    | Branch | Build command           | Deploy command        | Build variables |
+| ------------------------- | ------ | ----------------------- | --------------------- | --------------- |
+| `openapphub` (production) | `main` | `npm run build`         | `npx wrangler deploy` | none needed     |
+| `openapphub-staging`      | `main` | `npm run build:staging` | `npx wrangler deploy` | none needed     |
 
 - The Worker's name in Cloudflare must match `wrangler.jsonc`: **`openapphub`** for production,
   **`openapphub-staging`** for staging. If yours is named differently, tell me and I'll change the
   config (or rename the Worker).
-- Node version comes from `.nvmrc` (22).
+- Node version comes from `.nvmrc` (24).
+- The apps (Charter, Board, Ledger) have no separate staging Worker: staging is each production Worker's **preview** of branch `staging`, on `<branch>.<app>.staging.openapphub.org` (previews build with `build:hosted:staging` and deploy with `wrangler preview`).
 - `npm run build` alone builds **production**: the top level of `wrangler.jsonc` is production.
   `build:staging` selects the staging settings.
 - Custom domains (`openapphub.org`, `staging.openapphub.org`) are in `wrangler.jsonc` and get

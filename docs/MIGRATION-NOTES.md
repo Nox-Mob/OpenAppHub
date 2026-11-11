@@ -59,45 +59,34 @@ See `docs/SECRETS.md` for what goes in each value.
 - Supabase (production): turn off **Allow new users to sign up** until launch (the app hides the form, but the Auth API still accepts sign-ups). Turn on Google when ready (off on both projects).
 - Secret scanning and push protection on the repo.
 
-## 4. What's left (2026-11-09, after hub Phases 1–4 merged and migrated)
+## 4. What's left (2026-11-11)
+
+Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (S-01 to S-11) in all three: production check, exposed schemas, integration views, help links, read-only screens, export, Lovable leftovers, Worker secrets, end-to-end tests, retiring the old projects, one look.
+
+| Suite item                                                       | Charter | Board | Ledger                                              |
+| ---------------------------------------------------------------- | ------- | ----- | --------------------------------------------------- |
+| Schema, runner, seed, client, org scoping, hosted mode, restyle  | ✅      | ✅    | ✅                                                  |
+| Suite demo (one demo and one test account, reset every 12 hours) | ✅      | ✅    | ✅                                                  |
+| Staging as Worker previews of branch `staging`                   | ✅      | ✅    | ✅ (pushes reach Cloudflare again since 2026-11-11) |
+| End-to-end tests on staging in CI                                | ✅      | ✅    | ✅                                                  |
+| Integration views and `docs/INTEGRATION.md`                      | ⬜      | ⬜    | ⬜                                                  |
+| Help links map                                                   | ⬜      | ⬜    | ⬜                                                  |
+| Write controls off when read-only                                | 🟠      | 🟠    | 🟠                                                  |
+| Export everything                                                | 🟠      | ✅    | ✅                                                  |
+| Lovable leftovers removed                                        | ✅      | ⬜    | ⬜ (and the AI PDF gateway call)                    |
+| Production checked by a person                                   | 🟡      | 🟡    | 🟡                                                  |
 
 ### Hub
 
-| Item                                                                                       | Waiting on                                                        |
-| ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| Publish `hub/hosting/plans.md` with the prices                                             | Docs PR                                                           |
-| Stripe test run: trial → checkout → renewal → failed payment → cancel → read-only → export | Owner                                                             |
-| Billing and organization-activity emails (preferences are already saved)                   | A way to send email from the Worker (custom SMTP or an email API) |
-| Dashboard summaries from the apps' `api_*` views (step 15, optional)                       | Each app's integration step                                       |
-| `gen-types.yml`                                                                            | Nothing; low priority                                             |
-| Open sign-ups (`VITE_SIGNUPS_OPEN`, Supabase setting)                                      | Launch                                                            |
-
-### Each app (Charter, Board, Ledger): same order, one PR per step
-
-1. **Hygiene** (v2.2): lockfile on the public registry, `.env` untracked, `wrangler.jsonc` (top level = production), security headers, Lovable pieces removed where nothing depends on them. **Done and merged in all three.**
-2. **Rest of vendoring:** `migrate.yml`, a CI `db` job that runs `scripts/migrate.mjs` and `db/tests`, old migration paths retired.
-3. **Baseline migration** (`0001_<app>_baseline.sql`): the app's schema on top of core. The biggest step in each app.
-4. Seed, DB tests, Supabase client on the app schema, org scoping (`oah_org`).
-5. **Hosted vs self-hosted** switch, billing banner, export, integration views.
-6. Design (shared tokens and `AppShell`), help links, docs.
-
-Steps 2 and 3 are one open PR per app (2026-11-10), not yet applied to any database:
-
-| App     | PR                        | Schema    | Runner key       | Performance test (CI budget 3 s, local 1 s) |
-| ------- | ------------------------- | --------- | ---------------- | ------------------------------------------- |
-| Charter | Nox-Mob/OpenCharterApp#17 | `charter` | `opencharterapp` | 5,000, 10,000, 20,000 members               |
-| Board   | Nox-Mob/openboardapp#9    | `board`   | `openboardapp`   | 5,000, 20,000, 50,000 meetings              |
-| Ledger  | Nox-Mob/OpenLedgerApp#12  | `ledger`  | `openledgerapp`  | 5,000, 20,000, 50,000 transactions          |
-
-What they share:
-
-- **CI mirrors Charter's:** a database job (Postgres 17, `db/ci/supabase-stub.sql` for Supabase's auth and storage, the runner applying `db/core` then `db/migrations`, then `db/tests/*.sql`) and a performance job that grows one organization next to many others and fails over budget, then checks the security catalogue (row level security on every table, nothing callable signed out).
-- **`migrate.yml`** in each repo (owner, by hand): staging (with `--seed`) or production, dry run by default. The core files are already recorded under `core`, so only the app's baseline is applied.
-- **Row rules are set-based** in all three (`org_id in (select <app>.readable_org_ids())`, Charter `unit_id in (select charter.permitted_units(...))`). The per-row form from SHARED-SPEC's example (`public.is_member(org_id)`) was 5–15× slower at these sizes: Ledger's balances took 1.7 s at 5,000 transactions, Board's export 2.4 s at 20,000 meetings.
-- **Package names are unique** (`openboardapp`, `openledgerapp`), because the runner records migrations under the package name.
-- **The old `supabase/migrations` stays frozen** in each repo for self-hosters until the app's client switches to its schema; no workflow applies it to the shared database.
-
-**Owner, per app repo:** add `STAGING_DATABASE_URL` and `PROD_DATABASE_URL` (same values as the hub's, `docs/SECRETS.md` §1); run Actions → Migrate on staging (dry run, then for real), then production (Charter: on the PR's branch before merging); add `charter`, `board` and `ledger` to the exposed schemas on both projects (`docs/SECRETS.md` §4).
+| Item                                                                                                                                       | Waiting on                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| Secrets on `openapphub-staging` (Supabase secret key, Stripe sandbox key) and the Supabase secret key on production (`docs/SECRETS.md` §2) | Owner                                                             |
+| Stripe test run: trial → checkout → renewal → failed payment → cancel → read-only → export                                                 | The staging secrets                                               |
+| Billing and organization-activity emails (preferences are already saved)                                                                   | A way to send email from the Worker (custom SMTP or an email API) |
+| Dashboard summaries from the apps' `api_*` views                                                                                           | Each app's integration views                                      |
+| Publish `hub/hosting/plans.md` with the prices                                                                                             | Docs PR                                                           |
+| `gen-types.yml`                                                                                                                            | Nothing; low priority                                             |
+| Open sign-ups (`VITE_SIGNUPS_OPEN`, Supabase setting)                                                                                      | Launch                                                            |
 
 ### Self-hosting: what must stay true
 

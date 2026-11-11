@@ -1,6 +1,8 @@
 import type { ScreenProps } from "./types";
 import { daysLeft, hasAppAccess } from "@shared/supabase/billing";
+import { appOrgUrl } from "@shared/apps";
 import { suiteUrls } from "@shared/supabase/hosted";
+import { setCurrentOrg } from "@shared/supabase/org";
 import { HelpLink } from "@shared/ui/HelpLink";
 import { HELP } from "@/config/help";
 import { NoOrganization, PageHeader } from "@/components/hub/HubShell";
@@ -76,7 +78,12 @@ export function DashboardScreen({ user, hub }: ScreenProps) {
                   <p className="mt-2 flex-1 text-sm text-muted-foreground">{app.tagline}</p>
                   {url ? (
                     <Button asChild variant="outline" size="sm" className="mt-4 self-start">
-                      <a href={url}>Open {app.short}</a>
+                      <a
+                        href={appOrgUrl(app.id, url, org.id)}
+                        onClick={() => setCurrentOrg(org.id)}
+                      >
+                        Open {app.short}
+                      </a>
                     </Button>
                   ) : (
                     <p className="mt-4 text-xs text-muted-foreground">Coming to OpenAppHub soon.</p>

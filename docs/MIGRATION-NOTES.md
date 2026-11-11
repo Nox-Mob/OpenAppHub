@@ -61,7 +61,7 @@ See `docs/SECRETS.md` for what goes in each value.
 
 ## 4. What's left (2026-11-11)
 
-Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (S-01 to S-11) in all three: production check, exposed schemas, integration views, help links, read-only screens, export, Lovable leftovers, Worker secrets, end-to-end tests, retiring the old projects, one look.
+Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (S-01 to S-11) in all three: production check, exposed schemas, integration views, help links, read-only screens, export, old build tooling, Worker secrets, end-to-end tests, retiring the old projects, one look.
 
 | Suite item                                                       | Charter | Board | Ledger                                              |
 | ---------------------------------------------------------------- | ------- | ----- | --------------------------------------------------- |
@@ -73,7 +73,7 @@ Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (
 | Help links map                                                   | ⬜      | ⬜    | ⬜                                                  |
 | Write controls off when read-only                                | 🟠      | 🟠    | 🟠                                                  |
 | Export everything                                                | 🟠      | ✅    | ✅                                                  |
-| Lovable leftovers removed                                        | ✅      | ⬜    | ⬜ (and the AI PDF gateway call)                    |
+| Old build tooling removed (and Ledger's AI PDF import off)       | ✅      | ✅    | ✅                                                  |
 | Production checked by a person                                   | 🟡      | 🟡    | 🟡                                                  |
 
 ### Hub

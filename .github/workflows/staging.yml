@@ -1,11 +1,11 @@
 name: Staging database
 
-# Push to main: apply migrations and seed data to the staging database.
+# Push to staging: apply migrations and seed data to the staging database.
 # Deploys are done by Cloudflare's Git integration, not by this workflow.
 # Skips with a notice until STAGING_DATABASE_URL exists.
 on:
   push:
-    branches: [main]
+    branches: [staging]
   workflow_dispatch:
 
 permissions:

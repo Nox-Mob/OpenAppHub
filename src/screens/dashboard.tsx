@@ -1,4 +1,5 @@
 import type { ScreenProps } from "./types";
+import { AppLogo } from "@shared/ui/AppLogo";
 import { daysLeft, hasAppAccess } from "@shared/supabase/billing";
 import { appOrgUrl } from "@shared/apps";
 import { suiteUrls } from "@shared/supabase/hosted";
@@ -62,9 +63,7 @@ export function DashboardScreen({ user, hub }: ScreenProps) {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="inline-flex items-center gap-2 font-semibold">
-                      <span className="grid size-7 place-items-center rounded-md bg-app-accent text-xs font-bold text-app-accent-foreground">
-                        {app.short[0]}
-                      </span>
+                      <AppLogo app={app.id} size={28} />
                       {app.name}
                     </p>
                     {access ? (

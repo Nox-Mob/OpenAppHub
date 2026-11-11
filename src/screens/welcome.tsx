@@ -1,4 +1,5 @@
 import type { ScreenProps } from "./types";
+import { AppLogo } from "@shared/ui/AppLogo";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
@@ -296,9 +297,7 @@ function AppsStep({ onDone }: { onDone: () => void }) {
                 className="flex flex-col gap-3 rounded-md border p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-start gap-3">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-md bg-app-accent text-sm font-bold text-app-accent-foreground">
-                    {app.short[0]}
-                  </span>
+                  <AppLogo app={app.id} size={32} />
                   <div>
                     <p className="font-semibold">{app.name}</p>
                     <p className="text-sm text-muted-foreground">{app.tagline}</p>

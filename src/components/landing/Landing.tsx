@@ -1,4 +1,5 @@
 // The public landing page (AGENTS step 21): the three apps and what they do,
+import { AppLogo } from "@shared/ui/AppLogo";
 // how the suite works, plans (prices from Stripe by lookup key, "Price TBA" when
 // there's none), self-hosting, FAQ.
 import { Link } from "@tanstack/react-router";
@@ -172,9 +173,7 @@ function AppBlock({ app, flip }: { app: AppInfo; flip: boolean }) {
     >
       <div className={cn(flip && "lg:order-2")}>
         <p className="inline-flex items-center gap-2 text-sm font-semibold">
-          <span className="grid size-6 place-items-center rounded-md bg-app-accent text-xs font-bold text-app-accent-foreground">
-            {app.short[0]}
-          </span>
+          <AppLogo app={app.id} size={24} />
           {app.name}
         </p>
         <h3 className="mt-3 text-2xl font-semibold tracking-tight">{app.tagline}</h3>

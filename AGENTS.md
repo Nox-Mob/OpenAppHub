@@ -1,12 +1,14 @@
 # AGENTS.md — OpenAppHub (Nox-Mob/OpenAppHub) · v2
 
+> **Branches (owner rule, 2026-11-11):** pull requests target `staging`, and every merge goes to `staging`. Nothing merges into `main` (production) without the owner's approval, or the owner merging it. CI runs on pull requests and on pushes to `staging`; only workflows that must run on `main` (releases) do.
+
 Save as `AGENTS.md` in the repo root. **Read `docs/SHARED-SPEC.md` (v2) first.**
 
 You're building the hub: the suite's front door and the owner of everything shared. In hosted mode, people sign up, sign in, create organizations, invite members, transfer ownership and pay **here**. This repo also holds the canonical shared code (`shared/`, `db/core/`, `scripts/migrate.mjs`) that every app vendors.
 
 **Everything else waits on this repo.** Charter, Board and Ledger are each blocked at their "vendor shared code" step until Phase 1–2 here is merged. Work fast on Phases 1–2.
 
-The repo doesn't exist yet. Create it with the stack in SHARED-SPEC §2: **TanStack Start on Cloudflare Workers**, Tailwind, shadcn/ui, **npm**. Copy the build and Worker setup pattern from OpenLedgerApp or OpenBoardApp (without their Lovable packages).
+The repo doesn't exist yet. Create it with the stack in SHARED-SPEC §2: **TanStack Start on Cloudflare Workers**, Tailwind, shadcn/ui, **npm**. Copy the build and Worker setup pattern from OpenLedgerApp or OpenBoardApp (with their plain `vite.config.ts`).
 
 ---
 

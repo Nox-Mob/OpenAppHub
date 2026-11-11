@@ -21,7 +21,7 @@ Prompt for each repo's agent:
 ## Do now
 
 1. **Create `Nox-Mob/OpenAppHub`** and start its agent. Everything else is blocked on its Phase 1–2.
-2. **Disconnect Lovable** from OpenCharterApp, OpenBoardApp and OpenLedgerApp before their database work reaches `main`.
+2. ~~Disconnect the old editor from the three app repos~~ (done).
 3. **Create two new Supabase projects**, `openapphub-prod` and `openapphub-staging`, and send their project IDs and publishable keys. (Owner change 2026-11-08: the old projects are deleted; nothing is copied or parked.)
 4. **Delete the `SMOKE_DEMO_PASSWORD` repo secret** (the old demo accounts go away with the old projects).
 5. **Keep sign-ups closed** on both Supabase projects until launch.

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { billingNotice, daysLeft, hasAppAccess, type OrgBilling } from "./billing";
-import { getOrgPreferences, orgCookieString, readOrgCookie, resolveCurrentOrg } from "./org";
+import { appOrgUrl } from "../apps";
+import {
+  getOrgPreferences,
+  orgCookieString,
+  orgFromSearch,
+  readOrgCookie,
+  resolveCurrentOrg,
+  withOrg,
+} from "./org";
 
 const A = "11111111-1111-4111-8111-111111111111";
 const B = "22222222-2222-4222-8222-222222222222";
@@ -164,5 +172,37 @@ describe("getOrgPreferences", () => {
     expect(
       await getOrgPreferences(client({ data: null, error: { message: "column missing" } }), A),
     ).toEqual({ timeZone: "UTC", currency: "USD" });
+  });
+});
+
+describe("opening an app in an organization", () => {
+  const id = "de000000-0000-4000-8000-0000000000a1";
+
+  it("reads ?org= only when it's an organization id", () => {
+    expect(orgFromSearch(`?org=${id.toUpperCase()}&x=1`)).toBe(id);
+    expect(orgFromSearch("?org=not-an-id")).toBeNull();
+    expect(orgFromSearch("")).toBeNull();
+  });
+
+  it("adds ?org= to absolute and relative links", () => {
+    expect(withOrg("https://board.example.org/board?tab=1", id)).toBe(
+      `https://board.example.org/board?tab=1&org=${id}`,
+    );
+    expect(withOrg("/ledger", id)).toBe(`/ledger?org=${id}`);
+    expect(withOrg("/ledger", "nope")).toBe("/ledger");
+  });
+
+  it("links each app straight into the organization", () => {
+    expect(appOrgUrl("charter", "https://charter.example.org/", id)).toBe(
+      `https://charter.example.org/orgs/${id}`,
+    );
+    expect(appOrgUrl("board", "https://board.example.org", id)).toBe(
+      `https://board.example.org/board?org=${id}`,
+    );
+    expect(appOrgUrl("ledger", "https://ledger.example.org", id)).toBe(
+      `https://ledger.example.org/ledger?org=${id}`,
+    );
+    expect(appOrgUrl("hub", "https://example.org", id)).toBe("https://example.org");
+    expect(appOrgUrl("board", "https://board.example.org", null)).toBe("https://board.example.org");
   });
 });

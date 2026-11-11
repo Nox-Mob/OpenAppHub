@@ -3,7 +3,8 @@ import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
 import { suiteUrls } from "@shared/supabase/hosted";
-import { setCurrentOrg } from "@shared/supabase/org";
+import { appOrgUrl } from "@shared/apps";
+import { getCurrentOrgCookie, setCurrentOrg } from "@shared/supabase/org";
 import { HelpLink } from "@shared/ui/HelpLink";
 import { HELP } from "@/config/help";
 import { PageHeader, Panel } from "@/components/hub/HubShell";
@@ -305,7 +306,18 @@ function AppsStep({ onDone }: { onDone: () => void }) {
                 </div>
                 {url ? (
                   <Button asChild variant="outline" size="sm" className="self-start sm:self-center">
-                    <a href={url}>Open {app.short}</a>
+                    <a
+                      href={url}
+                      onClick={(e) => {
+                        // The organization made in this setup is the current one (cookie).
+                        const orgId = getCurrentOrgCookie();
+                        if (!orgId) return;
+                        e.preventDefault();
+                        window.location.assign(appOrgUrl(app.id, url, orgId));
+                      }}
+                    >
+                      Open {app.short}
+                    </a>
                   </Button>
                 ) : (
                   <span className="text-xs text-muted-foreground">Coming soon</span>

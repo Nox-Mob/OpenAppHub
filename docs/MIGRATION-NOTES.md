@@ -59,23 +59,27 @@ See `docs/SECRETS.md` for what goes in each value.
 - Supabase (production): turn off **Allow new users to sign up** until launch (the app hides the form, but the Auth API still accepts sign-ups). Turn on Google when ready (off on both projects).
 - Secret scanning and push protection on the repo.
 
-## 4. What's left (2026-11-11)
+## 4. What's left (2026-11-12)
 
-Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (S-01 to S-15) in all three: production check, exposed schemas, integration views, help links, read-only screens, export, old build tooling, Worker secrets, end-to-end tests, retiring the old projects, one look, and the cross-app work (S-12 data between apps, S-13 reports into a board package, S-14 board members in sync between Charter and Board, S-15 tasks from every app on the hub's dashboard).
+Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (S-01 to S-15) in all three: production check, exposed schemas, integration views, help links, read-only screens, export, old build tooling, Worker secrets, end-to-end tests, retiring the old projects, one look, and the cross-app work (S-12 data between apps, S-13 reports into a board package, S-14 board members in sync between Charter and Board, S-15 tasks from every app on the hub's dashboard). What comes next: [`ROADMAP.md`](ROADMAP.md).
 
-| Suite item                                                       | Charter                                     | Board   | Ledger                                                        |
-| ---------------------------------------------------------------- | ------------------------------------------- | ------- | ------------------------------------------------------------- |
-| Schema, runner, seed, client, org scoping, hosted mode, restyle  | ✅                                          | ✅      | ✅                                                            |
-| Suite demo (one demo and one test account, reset every 12 hours) | ✅                                          | ✅      | ✅                                                            |
-| Staging as Worker previews of branch `staging`                   | ✅                                          | ✅      | ✅ (preview domains declared in `wrangler.jsonc`, 2026-11-12) |
-| End-to-end tests on staging in CI                                | ✅                                          | ✅      | ✅                                                            |
-|                                                                  | Integration views and `docs/INTEGRATION.md` | ✅ (PR) | ✅ (PR)                                                       | ✅ (PR) |     | ✅ (PR) | ✅ (PR) | ✅ (PR) |
-| Help links map                                                   | ✅                                          | ✅      | ✅                                                            |
-| Write controls off when read-only                                | ✅ (PR)                                     | ✅ (PR) | ✅ (PR)                                                       |
-| Export everything                                                | ✅ (PR)                                     | ✅      | ✅                                                            |
-| Old projects retired (owner)                                     | ✅                                          | ✅      | ✅                                                            |
-| Old build tooling removed (and Ledger's AI PDF import off)       | ✅                                          | ✅      | ✅                                                            |
-| Production checked by a person                                   | 🟡                                          | 🟡      | 🟡                                                            |
+| Suite item                                                       | Charter | Board                            | Ledger                                                        |
+| ---------------------------------------------------------------- | ------- | -------------------------------- | ------------------------------------------------------------- |
+| Schema, runner, seed, client, org scoping, hosted mode, restyle  | ✅      | ✅                               | ✅                                                            |
+| Suite demo (one demo and one test account, reset every 12 hours) | ✅      | ✅                               | ✅                                                            |
+| Staging as Worker previews of branch `staging`                   | ✅      | ✅                               | ✅ (preview domains declared in `wrangler.jsonc`, 2026-11-12) |
+| End-to-end tests on staging in CI                                | ✅      | ✅                               | ✅                                                            |
+| Integration views and `docs/INTEGRATION.md`                      | ✅ (PR) | ✅ (PR)                          | ✅ (PR)                                                       |
+| Help links map                                                   | ✅      | ✅                               | ✅                                                            |
+| Write controls off when read-only                                | ✅ (PR) | ✅ (PR)                          | ✅ (PR)                                                       |
+| Export everything                                                | ✅ (PR) | ✅                               | ✅                                                            |
+| Old projects retired (owner)                                     | ✅      | ✅                               | ✅                                                            |
+| Old build tooling removed (and Ledger's AI PDF import off)       | ✅      | ✅                               | ✅                                                            |
+| S-12 data between apps (offers and uses documented)              | ✅ (PR) | ✅ (PR)                          | ✅ (PR)                                                       |
+| S-13 reports into a board package                                | ✅ (PR) | ✅ (PR, `add_report_to_meeting`) | ✅ (PR)                                                       |
+| S-14 board members in sync                                       | ✅ (PR) | ✅ (PR)                          | —                                                             |
+| S-15 tasks on the hub dashboard                                  | ✅ (PR) | ✅ (PR)                          | ✅ (PR)                                                       |
+| Production checked by a person                                   | 🟡      | 🟡                               | 🟡                                                            |
 
 ### Hub
 
@@ -84,7 +88,7 @@ Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (
 | Secrets on `openapphub-staging` (Supabase secret key, Stripe sandbox key) and the Supabase secret key on production (`docs/SECRETS.md` §2) | Owner                                                             |
 | Stripe test run: trial → checkout → renewal → failed payment → cancel → read-only → export                                                 | The staging secrets                                               |
 | Billing and organization-activity emails (preferences are already saved)                                                                   | A way to send email from the Worker (custom SMTP or an email API) |
-| Dashboard summaries from the apps' `api_*` views                                                                                           | Each app's integration views                                      |
+| Dashboard: tasks, meetings, decisions, money and members from the apps (S-03, S-15)                                                        | ✅ (PR); needs the apps' migrations applied                       |
 | Publish `hub/hosting/plans.md` with the prices                                                                                             | Docs PR                                                           |
 | `gen-types.yml`                                                                                                                            | Nothing; low priority                                             |
 | Open sign-ups (`VITE_SIGNUPS_OPEN`, Supabase setting)                                                                                      | Launch                                                            |

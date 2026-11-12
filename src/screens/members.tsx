@@ -17,6 +17,7 @@ import type { InviteResult } from "@/lib/members-core";
 import { HELP } from "@/config/help";
 import { ROLE_HELP, ROLE_LABEL, canManage } from "@/lib/roles";
 import { must, useAsync } from "@/lib/use-async";
+import { boardRole, ledgerRole, loadAppRoles } from "@/lib/people";
 
 type Member = { user_id: string; display_name: string | null; email: string; role: OrgRole };
 type Invitation = {
@@ -54,6 +55,11 @@ export function MembersScreen({
           )
         : [],
     [orgId, supabase, manage],
+  );
+  // H-04: each person's role in every app the organization uses.
+  const appRoles = useAsync(
+    async () => (orgId && supabase ? loadAppRoles(supabase, orgId) : null),
+    [orgId, supabase],
   );
   const [error, setError] = useState("");
   const [removing, setRemoving] = useState<Member | null>(null);
@@ -176,6 +182,7 @@ export function MembersScreen({
         </Panel>
         {manage ? (
           <div className="space-y-6">
+            <AppRolesPanel members={members.data ?? []} roles={appRoles.data ?? null} />
             <InvitePanel
               orgId={orgId}
               invite={invite}
@@ -341,6 +348,75 @@ export function InvitePanel({
             The link works once, for {result.to}, and expires in 14 days.
           </p>
         </div>
+      ) : null}
+    </Panel>
+  );
+}
+
+/** H-04: one table of every person's role in OpenAppHub and in each app. */
+function AppRolesPanel({
+  members,
+  roles,
+}: {
+  members: Member[];
+  roles: Awaited<ReturnType<typeof loadAppRoles>> | null;
+}) {
+  if (!roles || members.length === 0) return null;
+  const cols = (["charter", "board", "ledger"] as const).filter((a) => roles[a] !== null);
+  if (cols.length === 0) return null;
+  const head = {
+    charter: "OpenCharterApp",
+    board: "OpenBoardApp",
+    ledger: "OpenLedgerApp",
+  } as const;
+  const cell = (app: (typeof cols)[number], m: Member) => {
+    const v = roles[app]?.get(m.user_id);
+    if (app === "board") return boardRole(m.role, v);
+    if (app === "ledger") return ledgerRole(m.role, v);
+    return v || "—";
+  };
+  return (
+    <Panel
+      title="Roles in each app"
+      description="What each person can do in every app. Their OpenAppHub role sets the starting point; each app adds its own (offices in OpenBoardApp, treasurers in OpenLedgerApp, chapter roles in OpenCharterApp). Change those in the app."
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[36rem] text-left text-sm">
+          <thead className="text-xs text-muted-foreground">
+            <tr>
+              <th className="py-2 pr-3 font-medium">Person</th>
+              <th className="py-2 pr-3 font-medium">OpenAppHub</th>
+              {cols.map((c) => (
+                <th key={c} className="py-2 pr-3 font-medium">
+                  {head[c]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {members.map((m) => (
+              <tr key={m.user_id}>
+                <td className="py-2 pr-3">
+                  <span className="font-medium">{m.display_name || m.email}</span>
+                  {m.display_name ? (
+                    <span className="block text-xs text-muted-foreground">{m.email}</span>
+                  ) : null}
+                </td>
+                <td className="py-2 pr-3">{ROLE_LABEL[m.role]}</td>
+                {cols.map((c) => (
+                  <td key={c} className="py-2 pr-3">
+                    {cell(c, m)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {roles.charter && roles.charter.size === 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          OpenCharterApp roles show for people who manage roles there; others see their own.
+        </p>
       ) : null}
     </Panel>
   );

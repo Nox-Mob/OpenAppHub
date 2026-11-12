@@ -10,3 +10,5 @@ dist
 .DS_Store
 .tanstack
 worker-configuration.d.ts
+test-results
+playwright-report

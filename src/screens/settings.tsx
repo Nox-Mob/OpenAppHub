@@ -5,7 +5,6 @@ import { APP_NAMES } from "@shared/apps";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
 import { SUITE_APPS, suiteUrls } from "@shared/supabase/hosted";
 import type { OrgRole } from "@shared/supabase/org";
-import { AutomationsPanel } from "@shared/ui/Automations";
 import { HelpLink } from "@shared/ui/HelpLink";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NoOrganization, PageHeader, Panel } from "@/components/hub/HubShell";
@@ -45,13 +44,11 @@ export function SettingsScreen({ hub }: ScreenProps) {
         <Panel
           id="automations"
           title="Automations"
-          description="Reminder emails and other things the apps do on their own for this organization."
+          description="Reminder emails, and the workflows you build: when something happens, if it matches, then do what you need."
         >
-          <AutomationsPanel
-            client={getSupabaseBrowserClient()}
-            orgId={org.id}
-            canEdit={canManage(hub.role)}
-          />
+          <Button asChild variant="outline">
+            <a href="/automations">Open Automations</a>
+          </Button>
         </Panel>
         {isOwner ? <TransferPanel orgId={org.id} orgName={org.name} /> : null}
         {isOwner ? <DeletePanel orgId={org.id} orgName={org.name} /> : null}

@@ -1,10 +1,16 @@
 // The dashboard's panels: key information from every app in one place (tasks, meetings, money,
 // membership). Data from src/lib/dashboard.ts; a panel whose app isn't here says so and links to it.
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
 import { formatDate, formatMoney } from "@shared/format";
 import { AppLogo } from "@shared/ui/AppLogo";
-import { loadDashboard, type DashboardData, type SuiteApp } from "@/lib/dashboard";
+import {
+  completeTask,
+  loadDashboard,
+  type DashboardData,
+  type DashboardTask,
+  type SuiteApp,
+} from "@/lib/dashboard";
 import { useAsync } from "@/lib/use-async";
 
 const APP_LABEL: Record<SuiteApp, string> = {
@@ -196,27 +202,11 @@ export function DashboardPanels({
             ) : (
               <ul className="divide-y">
                 {d.tasks.slice(0, 8).map((t, i) => (
-                  <li key={i} data-app={t.app} className="flex items-center gap-3 py-2.5">
-                    <AppLogo app={t.app} size={22} label />
-                    <div className="min-w-0 flex-1">
-                      <a
-                        href={t.href}
-                        className="block truncate text-sm font-medium hover:underline"
-                      >
-                        {t.title}
-                      </a>
-                      {t.detail ? (
-                        <p className="truncate text-xs text-muted-foreground">{t.detail}</p>
-                      ) : null}
-                    </div>
-                    {t.due ? (
-                      <span
-                        className={`shrink-0 text-xs tabular-nums ${t.due < new Date().toISOString().slice(0, 10) ? "font-semibold text-destructive" : "text-muted-foreground"}`}
-                      >
-                        {formatDate(t.due)}
-                      </span>
-                    ) : null}
-                  </li>
+                  <TaskRow
+                    key={`${t.app}-${t.title}-${i}`}
+                    t={t}
+                    onDone={() => void state.reload()}
+                  />
                 ))}
                 {d.tasks.length > 8 ? (
                   <li className="pt-2 text-xs text-muted-foreground">
@@ -326,5 +316,89 @@ export function DashboardPanels({
         </div>
       </div>
     </div>
+  );
+}
+
+/** One task: a link to where it's done, and Done (or Skip) when it can be finished here (S-19). */
+function TaskRow({ t, onDone }: { t: DashboardTask; onDone: () => void }) {
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [finished, setFinished] = useState(false);
+  async function finish() {
+    const client = getSupabaseBrowserClient();
+    if (!client) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await completeTask(client, t);
+      setFinished(true);
+      onDone();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+      setAsking(false);
+    }
+  }
+  if (finished) return null;
+  return (
+    <li data-app={t.app} className="py-2.5">
+      <div className="flex items-center gap-3">
+        <AppLogo app={t.app} size={22} label />
+        <div className="min-w-0 flex-1">
+          <a href={t.href} className="block truncate text-sm font-medium hover:underline">
+            {t.title}
+          </a>
+          {t.detail ? <p className="truncate text-xs text-muted-foreground">{t.detail}</p> : null}
+        </div>
+        {t.due ? (
+          <span
+            className={`shrink-0 text-xs tabular-nums ${t.due < new Date().toISOString().slice(0, 10) ? "font-semibold text-destructive" : "text-muted-foreground"}`}
+          >
+            {formatDate(t.due)}
+          </span>
+        ) : null}
+        {t.complete && !asking ? (
+          <button
+            type="button"
+            className="shrink-0 rounded-md border border-input px-2 py-1 text-xs font-medium hover:bg-accent disabled:opacity-50"
+            disabled={busy}
+            aria-label={`${t.complete.label}: ${t.title}`}
+            onClick={() => (t.complete!.confirm ? setAsking(true) : void finish())}
+          >
+            {busy ? "…" : t.complete.label}
+          </button>
+        ) : null}
+      </div>
+      {asking && t.complete?.confirm ? (
+        <div
+          className="mt-2 flex flex-wrap items-center gap-2 pl-9 text-xs"
+          role="group"
+          aria-label="Confirm"
+        >
+          <span>{t.complete.confirm}</span>
+          <button
+            type="button"
+            className="rounded-md bg-primary px-2 py-1 font-medium text-primary-foreground"
+            onClick={() => void finish()}
+          >
+            {t.complete.label}
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-input px-2 py-1"
+            onClick={() => setAsking(false)}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
+      {error ? (
+        <p role="alert" className="mt-1 pl-9 text-xs text-destructive">
+          {error}
+        </p>
+      ) : null}
+    </li>
   );
 }

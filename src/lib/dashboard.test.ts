@@ -67,6 +67,9 @@ describe("dashboard data", () => {
     ]);
     expect(tasks[2]?.detail).toBe("From October");
     expect(mergeTasks({ board: null, charter: null, ledger: null }, urls, "org")).toBeNull();
+    expect(
+      mergeTasks({ board: null, charter: null, ledger: null, hub: null }, urls, "org"),
+    ).toBeNull();
     expect(mergeTasks({ board: [], charter: null, ledger: null }, urls, "org")).toEqual([]);
   });
 
@@ -123,6 +126,71 @@ describe("dashboard data", () => {
       decisions: null,
       money: null,
       membership: null,
+    });
+  });
+});
+
+describe("finishing tasks from the hub (S-19)", () => {
+  it("offers Done or Skip only where the app says it can be finished here", () => {
+    const tasks = mergeTasks(
+      {
+        board: [
+          {
+            id: "a1",
+            title: "Mine",
+            due_date: "2026-11-20",
+            link: "/board/tasks",
+            completable: true,
+          },
+          {
+            id: "a2",
+            title: "Theirs",
+            due_date: "2026-11-21",
+            link: "/board/tasks",
+            completable: false,
+          },
+        ],
+        charter: [
+          {
+            kind: "join_request",
+            title: "Review join request",
+            due_on: "2026-11-19",
+            link: "/orgs/x?tab=members",
+          },
+        ],
+        ledger: [
+          {
+            item_id: "t1",
+            title: "Record Rent",
+            due_on: "2026-11-22",
+            link: "/templates",
+            completable: true,
+          },
+        ],
+        hub: [{ id: "w1", title: "Order the award", note: "", link: null, due_on: null }],
+      },
+      urls,
+      "org",
+    )!;
+    const by = (title: string) => tasks.find((t) => t.title === title)!;
+    expect(by("Mine").complete).toMatchObject({
+      label: "Done",
+      schema: "board",
+      fn: "complete_action_item",
+      args: { p_id: "a1" },
+    });
+    expect(by("Theirs").complete).toBeUndefined();
+    expect(by("Review join request").complete).toBeUndefined();
+    expect(by("Record Rent").complete).toMatchObject({
+      label: "Skip",
+      schema: "ledger",
+      fn: "skip_recurring_due",
+    });
+    expect(by("Record Rent").complete!.confirm).toContain('Skip "Rent" this time?');
+    expect(by("Order the award")).toMatchObject({
+      app: "hub",
+      href: "/automations",
+      complete: { fn: "complete_automation_task", args: { p_id: "w1" } },
     });
   });
 });

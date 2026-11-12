@@ -64,17 +64,40 @@ where org_id = :org and month >= date_trunc('year', current_date);
 
 What needs doing in Ledger, for the hub's task list.
 
-| Column    | Type | Meaning                                                                |
-| --------- | ---- | ---------------------------------------------------------------------- |
-| `org_id`  | uuid | The OpenAppHub organization                                            |
-| `kind`    | text | `recurring_due`: a recurring transaction due within 7 days, or overdue |
-| `title`   | text | Ready to show, for example "Record Rent"                               |
-| `due_on`  | date |                                                                        |
-| `item_id` | uuid | The template                                                           |
-| `link`    | text | Path in OpenLedgerApp where it's done (`/templates`)                   |
+| Column        | Type    | Meaning                                                                |
+| ------------- | ------- | ---------------------------------------------------------------------- |
+| `org_id`      | uuid    | The OpenAppHub organization                                            |
+| `kind`        | text    | `recurring_due`: a recurring transaction due within 7 days, or overdue |
+| `title`       | text    | Ready to show, for example "Record Rent"                               |
+| `due_on`      | date    |                                                                        |
+| `item_id`     | uuid    | The template                                                           |
+| `link`        | text    | Path in OpenLedgerApp where it's done (`/templates`)                   |
+| `completable` | boolean | True when the caller can skip it from the hub (S-19)                   |
+
+**Skip from the hub (S-19):** `ledger.skip_recurring_due(p_template)` moves the template to its next date without recording it and returns that date. It records the skipped occurrence and an audit entry through `ledger.audited_write` (`security invoker`), so Ledger's own write rules decide who may.
 
 ## Uses from other apps (S-13)
 
 Reports → **Add to a board package** puts the board package PDF (income, balance, budget vs actual,
 funds) into an upcoming OpenBoardApp meeting through `board.add_report_to_meeting` (shared
 `AddToBoardPackage`). Hidden when OpenBoardApp isn't on this database.
+
+## `ledger.api_people` (H-04)
+
+Each person's role in this app, for the hub's People page (`security invoker`: what the caller may see).
+
+| Column    | Type | Meaning                                                                        |
+| --------- | ---- | ------------------------------------------------------------------------------ |
+| `org_id`  | uuid | The OpenAppHub organization                                                    |
+| `user_id` | uuid | The person (`auth.users`)                                                      |
+| `role`    | text | `treasurer` (the only Ledger overlay); admins and members come from their role |
+
+A role set for this app alone is in `public.app_role_overrides` (core `0010`); read it with `public.app_role(org, 'ledger', user)` and set it with `public.set_app_role`. This app's permission checks use it.
+
+## Workflow connectors (S-25, `0004_workflows`)
+
+Trigger `ledger.books_locked` (event, when the books are closed through a month). Action `ledger.reports_to_meeting` (needs a meeting): the board package PDF as of the last closed month, today or a date, added to the meeting through `board.add_report_to_meeting`. The hub's cron calls Ledger's signed `POST /automation/run` (`shared/automation/run.ts`), which claims and does Ledger's jobs.
+
+## Terms (H-07)
+
+Hosted, Ledger reads `public.hub_accepted_terms()`; when the hub already recorded the terms, Ledger asks only for its not-advice notice.

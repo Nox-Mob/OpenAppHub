@@ -6,12 +6,25 @@ import { isMissing } from "@shared/integrations/detect";
 
 export type SuiteApp = "charter" | "board" | "ledger";
 
+/**
+ * Finishing a task from the hub (S-19): the owning app's own function, run with the reader's
+ * permissions. Only tasks that can be finished with a click have one; the rest stay links,
+ * because finishing them means doing the work (approving, reconciling, filling a seat).
+ */
+export type TaskCompletion = {
+  label: "Done" | "Skip";
+  schema: "board" | "ledger" | "public";
+  fn: string;
+  args: Record<string, unknown>;
+  confirm?: string;
+};
 export type DashboardTask = {
-  app: SuiteApp;
+  app: SuiteApp | "hub";
   title: string;
   detail: string | null;
   due: string | null;
   href: string;
+  complete?: TaskCompletion;
 };
 export type Meeting = {
   id: string;
@@ -66,6 +79,23 @@ async function rows(q: PromiseLike<Res>): Promise<Row[] | null> {
   }
 }
 
+/** The newer columns first; before an app's migration adds them, the older ones. */
+async function withFallback(
+  q: (cols: string) => PromiseLike<Res>,
+  cols: string,
+  older: string,
+): Promise<Row[] | null> {
+  const first = await rows(q(cols));
+  return first ?? rows(q(older));
+}
+
+/** Finishes a task with its app's own function (S-19). */
+export async function completeTask(client: SupabaseClient, t: DashboardTask): Promise<void> {
+  if (!t.complete) throw new Error("This one is finished in its app.");
+  const { error } = await client.schema(t.complete.schema).rpc(t.complete.fn, t.complete.args);
+  if (error) throw new Error(error.message);
+}
+
 /** A link into an app for this organization (Charter's links already name the unit). */
 export function appHref(base: string | undefined, link: string, orgId: string): string {
   const root = (base ?? "").replace(/\/+$/, "");
@@ -74,18 +104,41 @@ export function appHref(base: string | undefined, link: string, orgId: string): 
 }
 
 export function mergeTasks(
-  p: { board: Row[] | null; charter: Row[] | null; ledger: Row[] | null },
-  urls: Partial<Record<SuiteApp, string>>,
+  p: { board: Row[] | null; charter: Row[] | null; ledger: Row[] | null; hub?: Row[] | null },
+  urls: Partial<Record<SuiteApp | "hub", string>>,
   orgId: string,
 ): DashboardTask[] | null {
-  if (!p.board && !p.charter && !p.ledger) return null;
+  if (!p.board && !p.charter && !p.ledger && !p.hub) return null;
   const tasks: DashboardTask[] = [
+    ...(p.hub ?? []).map((r) => ({
+      app: "hub" as const,
+      title: String(r["title"]),
+      detail: (r["note"] as string | null) || "From a workflow",
+      due: (r["due_on"] as string | null) ?? null,
+      href: r["link"] ? String(r["link"]) : "/automations",
+      complete: {
+        label: "Done" as const,
+        schema: "public" as const,
+        fn: "complete_automation_task",
+        args: { p_id: r["id"] },
+      },
+    })),
     ...(p.board ?? []).map((r) => ({
       app: "board" as const,
       title: String(r["title"]),
       detail: r["meeting_title"] ? `From ${r["meeting_title"]}` : "Action item",
       due: (r["due_date"] as string | null) ?? null,
       href: appHref(urls.board, String(r["link"] ?? "/board/tasks"), orgId),
+      ...(r["completable"] && r["id"]
+        ? {
+            complete: {
+              label: "Done" as const,
+              schema: "board" as const,
+              fn: "complete_action_item",
+              args: { p_id: r["id"] },
+            },
+          }
+        : {}),
     })),
     ...(p.charter ?? []).map((r) => ({
       app: "charter" as const,
@@ -97,9 +150,20 @@ export function mergeTasks(
     ...(p.ledger ?? []).map((r) => ({
       app: "ledger" as const,
       title: String(r["title"]),
-      detail: "Recurring transaction",
+      detail: "Recurring transaction: post it in OpenLedgerApp, or skip this one",
       due: (r["due_on"] as string | null) ?? null,
       href: appHref(urls.ledger, String(r["link"] ?? "/templates"), orgId),
+      ...(r["completable"] && r["item_id"]
+        ? {
+            complete: {
+              label: "Skip" as const,
+              schema: "ledger" as const,
+              fn: "skip_recurring_due",
+              args: { p_template: r["item_id"] },
+              confirm: `Skip "${String(r["title"]).replace(/^Record /, "")}" this time? Nothing is posted; it comes back next time it's due.`,
+            },
+          }
+        : {}),
     })),
   ];
   // Soonest first; undated ones after.
@@ -154,67 +218,95 @@ export async function loadDashboard(
   const board = client.schema("board");
   const charter = client.schema("charter");
   const ledger = client.schema("ledger");
-  const [actions, charterTasks, ledgerTasks, meetings, decisions, months, members, units, seats] =
-    await Promise.all([
-      rows(
+  const [
+    actions,
+    charterTasks,
+    ledgerTasks,
+    meetings,
+    decisions,
+    months,
+    members,
+    units,
+    seats,
+    hubTasks,
+  ] = await Promise.all([
+    withFallback(
+      (cols) =>
         board
           .from("api_action_items")
-          .select("title, due_date, status, meeting_title, link")
+          .select(cols)
           .eq("org_id", p.orgId)
           .eq("assignee_id", p.userId)
-          .in("status", ["open", "in_progress"]),
-      ),
-      rows(
-        charter
-          .from("api_tasks")
-          .select("kind, title, unit_name, due_on, link")
-          .eq("org_id", p.orgId),
-      ),
-      rows(ledger.from("api_tasks").select("title, due_on, link").eq("org_id", p.orgId)),
-      rows(
-        board
-          .from("api_meetings")
-          .select("id, title, meeting_date, minutes_status, status")
-          .eq("org_id", p.orgId)
-          .gte("meeting_date", today)
-          .in("status", ["scheduled", "in_progress"])
-          .order("meeting_date")
-          .limit(4),
-      ),
-      rows(
-        board
-          .from("api_decisions")
-          .select("motion_text, outcome, meeting_date")
-          .eq("org_id", p.orgId)
-          .order("decided_at", { ascending: false })
-          .limit(4),
-      ),
-      rows(
-        ledger
-          .from("api_period_summaries")
-          .select("month, currency, revenue_cents, expense_cents, net_cents")
-          .eq("org_id", p.orgId)
-          .gte("month", yearStart),
-      ),
-      rows(
-        charter
-          .from("api_member_summary")
-          .select("current_members, pending_requests, renewals_due")
-          .eq("org_id", p.orgId),
-      ),
-      rows(charter.from("api_unit_count").select("units").eq("org_id", p.orgId)),
-      rows(
-        charter
-          .from("api_board_seats")
-          .select("title, holder_name")
-          .eq("org_id", p.orgId)
-          .eq("unit_id", p.orgId)
-          .order("title"),
-      ),
-    ]);
+          .in("status", ["open", "in_progress"]) as unknown as PromiseLike<Res>,
+      "id, title, due_date, status, meeting_title, link, completable",
+      "title, due_date, status, meeting_title, link",
+    ),
+    rows(
+      charter
+        .from("api_tasks")
+        .select("kind, title, unit_name, due_on, link")
+        .eq("org_id", p.orgId),
+    ),
+    withFallback(
+      (cols) =>
+        ledger.from("api_tasks").select(cols).eq("org_id", p.orgId) as unknown as PromiseLike<Res>,
+      "item_id, title, due_on, link, completable",
+      "title, due_on, link",
+    ),
+    rows(
+      board
+        .from("api_meetings")
+        .select("id, title, meeting_date, minutes_status, status")
+        .eq("org_id", p.orgId)
+        .gte("meeting_date", today)
+        .in("status", ["scheduled", "in_progress"])
+        .order("meeting_date")
+        .limit(4),
+    ),
+    rows(
+      board
+        .from("api_decisions")
+        .select("motion_text, outcome, meeting_date")
+        .eq("org_id", p.orgId)
+        .order("decided_at", { ascending: false })
+        .limit(4),
+    ),
+    rows(
+      ledger
+        .from("api_period_summaries")
+        .select("month, currency, revenue_cents, expense_cents, net_cents")
+        .eq("org_id", p.orgId)
+        .gte("month", yearStart),
+    ),
+    rows(
+      charter
+        .from("api_member_summary")
+        .select("current_members, pending_requests, renewals_due")
+        .eq("org_id", p.orgId),
+    ),
+    rows(charter.from("api_unit_count").select("units").eq("org_id", p.orgId)),
+    rows(
+      charter
+        .from("api_board_seats")
+        .select("title, holder_name")
+        .eq("org_id", p.orgId)
+        .eq("unit_id", p.orgId)
+        .order("title"),
+    ),
+    // Tasks workflows gave this person (core 0009).
+    rows(
+      client
+        .schema("public")
+        .from("automation_tasks")
+        .select("id, title, note, link, due_on")
+        .eq("org_id", p.orgId)
+        .eq("assignee_id", p.userId)
+        .eq("status", "open") as unknown as PromiseLike<Res>,
+    ),
+  ]);
   return {
     tasks: mergeTasks(
-      { board: actions, charter: charterTasks, ledger: ledgerTasks },
+      { board: actions, charter: charterTasks, ledger: ledgerTasks, hub: hubTasks },
       p.urls,
       p.orgId,
     ),

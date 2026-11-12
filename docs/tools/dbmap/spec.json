@@ -6,7 +6,8 @@
       "public.memberships",
       "public.profiles",
       "public.invitations",
-      "public.instance_settings"
+      "public.instance_settings",
+      "public.app_role_overrides"
     ]
   },
   {
@@ -43,6 +44,21 @@
   {
     "id": "automations",
     "tables": ["public.automation_kinds", "public.automations", "public.automation_log"]
+  },
+  {
+    "id": "workflows",
+    "tables": [
+      "public.automation_workflows",
+      "public.automation_trigger_types",
+      "public.automation_action_types",
+      "public.automation_recipient_types",
+      "public.automation_org_settings",
+      "public.automation_editors",
+      "public.automation_events",
+      "public.automation_runs",
+      "public.automation_tasks",
+      "public.automation_jobs"
+    ]
   },
   {
     "id": "charter-org",

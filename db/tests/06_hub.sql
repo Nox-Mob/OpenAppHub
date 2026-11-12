@@ -123,3 +123,20 @@ $$;
 rollback;
 
 \echo ok
+
+-- H-07: apps ask whether the hub already has the person's acceptance.
+begin;
+do $$
+declare
+  yes uuid := tests.create_user('accepted@terms.org');
+  no uuid := tests.create_user('legacy@terms.org');
+begin
+  perform tests.as_super();
+  delete from hub.legal_acceptances where user_id in (yes, no);
+  insert into hub.legal_acceptances (user_id, document, accepted_at) values (yes, 'terms', now()), (yes, 'privacy', now()), (no, 'terms', now());
+  perform tests.as_user(yes);
+  perform tests.ok(public.hub_accepted_terms(), 'accepted both');
+  perform tests.as_user(no);
+  perform tests.ok(not public.hub_accepted_terms(), 'only one');
+end $$;
+rollback;

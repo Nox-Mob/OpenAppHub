@@ -1,6 +1,6 @@
 // Worker entry: TanStack Start's handler plus security headers (SHARED-SPEC §10.1).
 import handler from "@tanstack/react-start/server-entry";
-import { hubUnsubscribe, runHubEmail, type HubEnv } from "./lib/email.server";
+import { hubUnsubscribe, runHubAutomation, runHubEmail, type HubEnv } from "./lib/email.server";
 import { withSecurityHeaders } from "./lib/security-headers";
 
 type Env = HubEnv & { VITE_SUPABASE_URL?: string };
@@ -34,13 +34,22 @@ export default {
   // Cron (wrangler.jsonc "triggers"): the suite's email sender (S-16).
   async scheduled(_controller: unknown, env: Env, ctx: ScheduledContext): Promise<void> {
     ctx.waitUntil(
-      runHubEmail(env).then(
-        (result) => {
-          if (result && (result.sent || result.failed || result.retried))
-            console.log("email", JSON.stringify(result));
-        },
-        (error) => console.error("email", error),
-      ),
+      runHubEmail(env)
+        .then(
+          (result) => {
+            if (result && (result.sent || result.failed || result.retried))
+              console.log("email", JSON.stringify(result));
+          },
+          (error) => console.error("email", error),
+        )
+        // Then the apps' queued workflow actions (S-25).
+        .then(() => runHubAutomation(env))
+        .then(
+          (apps) => {
+            if (apps.length) console.log("automation", apps.join(","));
+          },
+          (error) => console.error("automation", error),
+        ),
     );
   },
 };

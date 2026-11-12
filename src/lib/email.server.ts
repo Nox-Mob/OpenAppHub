@@ -4,6 +4,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { emailConfigFromEnv, runEmailCycle, type CycleResult } from "@shared/email/deliver";
 import { handleUnsubscribe } from "@shared/email/unsubscribe";
+import { pokeApps } from "@shared/automation/run";
 import { parseSuiteUrls } from "@shared/supabase/hosted";
 
 export type HubEnv = Record<string, string | undefined>;
@@ -46,4 +47,18 @@ export async function hubUnsubscribe(request: Request, env: HubEnv): Promise<Res
     secret: env["SUPABASE_SERVICE_ROLE_KEY"] ?? "",
     preferencesUrl: `${hubOrigin(env)}/account#email`,
   });
+}
+
+/**
+ * After the sender: ask each app with queued workflow actions (public.automation_jobs, S-25) to
+ * carry them out (for example OpenLedgerApp adding financial reports to a meeting).
+ */
+export async function runHubAutomation(env: HubEnv): Promise<string[]> {
+  const admin = adminClient(env);
+  if (!admin) return [];
+  return pokeApps(
+    admin,
+    parseSuiteUrls(env["VITE_SUITE_URLS"]),
+    env["SUPABASE_SERVICE_ROLE_KEY"] ?? "",
+  );
 }

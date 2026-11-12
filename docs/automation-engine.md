@@ -2,7 +2,7 @@
 
 One engine for every schedule and automation an organization may want to change, instead of fixed jobs in each app. It drives reminders now, and is meant to drive OpenCharterApp's award system, renewal reminders, governance alerts, scheduled board packages and every other "the app does this on its own" feature later.
 
-This document is the design. **Part 1 is built** (shared 1.11.0, core `0008_core_automations.sql`, Board `0009_automation_reminders.sql`); later parts are planned in [`ROADMAP.md`](ROADMAP.md).
+This document is the design. **Parts 1 and 2 are built**: part 1 (shared 1.11.0, core `0008_core_automations.sql`, Board `0009_automation_reminders.sql`) and part 2, the workflows each organization builds (shared 1.12.0–1.13.0, core `0009_core_workflows.sql`, Board `0010`, Charter `0008`, Ledger `0004`), described in §5. What comes next, a low-code designer (S-28), is in §6 and [`ROADMAP.md`](ROADMAP.md).
 
 ## 1. Words
 
@@ -80,7 +80,7 @@ The de-duplication keys didn't change, so switching to the engine sent nothing t
 
 ## 4. Where it's going: workflows each organization builds (owner direction, 2026-11-12)
 
-The goal is **fully custom**: every organization builds the workflows **it** wants, not the ones we expect it to want. Part 1's fixed kinds (Board's reminders) stay as ready-made workflows, but anything an organization can imagine with the building blocks below, it can build. No drag and drop is needed: a clear form of **When → If → Then** steps is enough.
+The goal is **fully custom**: every organization builds the workflows **it** wants, not the ones we expect it to want. Part 1's fixed kinds (Board's reminders) stay as ready-made workflows, but anything an organization can imagine with the building blocks below, it can build. The first builder is a clear form of **When → If → Then** steps (built: §5); a drag-and-drop designer may follow (S-28, §6).
 
 ### The shape of a workflow
 
@@ -113,11 +113,85 @@ The goal is **fully custom**: every organization builds the workflows **it** wan
 | Part | What                                                                                                                                                                                                                                                                                                    | Needs         |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | 1 ✅ | Catalog of ready-made automations, each organization's settings, history (Board's reminders)                                                                                                                                                                                                            | —             |
-| 2    | **Workflow builder**: workflows as data (`automation_workflows`: trigger, ordered steps, branches with conditions, actions), a validated JSON definition, a step runner with a run history per item, the When → If → Then editor (forms, not drag and drop), test runs ("what would this do for Jane?") | Part 1        |
-| 3    | **Triggers from every app**: an event outbox each app writes (`form.received`, `payment.received`, `membership.lapsed`, `meeting.scheduled`, `task.overdue`, …) plus time triggers relative to dates (_N days before a meeting_)                                                                        | Part 2        |
-| 4    | **Conditions** on any field the trigger carries, including member fields and ordered lists like rank (_≤ PFC_, _between SPC and SFC_), using the rules engine (C-19)                                                                                                                                    | C-19 ✅       |
-| 5    | **Actions**: email, task, approval routing to roles and seats (with reminders and escalation; C-24), document generation from OpenLedgerApp and OpenCharterApp with an as-of choice (last closed month, today, a picked date) into a meeting's packet (S-13), status changes                            | C-24, S-13 ✅ |
+| 2 ✅ | **Workflow builder**: workflows as data (`automation_workflows`: trigger, ordered steps, branches with conditions, actions), a validated JSON definition, a step runner with a run history per item, the When → If → Then editor (forms, not drag and drop), test runs ("what would this do for Jane?") | Part 1        |
+| 3 🟡 | **Triggers from every app**: an event outbox each app writes (`form.received`, `payment.received`, `membership.lapsed`, `meeting.scheduled`, `task.overdue`, …) plus time triggers relative to dates (_N days before a meeting_)                                                                        | Part 2        |
+| 4 ✅ | **Conditions** on any field the trigger carries, including member fields and ordered lists like rank (_≤ PFC_, _between SPC and SFC_), using the rules engine (C-19)                                                                                                                                    | C-19 ✅       |
+| 5 🟡 | **Actions**: email, task, approval routing to roles and seats (with reminders and escalation; C-24), document generation from OpenLedgerApp and OpenCharterApp with an as-of choice (last closed month, today, a picked date) into a meeting's packet (S-13), status changes                            | C-24, S-13 ✅ |
 | 6    | **Forms** as a trigger (the form builder, C-29) and the **awards** flow built from all of the above (C-30…C-33)                                                                                                                                                                                         | C-29          |
-| 7    | **Nationals share workflows** with their chapters (use as-is, or copy and change), and fixed schedules move in (renewal reminders C-13, the former S-20)                                                                                                                                                | Parts 2–5     |
+| 7 🟡 | **Nationals share workflows** with their chapters (use as-is, or copy and change), and fixed schedules move in (renewal reminders C-13, the former S-20)                                                                                                                                                | Parts 2–5     |
+
+Status: parts 2 and 4 are done; part 3 has its first triggers (below) and gains more as apps register them; part 5 has email, tasks and Ledger's reports into a meeting (approvals wait for C-24); part 7's sharing is done (fixed schedules still to move in); part 6 waits for the form builder.
 
 Every part keeps the same promise: nothing runs without a record of what it did, owners and admins see and change everything in one place, and sensible ready-made workflows are there for those who don't want to build their own.
+
+## 5. How part 2 works (built)
+
+### A workflow is data
+
+`public.automation_workflows` holds each organization's workflows. The definition is JSON, checked by `public._validate_workflow` on every save:
+
+```json
+{
+  "trigger": { "type": "board.meeting_upcoming", "params": { "days_before": 5 } },
+  "always": [{ "type": "ledger.reports_to_meeting", "as_of": "last_closed_month" }],
+  "branches": [
+    {
+      "match": "all",
+      "conditions": [{ "field": "member.fields.rank", "op": "lte", "value": "PFC", "order": 3 }],
+      "actions": [
+        {
+          "type": "task",
+          "to": { "type": "charter.seat", "seat": "president", "level": "unit" },
+          "title": "Review {{member.name}}"
+        }
+      ]
+    }
+  ],
+  "otherwise": []
+}
+```
+
+- **always** runs every time; then the **first branch whose conditions match** (If, Else if…); **otherwise** when none did.
+- **Conditions:** `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `between`, `in`, `contains`, `is_empty`, `is_not_empty`, combined with all/any per branch. Ordered lists (rank) carry each value's place (`order`), so _at most PFC_ compares by rank, not alphabetically.
+- **Messages** use `{{placeholders}}` from the trigger's fields.
+
+### Connectors: the engine knows no app
+
+Each app's migration registers what it offers; the engine never names an app:
+
+| Register   | Function                                                                                                                                                                                                                                                          | Built so far                                                                                                                                                                   |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Triggers   | `register_automation_trigger(type, app, label, description, kind, scan_fn, params_schema, fields, fields_fn, provides, sort)`; `kind` is `event` (the app calls `emit_automation_event`), `scan` (the runner calls `scan_fn`, e.g. _N days before_) or `schedule` | Charter: payment received, member joined, membership lapsed. Board: meeting coming up, meeting scheduled, action item overdue. Ledger: books locked. Core: on a schedule       |
+| Actions    | `register_automation_action(type, app, label, description, params_schema, requires, sort)`; `requires` names what the trigger must provide (e.g. a meeting)                                                                                                       | Core: email, task. Ledger: financial reports into the meeting's packet (as of the last closed month, today or a date)                                                          |
+| Recipients | `register_automation_recipient(type, app, label, description, params_schema, resolve_fn, sort, options_fn)`                                                                                                                                                       | Core: roles, the person it's about, a named person. Charter: whoever holds a seat (their chapter, the level above, their region, the national). Board: whoever holds an office |
+
+`fields_fn` adds fields an organization defined itself (Charter's member fields such as rank); `options_fn` offers choices (an organization's seats).
+
+### Running
+
+- `public.run_workflows` runs with the email jobs (every 5 minutes): it takes new `automation_events`, runs scans and schedules, and for each match calls `_automation_execute`, which records the run in `automation_runs` **once per workflow and subject** (a dedupe key), so nothing happens twice.
+- **Email** goes through the outbox (template `automation.message`). **Tasks** go into `automation_tasks` and show on the hub dashboard with Done and Skip (`complete_automation_task`) and in the task summary email. **App actions** become `automation_jobs`; the hub's cron then calls each app's signed `POST /automation/run` (`shared/automation/run.ts`: an HMAC from the service role key), the app claims its jobs (`claim_automation_jobs`), does the work as the service role and reports back (`finish_automation_job`). A job is tried up to **5 times**.
+- History is pruned after a year (`prune_workflow_history`).
+
+### Who can build, and chapters
+
+- Owners and admins edit (`can_edit_automations`), and can let anyone else build (`grant_automation_editor`; "Can build workflows" on the People page).
+- A national **shares** a workflow; a chapter **adopts** it (`adopt_workflow`), and it then runs on **the chapter's own data** only. Organizations never touch each other's data. A national decides whether chapters may build their own (`set_chapters_may_build`).
+- `workflow_overview(org)` returns everything the builder needs in one call.
+
+### The builder
+
+The hub's **Automations** page (`src/screens/automations.tsx`, model and plain-language summaries in `src/lib/workflows.ts`): When → If → Then as a form, the workflow read back in plain words, problems listed before saving, run history, shared workflows to adopt. A preview on sample data is at `/dev/hub?screen=workflow` (dev only), which the hub's Playwright tests drive.
+
+### What it doesn't do yet
+
+Retries for email and app jobs only; no loops, variables, waits or nested branches; no test run on sample data. These are S-28 (§6).
+
+## 6. Next: a low-code designer (S-28, plan pending the owner's approval)
+
+The owner asked for a drag-and-drop, low-code designer like Power Automate, Automatisch or Windmill. The direction, to be turned into a plan the owner approves before building:
+
+- The definition becomes a **graph** (steps and the arrows between them), versioned; today's When → If → Then definitions convert into it, and the form stays as a simple view.
+- The runner walks the graph step by step and can **pause and resume** a run (waits), with each step's input and output recorded.
+- New blocks: **loops** (for each), **variables**, **waits** (a duration, a date, until something changes), **nested branches**, **retries** with backoff and an on-failure path per step, and a **test run** on sample data.
+- Connectors stay as they are: apps keep registering triggers, actions and recipients.

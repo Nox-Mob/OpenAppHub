@@ -119,3 +119,19 @@ A chapter can run its board in OpenBoardApp when its national allows it. The nat
 On approval, `charter._enable_chapter_board` creates the chapter's own organization with core `public._create_child_organization`: parent = the national's organization, `source_app = 'charter'`, `source_ref` = the chapter's unit. The requester owns it, the national's owner is an admin, and the chapter's current officers are copied to its board. OpenBoardApp needs nothing special: it's an organization like any other. When billing is on, the hub's billing 0004 covers it with the national's plan.
 
 The S-14 sync now works per unit: `charter.board_org_for_unit(unit)` gives the board organization (the national's own for the top unit, the chapter's once approved) and `charter.unit_for_board_org(org)` maps back, so officers sync both ways for chapters too. Both are trigger-only security definer functions like the rest of the sync.
+
+## `charter.api_people` (H-04)
+
+Each person's role in this app, for the hub's People page (`security invoker`: what the caller may see).
+
+| Column    | Type | Meaning                                                                                            |
+| --------- | ---- | -------------------------------------------------------------------------------------------------- |
+| `org_id`  | uuid | The OpenAppHub organization                                                                        |
+| `user_id` | uuid | The person (`auth.users`)                                                                          |
+| `roles`   | text | Charter roles, comma-separated, each with its unit when below the top (e.g. `President (Post 12)`) |
+
+A role set for this app alone is in `public.app_role_overrides` (core `0010`); read it with `public.app_role(org, 'charter', user)` and set it with `public.set_app_role`. This app's permission checks use it. A role set on the hub for Charter is mirrored into Charter's roles (`_sync_app_role`, source `hub`) without changing the OpenAppHub role.
+
+## Workflow connectors (S-25, `0008_workflow_triggers`)
+
+Triggers `charter.payment_received`, `charter.member_joined`, `charter.membership_lapsed` (events), carrying the member, their unit and the organization's own member fields (rank, branch…, through `fields_fn`). Recipient `charter.seat`: whoever holds a seat in the member's unit, the level above, their region or the national (`wf_seat_options` offers the organization's seats).

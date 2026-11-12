@@ -127,7 +127,8 @@ function LoginPage() {
             <div className="space-y-2 rounded-lg border border-dashed p-4">
               <p className="text-sm font-medium">Staging demo</p>
               <p className="text-sm text-muted-foreground">
-                Both accounts reset every 12 hours. Password: <code>{DEMO_PASSWORD_PUBLIC}</code>
+                Every demo account resets every 12 hours. Password:{" "}
+                <code>{DEMO_PASSWORD_PUBLIC}</code>
               </p>
               {DEMO_ACCOUNTS.map((a) => (
                 <Button

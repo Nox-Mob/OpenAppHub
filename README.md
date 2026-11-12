@@ -15,11 +15,15 @@ Read [`AGENTS.md`](AGENTS.md) and [`docs/SHARED-SPEC.md`](docs/SHARED-SPEC.md) b
 | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | Scaffold, Worker config, security headers, CI/staging/release/migrate workflows                                                                   | Done                                         |
 | Migration runner (`scripts/migrate.mjs`)                                                                                                          | Done                                         |
-| Core SQL (`db/core/0001–0004`) and DB tests                                                                                                       | Done                                         |
+| Core SQL (`db/core/0001–0006`: core, org settings, email outbox, chapters' organizations) and DB tests                                            | Done                                         |
 | Sign in (email + password, Google), sign up, email confirmation, password reset                                                                   | Done (needs Supabase)                        |
 | Design system (Phase 2): "Civic, slightly warm", dark mode, money/date formats                                                                    | Done: `shared/design/`, `shared/format.ts`   |
 | Organizations, members, invitations (with email), ownership, account and org settings, account deletion, dashboard, audit log, staging demo tools | Done                                         |
 | Billing (Phase 4)                                                                                                                                 | Built; prices come from Stripe by lookup key |
+| Dashboard from every app: tasks, meetings, decisions, money, members (S-03, S-15)                                                                 | Done                                         |
+| Email for the suite (S-16): outbox, Resend sender every 5 minutes, unsubscribe, email choices                                                     | Done (needs `RESEND_API_KEY`)                |
+| Chapters on OpenBoardApp (S-24): child organizations covered by the parent's plan                                                                 | Done                                         |
+| Suite demo on staging: Riverside, Northstar Veterans League and a test account, reset every 12 hours                                              | Done (`db/seed/0003_suite_demo_v2.sql`)      |
 
 ## Local development
 

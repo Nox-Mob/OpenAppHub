@@ -431,7 +431,8 @@ function NotificationsPanel() {
             <label htmlFor="pref-digest" className="text-sm">
               <span className="font-medium">Task summary</span>
               <span className="block text-muted-foreground">
-                Your open tasks and upcoming meetings from every app, in one email.
+                Your open tasks and upcoming meetings from every app, in one email. Coming soon:
+                your choice is saved now and used when it starts.
               </span>
               <select
                 id="pref-digest"

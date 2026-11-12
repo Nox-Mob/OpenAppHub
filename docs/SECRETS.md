@@ -55,8 +55,10 @@ old price. A plan with no active price shows "Price TBA" and can't be chosen. De
 
 | Worker                    | `SUPABASE_SERVICE_ROLE_KEY` | `STRIPE_SECRET_KEY` | `STRIPE_WEBHOOK_SECRET`                              | `RESEND_API_KEY` |
 | ------------------------- | --------------------------- | ------------------- | ---------------------------------------------------- | ---------------- |
-| `openapphub` (production) | set                         | set                 | set                                                  | not set          |
-| `openapphub-staging`      | set                         | set (`sk_test_`)    | set (sandbox endpoint `we_1UaUhWBMqAfLJdPPpMpH0k2b`) | not set          |
+| `openapphub` (production) | set                         | set                 | set                                                  | set              |
+| `openapphub-staging`      | set                         | set (`sk_test_`)    | set (sandbox endpoint `we_1UaUhWBMqAfLJdPPpMpH0k2b`) | set              |
+
+Production prices (lookup keys) and the customer portal wait for the legal entity and EIN (owner).
 
 Neither Stripe nor Supabase returns an existing secret key, so a missing one is created new (Stripe:
 roll or create the sandbox key; Supabase: create a secret key) and pasted straight into the Worker.

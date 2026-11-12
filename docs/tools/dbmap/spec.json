@@ -1,0 +1,183 @@
+[
+  {
+    "id": "core",
+    "tables": [
+      "public.organizations",
+      "public.memberships",
+      "public.profiles",
+      "public.invitations",
+      "public.instance_settings"
+    ]
+  },
+  {
+    "id": "hub",
+    "tables": [
+      "hub.instance",
+      "hub.org_settings",
+      "hub.user_preferences",
+      "hub.legal_acceptances",
+      "hub.audit_log",
+      "hub.platform_operators",
+      "hub.demo_orgs",
+      "hub.waitlist"
+    ]
+  },
+  {
+    "id": "billing",
+    "tables": [
+      "billing.plans",
+      "billing.subscriptions",
+      "billing.trial_grants",
+      "billing.stripe_events"
+    ]
+  },
+  {
+    "id": "email",
+    "tables": [
+      "public.email_outbox",
+      "public.email_preferences",
+      "public.email_jobs",
+      "public.instance_email_settings"
+    ]
+  },
+  {
+    "id": "charter-org",
+    "tables": [
+      "charter.units",
+      "charter.org_settings",
+      "charter.tax_profiles",
+      "charter.setup_states",
+      "charter.platform_flags",
+      "charter.platform_operators",
+      "charter.audit_events",
+      "charter.chapter_board_requests"
+    ]
+  },
+  {
+    "id": "charter-access",
+    "tables": [
+      "charter.roles",
+      "charter.permissions",
+      "charter.role_permissions",
+      "charter.role_assignments"
+    ]
+  },
+  {
+    "id": "charter-members",
+    "tables": [
+      "charter.member_profiles",
+      "charter.memberships",
+      "charter.membership_tiers",
+      "charter.tier_terms",
+      "charter.pricing_rules",
+      "charter.membership_events",
+      "charter.affiliation_history",
+      "charter.member_segments",
+      "charter.attribute_definitions",
+      "charter.attribute_options",
+      "charter.attribute_values"
+    ]
+  },
+  {
+    "id": "charter-money",
+    "tables": [
+      "charter.payments",
+      "charter.receipts",
+      "charter.receipt_counters",
+      "charter.gateway_connections",
+      "charter.gateway_secrets",
+      "charter.webhook_events"
+    ]
+  },
+  {
+    "id": "charter-gov",
+    "tables": [
+      "charter.seat_templates",
+      "charter.seat_title_overrides",
+      "charter.seat_terms",
+      "charter.seat_contacts",
+      "charter.appointments"
+    ]
+  },
+  {
+    "id": "board-people",
+    "tables": [
+      "board.org_settings",
+      "board.officers",
+      "board.people",
+      "board.positions",
+      "board.terms",
+      "board.committees",
+      "board.committee_members"
+    ]
+  },
+  {
+    "id": "board-meetings",
+    "tables": [
+      "board.meetings",
+      "board.meeting_templates",
+      "board.agenda_items",
+      "board.attendance",
+      "board.motions",
+      "board.vote_electorate",
+      "board.member_votes",
+      "board.minutes",
+      "board.action_items"
+    ]
+  },
+  {
+    "id": "board-records",
+    "tables": [
+      "board.documents",
+      "board.document_versions",
+      "board.packets",
+      "board.letterheads",
+      "board.audit_log"
+    ]
+  },
+  {
+    "id": "ledger-books",
+    "tables": [
+      "ledger.accounts",
+      "ledger.transactions",
+      "ledger.entries",
+      "ledger.categories",
+      "ledger.tags",
+      "ledger.transaction_tags",
+      "ledger.funds",
+      "ledger.projects",
+      "ledger.period_closes"
+    ]
+  },
+  {
+    "id": "ledger-planning",
+    "tables": [
+      "ledger.budgets",
+      "ledger.pledges",
+      "ledger.pledge_payments",
+      "ledger.transaction_templates",
+      "ledger.recurring_occurrences"
+    ]
+  },
+  {
+    "id": "ledger-bank",
+    "tables": [
+      "ledger.import_batches",
+      "ledger.import_profiles",
+      "ledger.bank_transactions",
+      "ledger.reconciliations"
+    ]
+  },
+  {
+    "id": "ledger-admin",
+    "tables": [
+      "ledger.org_settings",
+      "ledger.member_roles",
+      "ledger.user_preferences",
+      "ledger.legal_acceptances",
+      "ledger.audit_log",
+      "ledger.deleted_organizations",
+      "ledger.ai_usage"
+    ]
+  }
+]

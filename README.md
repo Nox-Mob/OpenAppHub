@@ -6,6 +6,8 @@ OpenBoardApp and OpenLedgerApp. It also holds the canonical shared code every ap
 
 Read [`AGENTS.md`](AGENTS.md) and [`docs/SHARED-SPEC.md`](docs/SHARED-SPEC.md) before changing anything.
 
+**Documentation for the whole suite lives in [`docs/`](docs/README.md)** (the hub and every app): [suite architecture](docs/architecture.md), [database map](docs/database-map.md), [roadmap](docs/ROADMAP.md), and each app's own documents in `docs/charter/`, `docs/board/`, `docs/ledger/`.
+
 **Stack:** TanStack Start (React, SSR) on Cloudflare Workers · Tailwind · shadcn/ui · Supabase
 (Postgres + Auth) · npm.
 

@@ -128,7 +128,7 @@ Invitations, ownership transfer, organization creation and deletion, and the mem
 /scripts/migrate.mjs     vendored migration runner (§3.3)
 /shared/                 vendored shared code (§8)
 /docs/SHARED-SPEC.md     this file
-/docs/MIGRATION-NOTES.md this repo's inventory and step plan
+/docs/README.md         a pointer: every other internal doc lives in OpenAppHub docs/<app>/ (2026-11-12)
 /AGENTS.md               repo-specific rules (suite section + the repo's own rules)
 /wrangler.jsonc          Worker config (§10)
 /.env.example            every env var, no real values
@@ -293,7 +293,7 @@ Overlays never grant more than the core role allows to read, and they never bypa
 - Cross-app links are stored ids. An app exposes data to others **only** through read-only `api_*` views in its own schema, `with (security_invoker = true)`.
 - Consumers **feature-detect**: if the schema or view is missing (self-hosted), hide the integration.
 - Never write into another app's schema. To cause a change elsewhere, the owning app exposes a `security invoker` RPC.
-- Document every view and RPC in the owning repo's `docs/INTEGRATION.md`.
+- Document every view and RPC in the owning app's `INTEGRATION.md`, kept in OpenAppHub's `docs/<app>/` (the suite's docs are centralized there since 2026-11-12; the hub's own is `docs/INTEGRATION.md`).
 - First integrations: Board publishes `board.api_meetings` and `board.api_decisions`; Charter publishes `charter.api_units` and `charter.api_board_seats`; Ledger publishes `ledger.api_budgets` and `ledger.api_period_summaries`. Board consumes Charter bylaw documents once Charter has them. Others are proposed as issues.
 
 ### 3.7 Storage
@@ -616,7 +616,7 @@ When they ship, update in the docs repo:
 - [ ] Service-role use matches §7.2.
 - [ ] No secrets in code or history (or the owner was told). `.env` untracked.
 - [ ] Old migration and deploy tooling switched off (§3.3, §10.2). Old build tooling removed (§2).
-- [ ] `.env.example`, `README.md` (self-hosting + hosted notes), `docs/INTEGRATION.md`, `docs/MIGRATION-NOTES.md` up to date.
+- [ ] `.env.example`, `README.md` (self-hosting + hosted notes) up to date; in OpenAppHub's `docs/`: the app's `INTEGRATION.md` and `MIGRATION-NOTES.md`, `ROADMAP.md`, and `database-map.md` (regenerated after schema changes).
 - [ ] Uses `shared/` at the current version; no hard-coded colours.
 - [ ] Owners/admins can export all org data in this app, including when read-only.
 - [ ] No demo data on production.

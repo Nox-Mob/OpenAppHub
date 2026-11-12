@@ -41,6 +41,10 @@
     ]
   },
   {
+    "id": "automations",
+    "tables": ["public.automation_kinds", "public.automations", "public.automation_log"]
+  },
+  {
     "id": "charter-org",
     "tables": [
       "charter.units",

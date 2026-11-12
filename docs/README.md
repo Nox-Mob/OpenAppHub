@@ -10,6 +10,7 @@ Every internal document for the suite lives here: the hub, OpenCharterApp, OpenB
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Understand how the whole suite fits together | [`architecture.md`](architecture.md): hosting, modes, sign-in, the database, data between apps, billing, email, chapters, deploys (with diagrams) |
 | See every table and how they connect         | [`database-map.md`](database-map.md): one diagram per domain (billing, email, members, meetings, books…), every column, and "follow a question"   |
+| Understand the automation engine             | [`automation-engine.md`](automation-engine.md): kinds, each organization's choices, the panel, Board's reminders, and the later parts             |
 | Know what's done and what's next             | [`ROADMAP.md`](ROADMAP.md): every epic for every app (S suite, H hub, C Charter, B Board, L Ledger) with what each needs first                    |
 | Follow the rules every repo shares           | [`SHARED-SPEC.md`](SHARED-SPEC.md): the suite contract (schemas, modes, auth, billing, secrets, shared code, deploys, demo, definition of done)   |
 | Set up or check secrets                      | [`SECRETS.md`](SECRETS.md): every Worker and GitHub secret and where it stands                                                                    |

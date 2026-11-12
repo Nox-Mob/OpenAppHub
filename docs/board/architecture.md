@@ -83,7 +83,19 @@ The `audit_row` trigger records tenant-table changes in `audit_log` in the same 
 - Live voting uses atomic RPCs described below.
 - Ordinary adapter writes use table operations protected by policies and triggers.
 
-Do not assume every multi-step adapter method is atomic. For example, meeting creation followed by agenda insertion, closing a previous term followed by inserting the new holder, and file upload followed by metadata insertion currently involve separate requests. Each successful table change is audited, but a later failure does not roll back an earlier request or storage upload. These workflows would need an atomic RPC or explicit recovery if stronger all-or-nothing behavior is required.
+Multi-step changes are atomic (B-11, migration `0008_atomic_changes.sql`). Each is one security-invoker RPC, so row-level security, locks and the audit trigger apply exactly as for table writes:
+
+| Change                                                                  | RPC                                                                                                                          |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| A meeting and its starting agenda                                       | `board.create_meeting_with_agenda(p_org, p_title, p_meeting_date, p_start_time, p_location, p_agenda jsonb)`                 |
+| Handing a role over: open terms end the day before, the new term starts | `board.assign_term(p_org, p_position_id, p_position, p_person_name, p_user_id, p_start_date, p_end_date)`                    |
+| A document and its first version                                        | `board.add_document(p_id, p_org, p_title, p_category, p_meeting_id, p_storage_path, p_file_name, p_mime_type, p_size_bytes)` |
+
+A file in Storage and its row can't share a database transaction, so the adapter (`withUploadedFile` in `src/data/cloud-adapter.ts`) uploads first, writes the record, and removes the uploaded object if the write fails (documents and their versions, packets, the letterhead). A new document's id is made in the browser so its storage path is known before the upload.
+
+## Reminders are automations
+
+`board.queue_email_reminders()` (an email job every 15 minutes) reads each organization's settings from the core automation engine (S-25, migration `0009_automation_reminders.sql`): `board.meeting_reminders` (`days_before`, default `[7, 1]`) and `board.action_item_reminders` (`days_before`, default 2; `when_overdue`, default on). Owners and admins change them on the Email page (shared `AutomationsPanel`) or in the hub's organization settings. The job records what it did per organization with `public.log_automation`. De-duplication keys are those of 0006, so switching to the engine re-sent nothing. Design: [`../automation-engine.md`](../automation-engine.md).
 
 ## Live voting and official records
 

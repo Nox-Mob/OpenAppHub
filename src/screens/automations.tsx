@@ -7,6 +7,8 @@ import { APP_NAMES } from "@shared/apps";
 import type { AppId } from "@shared/supabase/hosted";
 import { NoOrganization, PageHeader, Panel } from "@/components/hub/HubShell";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { describeSteps, isV2, toDesigner, type DefinitionV2 } from "@/lib/designer";
+import { WorkflowDesigner, type TestResult } from "./designer";
 import { WORKFLOWS_RUN_AS_ORG } from "@/lib/roles";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -62,7 +64,12 @@ export function AutomationsScreen({ hub }: ScreenProps) {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<Workflow | "new" | null>(null);
+  // Which builder: the When → If → Then form, or the designer (S-28; version 2 definitions).
+  const [editing, setEditing] = useState<{
+    w: Workflow | null;
+    mode: "form" | "designer";
+    initial?: DefinitionV2;
+  } | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
 
   const load = useCallback(async () => {
@@ -97,36 +104,69 @@ export function AutomationsScreen({ hub }: ScreenProps) {
     return !e;
   }
 
+  async function saveWorkflow(w: {
+    id: string | null;
+    name: string;
+    description: string;
+    enabled: boolean;
+    shared: boolean;
+    definition: unknown;
+  }) {
+    if (!supabase || !org) return "No connection";
+    const { error: e } = await supabase.rpc("save_workflow", {
+      p_org: org.id,
+      p_id: w.id,
+      p_name: w.name,
+      p_description: w.description,
+      p_enabled: w.enabled,
+      p_definition: w.definition,
+      p_shared: w.shared,
+    });
+    if (e) return e.message;
+    setEditing(null);
+    setMsg({ ok: true, text: "Workflow saved." });
+    await load();
+    return null;
+  }
+
   if (editing && overview)
     return (
       <>
         <PageHeader
-          title={editing === "new" ? "New workflow" : `Edit "${editing.name}"`}
-          description="When something happens, if it matches, then do these things. Nothing runs until you save."
+          title={editing.w ? `Edit "${editing.w.name}"` : "New workflow"}
+          description={
+            editing.mode === "designer"
+              ? "Add steps, drag them into order, and use any earlier step's information in later steps. Nothing runs until you save."
+              : "When something happens, if it matches, then do these things. Nothing runs until you save."
+          }
           actions={<HelpLink path={HELP.automations}>How workflows work</HelpLink>}
         />
-        <WorkflowEditor
-          overview={overview}
-          workflow={editing === "new" ? null : editing}
-          onCancel={() => setEditing(null)}
-          onSave={async (w) => {
-            if (!supabase) return "No connection";
-            const { error: e } = await supabase.rpc("save_workflow", {
-              p_org: org.id,
-              p_id: w.id,
-              p_name: w.name,
-              p_description: w.description,
-              p_enabled: w.enabled,
-              p_definition: w.definition,
-              p_shared: w.shared,
-            });
-            if (e) return e.message;
-            setEditing(null);
-            setMsg({ ok: true, text: "Workflow saved." });
-            await load();
-            return null;
-          }}
-        />
+        {editing.mode === "designer" ? (
+          <WorkflowDesigner
+            overview={overview}
+            workflow={editing.w}
+            {...(editing.initial ? { initial: editing.initial } : {})}
+            onCancel={() => setEditing(null)}
+            onSave={saveWorkflow}
+            onTest={async (d) => {
+              if (!supabase) throw new Error("No connection");
+              const { data, error: e } = await supabase.rpc("test_workflow", {
+                p_org: org.id,
+                p_definition: d,
+                p_trigger: null,
+              });
+              if (e) throw new Error(e.message);
+              return data as TestResult;
+            }}
+          />
+        ) : (
+          <WorkflowEditor
+            overview={overview}
+            workflow={editing.w}
+            onCancel={() => setEditing(null)}
+            onSave={saveWorkflow}
+          />
+        )}
       </>
     );
 
@@ -140,7 +180,14 @@ export function AutomationsScreen({ hub }: ScreenProps) {
           <>
             <HelpLink path={HELP.automations}>How workflows work</HelpLink>
             {o?.can_edit && o.may_build ? (
-              <Button onClick={() => setEditing("new")}>New workflow</Button>
+              <>
+                <Button variant="outline" onClick={() => setEditing({ w: null, mode: "form" })}>
+                  Simple workflow
+                </Button>
+                <Button onClick={() => setEditing({ w: null, mode: "designer" })}>
+                  New workflow
+                </Button>
+              </>
             ) : null}
           </>
         }
@@ -175,7 +222,12 @@ export function AutomationsScreen({ hub }: ScreenProps) {
                       key={w.id}
                       w={w}
                       o={o}
-                      onEdit={() => setEditing(w)}
+                      onEdit={() =>
+                        setEditing({ w, mode: isV2(w.definition) ? "designer" : "form" })
+                      }
+                      onDesigner={() =>
+                        setEditing({ w, mode: "designer", initial: toDesigner(w.definition, o) })
+                      }
                       onToggle={(on) =>
                         void call(
                           "set_workflow_enabled",
@@ -229,7 +281,7 @@ export function AutomationsScreen({ hub }: ScreenProps) {
                             </Button>
                           ) : null}
                         </div>
-                        <Summary lines={describeWorkflow(s.definition, o)} />
+                        <Summary lines={summaryOf(s.definition, o)} />
                       </li>
                     ))}
                   </ul>
@@ -293,6 +345,15 @@ export function AutomationsScreen({ hub }: ScreenProps) {
   );
 }
 
+/** A workflow in plain words, whichever builder made it. */
+function summaryOf(d: unknown, o: Overview): string[] {
+  if (isV2(d)) {
+    const t = o.triggers.find((x) => x.type === d.trigger.type);
+    return [`When: ${t?.label ?? d.trigger.type}.`, ...describeSteps(d.steps, d, o)];
+  }
+  return describeWorkflow(d as Definition, o);
+}
+
 function Summary({ lines }: { lines: string[] }) {
   return (
     <ul className="mt-2 space-y-0.5 text-sm text-muted-foreground">
@@ -307,12 +368,15 @@ function WorkflowCard({
   w,
   o,
   onEdit,
+  onDesigner,
   onToggle,
   onDelete,
 }: {
   w: Workflow;
   o: Overview;
   onEdit: () => void;
+  /** A When → If → Then workflow, opened in the designer (saved as a designer workflow). */
+  onDesigner: () => void;
   onToggle: (on: boolean) => void;
   onDelete: () => void;
 }) {
@@ -350,7 +414,7 @@ function WorkflowCard({
           {w.enabled ? "On" : "Off"}
         </label>
       </div>
-      <Summary lines={describeWorkflow(w.definition, o)} />
+      <Summary lines={summaryOf(w.definition, o)} />
       <p className="mt-2 text-xs text-muted-foreground">
         {w.last_run
           ? `Last ran ${new Date(w.last_run.at).toLocaleString()}${w.last_run.status === "failed" ? " (something couldn't be done; see What happened)" : ""}.`
@@ -361,6 +425,11 @@ function WorkflowCard({
           {!adopted ? (
             <Button size="sm" variant="outline" onClick={onEdit}>
               Edit
+            </Button>
+          ) : null}
+          {!adopted && !isV2(w.definition) ? (
+            <Button size="sm" variant="ghost" onClick={onDesigner}>
+              Open in designer
             </Button>
           ) : null}
           <Button size="sm" variant="outline" onClick={() => setConfirm(true)}>
@@ -1047,12 +1116,15 @@ function ActionList({
   const options = [
     { type: "email", label: "Send an email", app: "hub", ok: true },
     { type: "task", label: "Give someone a task", app: "hub", ok: true },
-    ...o.actions.map((a) => ({
-      type: a.type,
-      label: a.label,
-      app: a.app,
-      ok: a.requires.every((r) => trigger.provides.includes(r)),
-    })),
+    // Lookups and immediate steps are for the designer (S-28): their data feeds later steps.
+    ...o.actions
+      .filter((a) => (a.kind ?? "job") === "job")
+      .map((a) => ({
+        type: a.type,
+        label: a.label,
+        app: a.app,
+        ok: a.requires.every((r) => trigger.provides.includes(r)),
+      })),
   ];
   return (
     <div className="space-y-3">
@@ -1245,7 +1317,7 @@ const AS_OF: Record<string, string> = {
   date: "A date I pick",
 };
 
-function RecipientEditor({
+export function RecipientEditor({
   id,
   r,
   o,
@@ -1367,7 +1439,7 @@ const LEVEL: Record<string, string> = {
   national: "The national",
 };
 
-function ParamFields({
+export function ParamFields({
   idPrefix,
   schema,
   values,

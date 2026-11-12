@@ -105,3 +105,12 @@ Hosted, Ledger reads `public.hub_accepted_terms()`; when the hub already recorde
 ## Roles (H-09, core 0011)
 
 Read someone's role here with `public.app_role(org, 'ledger', user)` (owner; else set for them in this app; else their named role's; else viewer) and extra permissions with `public.has_app_permission(org, 'ledger', key)`. The OpenAppHub role isn't used for anything in this app. Ledger registers `ledger.close_books` and `ledger.manage` (`0008_named_roles`). A treasurer needs a member or admin role in Ledger. An invitation made in Ledger makes the person an OpenAppHub member with the chosen Ledger role; `ledger.on_invitation_accepted` then adds the treasurer overlay.
+
+## Designer steps (S-28, core 0012)
+
+Steps this app offers the low-code designer (`public.register_automation_step`). They run as the organization, inside it only; their output is what later steps can use.
+
+| Step                        | Kind   | Function                                                                                                                  | Gives                                                                                                     |
+| --------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `ledger.month_totals`       | lookup | `ledger.wf_month_totals`: the last closed month, this month, or a date's month                                            | `month`, `month_name`, `income`, `spending`, `net` (currency units), `currency`, `transactions`, `closed` |
+| `ledger.reports_to_meeting` | job    | `/automation/run` (unchanged); in the designer the meeting comes from the step's `context` (e.g. a meeting found earlier) | `summary`, `document_id`                                                                                  |

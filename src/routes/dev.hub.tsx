@@ -4,6 +4,8 @@ import type { HubContext } from "@/lib/orgs";
 import type { OrgRole } from "@shared/supabase/org";
 import { AccountScreen } from "@/screens/account";
 import { WorkflowEditor } from "@/screens/automations";
+import { WorkflowDesigner, type TraceEntry } from "@/screens/designer";
+import { walk } from "@/lib/designer";
 import { FIXTURE_OVERVIEW } from "@/lib/workflow-fixture";
 import { AuditScreen } from "@/screens/audit";
 import { BillingScreen } from "@/screens/billing";
@@ -17,7 +19,7 @@ import { WELCOME_STEPS, WelcomeScreen, type WelcomeStep } from "@/screens/welcom
 // Development-only preview of the signed-in hub screens with sample data, for
 // review and browser tests (data calls are answered by the test). 404 in
 // production and staging builds.
-//   /dev/hub?screen=dashboard|welcome|billing|members|roles|settings|account|audit|demo|workflow&role=owner|admin|member|viewer
+//   /dev/hub?screen=dashboard|welcome|billing|members|roles|settings|account|audit|demo|workflow|designer&role=owner|admin|member|viewer
 //   &step=organization|region|team|apps (welcome)  &billing=trialing|expired|active|past_due|canceling&configured=1  &orgs=0 (no organization yet)
 const ORG = "11111111-1111-4111-8111-111111111111";
 
@@ -152,6 +154,28 @@ function Preview() {
             <InvitePanel orgId={ORG} invite={fakeInvite} namedRoles={FIXTURE_ROLES.namedRoles} />
           </div>
         </div>
+      ) : null}
+      {screen === "designer" ? (
+        <WorkflowDesigner
+          overview={FIXTURE_OVERVIEW}
+          workflow={null}
+          onSave={async () => null}
+          onCancel={() => {}}
+          onTest={async (d) => {
+            const trace: TraceEntry[] = [];
+            walk(d.steps, (s) =>
+              trace.push({
+                key: s.id,
+                id: s.id,
+                name: s.name || s.type,
+                type: s.type,
+                status: "succeeded",
+                detail: s.type === "email" ? "Would email 3 people" : "Done",
+              }),
+            );
+            return { status: "succeeded", trace };
+          }}
+        />
       ) : null}
       {screen === "workflow" ? (
         <WorkflowEditor

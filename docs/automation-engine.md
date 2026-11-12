@@ -2,7 +2,7 @@
 
 One engine for every schedule and automation an organization may want to change, instead of fixed jobs in each app. It drives reminders now, and is meant to drive OpenCharterApp's award system, renewal reminders, governance alerts, scheduled board packages and every other "the app does this on its own" feature later.
 
-This document is the design. **Parts 1 and 2 are built**: part 1 (shared 1.11.0, core `0008_core_automations.sql`, Board `0009_automation_reminders.sql`) and part 2, the workflows each organization builds (shared 1.12.0–1.13.0, core `0009_core_workflows.sql`, Board `0010`, Charter `0008`, Ledger `0004`), described in §5. What comes next, a low-code designer (S-28), is in §6 and [`ROADMAP.md`](ROADMAP.md).
+This document is the design. **Parts 1 and 2 and the low-code designer (S-28, §6) are built**: part 1 (shared 1.11.0, core `0008_core_automations.sql`, Board `0009_automation_reminders.sql`) and part 2, the workflows each organization builds (shared 1.12.0–1.13.0, core `0009_core_workflows.sql`, Board `0010`, Charter `0008`, Ledger `0004`), described in §5. What comes next is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 1. Words
 
@@ -185,13 +185,89 @@ The hub's **Automations** page (`src/screens/automations.tsx`, model and plain-l
 
 ### What it doesn't do yet
 
-Retries for email and app jobs only; no loops, variables, waits or nested branches; no test run on sample data. These are S-28 (§6).
+In When → If → Then workflows: retries for app jobs only, and no loops, variables, waits or nested branches. The designer (§6) has all of them.
 
-## 6. Next: a low-code designer (S-28, plan pending the owner's approval)
+## 6. The low-code designer (S-28, built; owner approval 2026-11-12)
 
-The owner asked for a drag-and-drop, low-code designer like Power Automate, Automatisch or Windmill. The direction, to be turned into a plan the owner approves before building:
+A drag-and-drop designer like Power Automate, over the same engine (core `0012_core_designer.sql`, shared 1.15.0). The When → If → Then form stays for simple workflows; any of them can be opened in the designer (it becomes a designer workflow when saved).
 
-- The definition becomes a **graph** (steps and the arrows between them), versioned; today's When → If → Then definitions convert into it, and the form stays as a simple view.
-- The runner walks the graph step by step and can **pause and resume** a run (waits), with each step's input and output recorded.
-- New blocks: **loops** (for each), **variables**, **waits** (a duration, a date, until something changes), **nested branches**, **retries** with backoff and an on-failure path per step, and a **test run** on sample data.
-- Connectors stay as they are: apps keep registering triggers, actions and recipients.
+### A designer workflow (version 2)
+
+```json
+{
+  "version": 2,
+  "trigger": { "type": "core.schedule", "params": { "frequency": "daily", "hour": 7 } },
+  "steps": [
+    {
+      "id": "find",
+      "type": "charter.find_members",
+      "name": "Ending soon",
+      "params": { "expires_within_days": 30 }
+    },
+    {
+      "id": "each",
+      "type": "foreach",
+      "params": { "items": "{{steps.find.rows}}" },
+      "steps": [
+        {
+          "id": "mail",
+          "type": "email",
+          "retry": { "count": 2, "interval_minutes": 5, "backoff": "exponential" },
+          "params": {
+            "to": { "type": "address", "email": "{{item.email}}" },
+            "subject": "Time to renew, {{item.name}}",
+            "message": "Yours ends {{item.paid_through}}."
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Every step's output can be used by any later step** (the owner's requirement, as in Power Automate's dynamic content). A parameter is a value or a reference:
+
+| Reference                                         | Is                                                             |
+| ------------------------------------------------- | -------------------------------------------------------------- |
+| `{{trigger.<field>}}`                             | What started the run (a payment, a meeting…)                   |
+| `{{steps.<id>.<field>}}`                          | An earlier step's output, e.g. a lookup's `rows` and `count`   |
+| `{{item.<field>}}`, `{{items.<loop id>.<field>}}` | The current item of a "for each" (the nearest, or a named one) |
+| `{{loop.<loop id>.number}}`                       | Which item it is (1, 2, 3…)                                    |
+| `{{vars.<name>}}`                                 | A variable                                                     |
+| `{{today}}`                                       | Today's date                                                   |
+
+A parameter that is **only** a reference keeps its type, so a list stays a list: a lookup's `{{steps.find.rows}}` feeds a later "for each", a filter, a join, or an email to everyone in it. In text, references are filled in as text.
+
+### Steps
+
+| Group             | Steps                                                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Do                | `email` (to roles, seats, offices, a person, **an address from the data**, or **everyone in a list**), `task`                                                                                                                                                                                                                                                                                    |
+| Decide and repeat | `condition` (then / else), `switch` (cases / default), `foreach` (up to 5,000 items), `scope` (a group)                                                                                                                                                                                                                                                                                          |
+| Data              | `compose`, `filter` (keep matching items), `select` (reshape a list), `join` (a list into text), `aggregate` (count, sum, average, min, max)                                                                                                                                                                                                                                                     |
+| Variables         | `init_variable` (at the top only), `set_variable`, `increment_variable`, `append_variable`                                                                                                                                                                                                                                                                                                       |
+| Time and flow     | `wait` (a duration, or until a date), `terminate` (end as succeeded or failed)                                                                                                                                                                                                                                                                                                                   |
+| The apps' steps   | Registered with `public.register_automation_step(type, app, label, description, kind, run_fn, params_schema, output_schema, requires, sort)`: kind `query` (a lookup: `run_fn(p_org uuid, p_params jsonb) → jsonb`, read-only), `call` (does something at once, same signature), `job` (the app does it through `/automation/run`; the run waits). `output_schema` says what later steps can use |
+
+Built so far: **Charter** `charter.find_members` (members by standing, level, chapter, ending within N days, joined within N days); **Board** `board.find_meetings`, `board.find_action_items`, `board.create_action_item`; **Ledger** `ledger.month_totals`, and the existing job `ledger.reports_to_meeting` (its meeting comes from an earlier step through the step's `context`).
+
+**Every step** can also have `retry` (up to 10 times, 1 minute to 1 day apart, the same each time or twice as long each time) and `run_after` (which earlier steps at the same level it waits for, and how they must have ended: succeeded, failed or skipped; by default the previous step succeeded). A failure handled by a later step set to run after it failed doesn't fail the run.
+
+### Running
+
+- `_wf2_start` creates the run; `_wf2_continue` walks the steps. Each step's status, output, condition decisions, loop items, attempts, waits and jobs are recorded in the run's `state`, keyed by the step's id and where it is in loops (`mail[3]`). Carrying on after a pause re-walks the steps and reuses everything already done, so **nothing happens twice**.
+- A run **pauses** on a wait, a retry or an app's job (`status` waiting, `resume_at` or `wait_job`). `run_workflows` carries on runs whose time has come (`_wf2_resume_due`); `finish_automation_job` carries on a run as soon as its job is done.
+- Limits: 250 steps, 8 levels deep, 5,000 items in a "for each", 10,000 steps run per run.
+- `trace` lists each step as it ran (with a short copy of its output) for the run history.
+- When → If → Then workflows still run on the version 1 runner, unchanged.
+
+### Checking and testing
+
+- `_validate_workflow_v2` (through `save_workflow`): unique ids, known steps, references only to earlier steps, the loops a step is in, and variables made before; variables made at the top only; "run after" only on earlier steps at the same level; retry limits.
+- `public.test_workflow(org, definition, trigger)` runs the steps on this organization's data without doing anything: lookups run (they only read); emails, tasks, the apps' calls and jobs, and waits are only described. `public.sample_trigger_data(org, type)` gives the latest real event of that kind (or the first thing a date trigger finds today) to test with.
+
+### The designer screen
+
+`src/screens/designer.tsx` (model in `src/lib/designer.ts`): the When card, then steps as cards you **drag** (or move with the arrows) between steps and into conditions, cases, loops and groups; "+" between any two steps adds one; each card opens to its settings, where every field has **Insert data** (the data picker: the trigger's data, each earlier step's outputs, the current loop's item fields, variables), and lists are chosen with **Choose a list**. Settings for retries and run after; **In plain words** reads the workflow back; problems are listed before saving; **Test run** shows what each step would do. Dev preview: `/dev/hub?screen=designer`; Playwright tests in `e2e/designer.spec.ts`.
+
+Workflows run as the organization (owner decision 2026-11-12): the designer says so, and so does every place that lets someone build workflows.

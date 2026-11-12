@@ -2,7 +2,7 @@
 
 Every table in the suite's database, grouped by what it's for, with how the tables connect. Use it to answer questions like "how do we track billing?" or "where does a dues payment end up?": find the domain below, read the diagram, then open the column list.
 
-Generated from the schema built by every repo's migrations (core `0001`–`0011`, hub `0001`–`0006`, Charter `0001`–`0011`, Board `0001`–`0014`, Ledger `0001`–`0008`) on 2026-11-12: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
+Generated from the schema built by every repo's migrations (core `0001`–`0012`, hub `0001`–`0006`, Charter `0001`–`0012`, Board `0001`–`0015`, Ledger `0001`–`0009`) on 2026-11-12: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
 
 **How to read the diagrams** (Mermaid entity-relationship diagrams):
 
@@ -751,6 +751,7 @@ erDiagram
     }
     public_automation_action_types {
         text type PK
+        text kind
     }
     public_automation_recipient_types {
         text type PK
@@ -848,7 +849,7 @@ Unique together: (org_id, adopted_from).
 
 </details>
 
-<details><summary><code>public.automation_action_types</code> (7 columns)</summary>
+<details><summary><code>public.automation_action_types</code> (10 columns)</summary>
 
 | Column          | Type    | Null | Default        | Key / reference |
 | --------------- | ------- | ---- | -------------- | --------------- |
@@ -859,6 +860,9 @@ Unique together: (org_id, adopted_from).
 | `params_schema` | jsonb   |      | `'{}'::jsonb`  |                 |
 | `requires`      | text[]  |      | `'{}'::text[]` |                 |
 | `sort`          | integer |      | `100`          |                 |
+| `kind`          | text    |      | `'job'::text`  |                 |
+| `run_fn`        | text    | yes  |                |                 |
+| `output_schema` | jsonb   |      | `'[]'::jsonb`  |                 |
 
 </details>
 
@@ -911,7 +915,7 @@ Unique together: (org_id, adopted_from).
 
 </details>
 
-<details><summary><code>public.automation_runs</code> (12 columns)</summary>
+<details><summary><code>public.automation_runs</code> (17 columns)</summary>
 
 | Column         | Type                     | Null | Default        | Key / reference                                     |
 | -------------- | ------------------------ | ---- | -------------- | --------------------------------------------------- |
@@ -927,6 +931,11 @@ Unique together: (org_id, adopted_from).
 | `error`        | text                     | yes  |                |                                                     |
 | `started_at`   | timestamp with time zone |      | `now()`        |                                                     |
 | `finished_at`  | timestamp with time zone | yes  |                |                                                     |
+| `version`      | integer                  |      | `1`            |                                                     |
+| `state`        | jsonb                    |      | `'{}'::jsonb`  |                                                     |
+| `trace`        | jsonb                    |      | `'[]'::jsonb`  |                                                     |
+| `resume_at`    | timestamp with time zone | yes  |                |                                                     |
+| `wait_job`     | bigint                   | yes  |                |                                                     |
 
 Unique together: (workflow_id, dedupe_key).
 

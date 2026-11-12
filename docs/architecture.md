@@ -674,6 +674,10 @@ flowchart LR
 - The time zone defaults to the person's first organization's, else UTC. Each app's checks run inside `digest_for` (security definer, service role only), since the job has no session.
 - The `digest` template groups items under each organization's name (`EmailContent.sections`); one organization gets a plain list.
 
+### 13.2 Automations (S-25, part 1)
+
+Reminders and other things the apps do on their own are **automations** each organization can change (core `0008_core_automations.sql`). An app registers each kind with its defaults and a schema of what can change; owners and admins switch one off or change its settings in the shared Automations panel (the hub's organization settings, and Board's Email page); the app's job reads the settings in force with `public.automation_settings` and records what it did in `public.automation_log`. Board's meeting and action-item reminders are the first two. The design, tables, functions and later parts: [`automation-engine.md`](automation-engine.md).
+
 ---
 
 ## 14. Chapters on OpenBoardApp

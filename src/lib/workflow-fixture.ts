@@ -81,6 +81,74 @@ export const FIXTURE_OVERVIEW: Overview = {
         date: { type: "date", label: "Date", optional: true },
       },
       requires: ["meeting"],
+      kind: "job",
+      output_schema: [{ key: "summary", label: "What it did", type: "text" }],
+    },
+    {
+      type: "charter.find_members",
+      app: "charter",
+      label: "Find members",
+      description:
+        "Look up members, for example everyone whose membership ends in the next 30 days.",
+      params_schema: {
+        standing: {
+          type: "choice",
+          label: "Standing",
+          options: ["current", "lapsed", "pending", "any"],
+        },
+        level: { type: "text", label: "Level (optional)", optional: true },
+        expires_within_days: {
+          type: "int",
+          label: "Membership ends within (days, optional)",
+          optional: true,
+        },
+      },
+      requires: [],
+      kind: "query",
+      output_schema: [
+        {
+          key: "rows",
+          label: "Members",
+          type: "list",
+          fields: [
+            { key: "name", label: "Name", type: "text" },
+            { key: "email", label: "Email", type: "text" },
+            { key: "level", label: "Level", type: "text" },
+            { key: "paid_through", label: "Paid through", type: "date" },
+            { key: "chapter", label: "Chapter", type: "text" },
+          ],
+        },
+        { key: "count", label: "How many", type: "number" },
+      ],
+    },
+    {
+      type: "board.find_meetings",
+      app: "board",
+      label: "Find board meetings",
+      description: "Look up meetings in a window of days.",
+      params_schema: {
+        to_days: { type: "int", label: "To (days from today)", optional: true },
+        status: {
+          type: "choice",
+          label: "Status",
+          options: ["scheduled", "draft", "completed", "any"],
+        },
+      },
+      requires: [],
+      kind: "query",
+      output_schema: [
+        {
+          key: "rows",
+          label: "Meetings",
+          type: "list",
+          fields: [
+            { key: "id", label: "Meeting", type: "text" },
+            { key: "title", label: "Title", type: "text" },
+            { key: "date", label: "Date", type: "date" },
+          ],
+        },
+        { key: "count", label: "How many", type: "number" },
+      ],
     },
   ],
   recipients: [

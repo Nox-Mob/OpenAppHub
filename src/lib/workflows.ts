@@ -36,6 +36,19 @@ export type ActionType = {
   description: string;
   params_schema: Record<string, ParamSpec>;
   requires: string[];
+  /** Core 0012 (S-28): a lookup or an immediate step runs at once; a job is done by the app. */
+  kind?: "job" | "query" | "call";
+  /** What it gives later steps in the designer. */
+  output_schema?: Array<{
+    key: string;
+    label: string;
+    type: "text" | "number" | "date" | "boolean" | "list" | "object" | "any";
+    fields?: Array<{
+      key: string;
+      label: string;
+      type: "text" | "number" | "date" | "boolean" | "list" | "object" | "any";
+    }>;
+  }>;
 };
 export type RecipientType = {
   type: string;

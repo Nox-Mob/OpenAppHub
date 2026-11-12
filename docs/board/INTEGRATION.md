@@ -81,6 +81,9 @@ Action items, for the hub's task list (it shows each person the open ones assign
 | `meeting_title` | text        |                                                            |
 | `link`          | text        | Path in OpenBoardApp where it's done (`/board/tasks`)      |
 | `created_at`    | timestamptz |                                                            |
+| `completable`   | boolean     | True when the caller can finish it from the hub (S-19)     |
+
+**Finish from the hub (S-19):** `board.complete_action_item(p_id)` marks an open item done; `security invoker`, so Board's row rules on `action_items` decide who may (and Board must be writable).
 
 ## `board.add_report_to_meeting(p_meeting, p_title, p_file_name, p_source_app)` (S-13)
 
@@ -115,3 +118,19 @@ who isn't also a Board editor and leave the two apps out of step.
 
 A two-app check (both apps' migrations on one database) is in `db/suite/charter_sync.sql`; it isn't
 part of CI, which builds Board alone.
+
+## `board.api_people` (H-04)
+
+Each person's role in this app, for the hub's People page (`security invoker`: what the caller may see).
+
+| Column    | Type | Meaning                                                                    |
+| --------- | ---- | -------------------------------------------------------------------------- |
+| `org_id`  | uuid | The OpenAppHub organization                                                |
+| `user_id` | uuid | The person (`auth.users`)                                                  |
+| `office`  | text | `chair`, `secretary` or `treasurer`; no row for a member without an office |
+
+A role set for this app alone is in `public.app_role_overrides` (core `0010`); read it with `public.app_role(org, 'board', user)` and set it with `public.set_app_role`. This app's permission checks use it.
+
+## Workflow connectors (S-25, `0010_workflow_triggers`)
+
+Triggers `board.meeting_upcoming` (N days before a meeting, a scan), `board.meeting_scheduled` (event), `board.action_item_overdue` (N days overdue, a scan); they provide a meeting where there is one. Recipient `board.office`: whoever holds an office. The service role may call `add_report_to_meeting`, for other apps' workflow actions.

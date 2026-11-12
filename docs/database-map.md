@@ -2,7 +2,7 @@
 
 Every table in the suite's database, grouped by what it's for, with how the tables connect. Use it to answer questions like "how do we track billing?" or "where does a dues payment end up?": find the domain below, read the diagram, then open the column list.
 
-Generated from the schema built by every repo's migrations (core `0001`–`0006`, hub `0001`–`0004`, Charter `0001`–`0007`, Board `0001`–`0007`, Ledger `0001`–`0003`) on 2026-11-12: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
+Generated from the schema built by every repo's migrations (core `0001`–`0010`, hub `0001`–`0005`, Charter `0001`–`0010`, Board `0001`–`0013`, Ledger `0001`–`0007`) on 2026-11-12: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
 
 **How to read the diagrams** (Mermaid entity-relationship diagrams):
 
@@ -81,7 +81,7 @@ Tables per schema: `public` 9, `hub` 8, `billing` 4, `charter` 34, `board` 21, `
 | Question                                                | Start at                                                                                     | Then                                                                                                                                                                                                                                                                                           |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **How do we track billing?**                            | `billing.subscriptions` (one per organization)                                               | `billing.plans` (limits), `billing.trial_grants` (one trial per person), `billing.stripe_events` (webhook idempotency), `public.organizations.parent_org_id` (a chapter uses its parent's subscription), `hub.org_settings` (billing contact), `public.instance_settings.billing_enabled` (§5) |
-| **Who belongs to an organization, with what role?**     | `public.memberships`                                                                         | `public.profiles` (name), `public.invitations` (pending), app overlays: `charter.role_assignments`, `board.officers`, `ledger.member_roles` (§3, §7, §8, §9)                                                                                                                                   |
+| **Who belongs to an organization, with what role?**     | `public.memberships`                                                                         | `public.profiles` (name), `public.invitations` (pending), a different role in one app: `public.app_role_overrides`; app overlays: `charter.role_assignments`, `board.officers`, `ledger.member_roles` (§3, §7, §8, §9)                                                                         |
 | **Where does a dues payment end up?**                   | `charter.payments`                                                                           | `charter.memberships` (what it paid for), `charter.receipts` (+ `receipt_counters`), `charter.gateway_connections` (whose Stripe), `charter.webhook_events`; in Ledger (demo, and S-18 later): `ledger.transactions` + `ledger.entries` on Membership Dues (§7.4)                              |
 | **Who is on a board?**                                  | `charter.appointments` (Charter's officers)                                                  | `charter.seat_templates`, `seat_terms`; mirrored to `board.terms` (`source = 'charter'`), `board.positions`, `board.officers` (app access) (§7.5, §8.1)                                                                                                                                        |
 | **What happened at a meeting?**                         | `board.meetings`                                                                             | `agenda_items`, `attendance`, `motions` (+ `vote_electorate`, `member_votes` for live votes), `minutes`, `action_items`, `packets` (§8.2)                                                                                                                                                      |
@@ -130,9 +130,16 @@ erDiagram
     public_instance_settings {
         bool id PK
     }
+    public_app_role_overrides {
+        uuid org_id PK,FK
+        uuid user_id PK,FK
+        text app PK
+        org_role role
+    }
     auth_users {
         uuid id PK
     }
+    public_app_role_overrides }o--|| public_memberships : "org_id,user_id"
     public_invitations }o--o| auth_users : "accepted_by"
     public_invitations }o--o| auth_users : "invited_by"
     public_invitations }o--|| public_organizations : "org_id"
@@ -211,6 +218,19 @@ Unique together: (source_app, source_ref).
 | `id`              | boolean |      | `true`  | PK              |
 | `billing_enabled` | boolean |      | `false` |                 |
 | `hub_url`         | text    | yes  |         |                 |
+
+</details>
+
+<details><summary><code>public.app_role_overrides</code> (6 columns)</summary>
+
+| Column    | Type                     | Null | Default      | Key / reference                               |
+| --------- | ------------------------ | ---- | ------------ | --------------------------------------------- |
+| `org_id`  | uuid                     |      |              | PK → `public.memberships` (on delete cascade) |
+| `user_id` | uuid                     |      |              | PK → `public.memberships` (on delete cascade) |
+| `app`     | text                     |      |              | PK                                            |
+| `role`    | org_role                 |      |              |                                               |
+| `set_by`  | uuid                     | yes  | `auth.uid()` |                                               |
+| `set_at`  | timestamp with time zone |      | `now()`      |                                               |
 
 </details>
 
@@ -652,6 +672,243 @@ erDiagram
 | `at`      | timestamp with time zone |      | `now()` |                                                 |
 | `count`   | integer                  |      | `0`     |                                                 |
 | `summary` | text                     |      |         |                                                 |
+
+</details>
+
+### 6.2 Workflows each organization builds (S-25 part 2)
+
+In the core (`0009_core_workflows.sql`). Apps register what they offer in `automation_trigger_types`, `automation_action_types` and `automation_recipient_types`; each organization's workflows are `automation_workflows` (the When → If → Then definition as JSON; `shared` for a national's chapters, `adopted_from` when a chapter uses one). `automation_events` is what apps report happened; `automation_runs` records each run once per workflow and subject; steps create `automation_tasks` (on the hub dashboard) and `automation_jobs` (for an app to do). `automation_org_settings` holds whether chapters may build their own; `automation_editors` are the people besides owners and admins who may build. See [`automation-engine.md`](automation-engine.md) §5.
+
+```mermaid
+erDiagram
+    public_automation_workflows {
+        uuid id PK
+        uuid org_id FK
+        text name
+        uuid adopted_from FK
+    }
+    public_automation_trigger_types {
+        text type PK
+        text kind
+    }
+    public_automation_action_types {
+        text type PK
+    }
+    public_automation_recipient_types {
+        text type PK
+    }
+    public_automation_org_settings {
+        uuid org_id PK,FK
+    }
+    public_automation_editors {
+        uuid org_id PK,FK
+        uuid user_id PK,FK
+    }
+    public_automation_events {
+        bigint id PK
+        uuid org_id FK
+        text type
+    }
+    public_automation_runs {
+        bigint id PK
+        uuid workflow_id FK
+        uuid org_id FK
+        text status
+    }
+    public_automation_tasks {
+        uuid id PK
+        uuid org_id FK
+        bigint run_id FK
+        uuid assignee_id FK
+        text title
+        text status
+    }
+    public_automation_jobs {
+        bigint id PK
+        uuid org_id FK
+        bigint run_id FK
+        text kind
+        text status
+    }
+    auth_users {
+        uuid id PK
+    }
+    public_organizations {
+        uuid id PK
+    }
+    public_automation_editors }o--|| auth_users : "user_id"
+    public_automation_editors }o--|| public_organizations : "org_id"
+    public_automation_events }o--|| public_organizations : "org_id"
+    public_automation_jobs }o--o| public_automation_runs : "run_id"
+    public_automation_jobs }o--|| public_organizations : "org_id"
+    public_automation_org_settings |o--|| public_organizations : "org_id"
+    public_automation_runs }o--|| public_automation_workflows : "workflow_id"
+    public_automation_runs }o--|| public_organizations : "org_id"
+    public_automation_tasks }o--o| public_automation_runs : "run_id"
+    public_automation_tasks }o--|| auth_users : "assignee_id"
+    public_automation_tasks }o--|| public_organizations : "org_id"
+    public_automation_workflows }o--o| public_automation_workflows : "adopted_from"
+    public_automation_workflows }o--|| public_organizations : "org_id"
+```
+
+<details><summary><code>public.automation_workflows</code> (12 columns)</summary>
+
+| Column         | Type                     | Null | Default             | Key / reference                                     |
+| -------------- | ------------------------ | ---- | ------------------- | --------------------------------------------------- |
+| `id`           | uuid                     |      | `gen_random_uuid()` | PK                                                  |
+| `org_id`       | uuid                     |      |                     | → `public.organizations` (on delete cascade)        |
+| `name`         | text                     |      |                     |                                                     |
+| `description`  | text                     |      | `''::text`          |                                                     |
+| `enabled`      | boolean                  |      | `true`              |                                                     |
+| `definition`   | jsonb                    | yes  |                     |                                                     |
+| `adopted_from` | uuid                     | yes  |                     | → `public.automation_workflows` (on delete cascade) |
+| `shared`       | boolean                  |      | `false`             |                                                     |
+| `created_by`   | uuid                     | yes  | `auth.uid()`        |                                                     |
+| `updated_by`   | uuid                     | yes  | `auth.uid()`        |                                                     |
+| `created_at`   | timestamp with time zone |      | `now()`             |                                                     |
+| `updated_at`   | timestamp with time zone |      | `now()`             |                                                     |
+
+Unique together: (org_id, adopted_from).
+
+</details>
+
+<details><summary><code>public.automation_trigger_types</code> (11 columns)</summary>
+
+| Column          | Type    | Null | Default        | Key / reference |
+| --------------- | ------- | ---- | -------------- | --------------- |
+| `type`          | text    |      |                | PK              |
+| `app`           | text    |      |                |                 |
+| `label`         | text    |      |                |                 |
+| `description`   | text    |      | `''::text`     |                 |
+| `kind`          | text    |      |                |                 |
+| `scan_fn`       | text    | yes  |                |                 |
+| `params_schema` | jsonb   |      | `'{}'::jsonb`  |                 |
+| `fields`        | jsonb   |      | `'[]'::jsonb`  |                 |
+| `fields_fn`     | text    | yes  |                |                 |
+| `provides`      | text[]  |      | `'{}'::text[]` |                 |
+| `sort`          | integer |      | `100`          |                 |
+
+</details>
+
+<details><summary><code>public.automation_action_types</code> (7 columns)</summary>
+
+| Column          | Type    | Null | Default        | Key / reference |
+| --------------- | ------- | ---- | -------------- | --------------- |
+| `type`          | text    |      |                | PK              |
+| `app`           | text    |      |                |                 |
+| `label`         | text    |      |                |                 |
+| `description`   | text    |      | `''::text`     |                 |
+| `params_schema` | jsonb   |      | `'{}'::jsonb`  |                 |
+| `requires`      | text[]  |      | `'{}'::text[]` |                 |
+| `sort`          | integer |      | `100`          |                 |
+
+</details>
+
+<details><summary><code>public.automation_recipient_types</code> (8 columns)</summary>
+
+| Column          | Type    | Null | Default       | Key / reference |
+| --------------- | ------- | ---- | ------------- | --------------- |
+| `type`          | text    |      |               | PK              |
+| `app`           | text    |      |               |                 |
+| `label`         | text    |      |               |                 |
+| `description`   | text    |      | `''::text`    |                 |
+| `params_schema` | jsonb   |      | `'{}'::jsonb` |                 |
+| `resolve_fn`    | text    |      |               |                 |
+| `options_fn`    | text    | yes  |               |                 |
+| `sort`          | integer |      | `100`         |                 |
+
+</details>
+
+<details><summary><code>public.automation_org_settings</code> (3 columns)</summary>
+
+| Column               | Type                     | Null | Default | Key / reference                                 |
+| -------------------- | ------------------------ | ---- | ------- | ----------------------------------------------- |
+| `org_id`             | uuid                     |      |         | PK → `public.organizations` (on delete cascade) |
+| `chapters_may_build` | boolean                  |      | `true`  |                                                 |
+| `updated_at`         | timestamp with time zone |      | `now()` |                                                 |
+
+</details>
+
+<details><summary><code>public.automation_editors</code> (4 columns)</summary>
+
+| Column       | Type                     | Null | Default      | Key / reference                                 |
+| ------------ | ------------------------ | ---- | ------------ | ----------------------------------------------- |
+| `org_id`     | uuid                     |      |              | PK → `public.organizations` (on delete cascade) |
+| `user_id`    | uuid                     |      |              | PK → `auth.users` (on delete cascade)           |
+| `granted_by` | uuid                     | yes  | `auth.uid()` |                                                 |
+| `granted_at` | timestamp with time zone |      | `now()`      |                                                 |
+
+</details>
+
+<details><summary><code>public.automation_events</code> (6 columns)</summary>
+
+| Column         | Type                     | Null | Default       | Key / reference                              |
+| -------------- | ------------------------ | ---- | ------------- | -------------------------------------------- |
+| `id`           | bigint                   |      |               | PK                                           |
+| `org_id`       | uuid                     |      |               | → `public.organizations` (on delete cascade) |
+| `type`         | text                     |      |               |                                              |
+| `ctx`          | jsonb                    |      | `'{}'::jsonb` |                                              |
+| `occurred_at`  | timestamp with time zone |      | `now()`       |                                              |
+| `processed_at` | timestamp with time zone | yes  |               |                                              |
+
+</details>
+
+<details><summary><code>public.automation_runs</code> (12 columns)</summary>
+
+| Column         | Type                     | Null | Default        | Key / reference                                     |
+| -------------- | ------------------------ | ---- | -------------- | --------------------------------------------------- |
+| `id`           | bigint                   |      |                | PK                                                  |
+| `workflow_id`  | uuid                     |      |                | → `public.automation_workflows` (on delete cascade) |
+| `org_id`       | uuid                     |      |                | → `public.organizations` (on delete cascade)        |
+| `dedupe_key`   | text                     |      |                |                                                     |
+| `trigger_type` | text                     |      |                |                                                     |
+| `ctx`          | jsonb                    |      | `'{}'::jsonb`  |                                                     |
+| `status`       | text                     |      | `'done'::text` |                                                     |
+| `branch`       | text                     | yes  |                |                                                     |
+| `log`          | jsonb                    |      | `'[]'::jsonb`  |                                                     |
+| `error`        | text                     | yes  |                |                                                     |
+| `started_at`   | timestamp with time zone |      | `now()`        |                                                     |
+| `finished_at`  | timestamp with time zone | yes  |                |                                                     |
+
+Unique together: (workflow_id, dedupe_key).
+
+</details>
+
+<details><summary><code>public.automation_tasks</code> (12 columns)</summary>
+
+| Column        | Type                     | Null | Default             | Key / reference                                 |
+| ------------- | ------------------------ | ---- | ------------------- | ----------------------------------------------- |
+| `id`          | uuid                     |      | `gen_random_uuid()` | PK                                              |
+| `org_id`      | uuid                     |      |                     | → `public.organizations` (on delete cascade)    |
+| `run_id`      | bigint                   | yes  |                     | → `public.automation_runs` (on delete set null) |
+| `assignee_id` | uuid                     |      |                     | → `auth.users` (on delete cascade)              |
+| `title`       | text                     |      |                     |                                                 |
+| `note`        | text                     |      | `''::text`          |                                                 |
+| `link`        | text                     | yes  |                     |                                                 |
+| `due_on`      | date                     | yes  |                     |                                                 |
+| `status`      | text                     |      | `'open'::text`      |                                                 |
+| `created_at`  | timestamp with time zone |      | `now()`             |                                                 |
+| `done_at`     | timestamp with time zone | yes  |                     |                                                 |
+| `done_by`     | uuid                     | yes  |                     |                                                 |
+
+</details>
+
+<details><summary><code>public.automation_jobs</code> (12 columns)</summary>
+
+| Column       | Type                     | Null | Default          | Key / reference                                 |
+| ------------ | ------------------------ | ---- | ---------------- | ----------------------------------------------- |
+| `id`         | bigint                   |      |                  | PK                                              |
+| `org_id`     | uuid                     |      |                  | → `public.organizations` (on delete cascade)    |
+| `run_id`     | bigint                   | yes  |                  | → `public.automation_runs` (on delete set null) |
+| `app`        | text                     |      |                  |                                                 |
+| `kind`       | text                     |      |                  |                                                 |
+| `payload`    | jsonb                    |      | `'{}'::jsonb`    |                                                 |
+| `status`     | text                     |      | `'queued'::text` |                                                 |
+| `attempts`   | integer                  |      | `0`              |                                                 |
+| `result`     | jsonb                    | yes  |                  |                                                 |
+| `error`      | text                     | yes  |                  |                                                 |
+| `created_at` | timestamp with time zone |      | `now()`          |                                                 |
+| `updated_at` | timestamp with time zone |      | `now()`          |                                                 |
 
 </details>
 

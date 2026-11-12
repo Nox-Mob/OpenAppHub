@@ -325,7 +325,9 @@ Apps add their own roles on top, in their own schemas, never granting more than 
 | Board   | `board.officers (org_id, user_id, office)`: chair, secretary, treasurer                                                                     | Edit records = `can_write(org, 'board')` and (owner/admin or chair/secretary)          |
 | Ledger  | `ledger.member_roles (org_id, user_id, role)`: treasurer                                                                                    | Close books etc. = `can_write(org, 'ledger')` and (owner/admin or treasurer)           |
 
-`public.can_write(org, app)` = the person has an editor role **and** `public.has_app_access(org, app)` (billing, §11). Every app's write policies call it, so a lapsed plan makes every app read-only in the database, not just on screen.
+**Roles per app (H-04, core `0010_core_app_roles.sql`).** Someone can hold a different role in each app (an admin in Board, view only in Ledger): `public.app_role_overrides (org_id, user_id, app, role)`, set with `public.set_app_role` from the hub's People page or an app's own members page, read with `public.app_role(org, app, user)`. No row means their core role; the owner is the owner everywhere. Every app's checks use the app role.
+
+`public.can_write(org, app)` = the person's role **in that app** is an editor role **and** `public.has_app_access(org, app)` (billing, §11). Every app's write policies call it, so a lapsed plan makes every app read-only in the database, not just on screen.
 
 ### 6.2 Charter's tree inside one organization
 
@@ -539,6 +541,8 @@ flowchart LR
 
 > **Diagram description:** The dashboard loader reads Board's action items assigned to the person, Charter's and Ledger's tasks, Board's upcoming meetings and recent decisions, Ledger's monthly summaries for this year, Charter's member summary, unit count and officers. Tasks from all three apps are merged into "Your tasks", soonest first, with overdue ones in red. The rest feed the tiles (open tasks, next meeting, current members, net this year), "Money this year", "Recent decisions" and "Officers".
 
+**Done and Skip (S-19).** Rows whose view says `completable` get buttons that call the owning app's RPC as the person: `board.complete_action_item`, `ledger.skip_recurring_due`, and `public.complete_automation_task` for tasks a workflow gave them. The app's own rules decide; anything that needs real work stays a link.
+
 A chapter's own organization shows only OpenBoardApp and says whose chapter it is. A future "dashboard editor" (H-08 in the roadmap) would let people choose and arrange panels.
 
 ---
@@ -674,9 +678,30 @@ flowchart LR
 - The time zone defaults to the person's first organization's, else UTC. Each app's checks run inside `digest_for` (security definer, service role only), since the job has no session.
 - The `digest` template groups items under each organization's name (`EmailContent.sections`); one organization gets a plain list.
 
-### 13.2 Automations (S-25, part 1)
+### 13.2 Automations and workflows (S-25)
 
-Reminders and other things the apps do on their own are **automations** each organization can change (core `0008_core_automations.sql`). An app registers each kind with its defaults and a schema of what can change; owners and admins switch one off or change its settings in the shared Automations panel (the hub's organization settings, and Board's Email page); the app's job reads the settings in force with `public.automation_settings` and records what it did in `public.automation_log`. Board's meeting and action-item reminders are the first two. The design, tables, functions and later parts: [`automation-engine.md`](automation-engine.md).
+**Part 1:** reminders and other things the apps do on their own are **automations** each organization can change (core `0008_core_automations.sql`): an app registers each kind with its defaults and a schema; owners and admins change them in the shared Automations panel; the app's job reads them with `public.automation_settings` and records what it did in `public.automation_log`. Board's reminders are the first.
+
+**Part 2:** each organization **builds its own workflows** (core `0009_core_workflows.sql`) on the hub's Automations page: When (an app event, a time before or after something, a schedule) → If / Else if / Otherwise → Then (email, a task, an app's action). Apps register triggers, actions and recipients; the engine knows no app.
+
+```mermaid
+flowchart LR
+    APP[App migrations<br/>register triggers, actions, recipients] --> CAT[(Catalog)]
+    EV[App events<br/>emit_automation_event] --> RUN[run_workflows<br/>every 5 min]
+    SC[Scans and schedules] --> RUN
+    CAT --> RUN
+    WF[(automation_workflows)] --> RUN
+    RUN --> LOG[(automation_runs<br/>once per subject)]
+    RUN --> OUT[Email outbox]
+    RUN --> TASK[(automation_tasks)<br/>hub dashboard]
+    RUN --> JOB[(automation_jobs)]
+    JOB --> POKE[Hub cron calls the app<br/>signed POST /automation/run]
+    POKE --> DO[App does the work<br/>e.g. Ledger reports into a meeting]
+```
+
+> **Diagram description:** Apps register their triggers, actions and recipients in the catalog. Every 5 minutes `run_workflows` reads new app events, scans and schedules, matches them against each organization's workflows and records each run once per subject. Its steps queue email, create tasks shown on the hub dashboard, or queue jobs for an app; the hub's cron then calls that app's signed endpoint, and the app does the work (for example, Ledger adds its financial reports to a Board meeting).
+
+Design, every function and what comes next: [`automation-engine.md`](automation-engine.md).
 
 ---
 
@@ -889,20 +914,19 @@ gitGraph
 | Two-app check                                                      | `openboardapp/db/suite/charter_sync.sql` (Charter + Board on one database)              | By hand        |
 | Performance                                                        | `db/perf` (Board to 50,000 meetings, Ledger 50k lines, Charter 20,000 members)          | CI             |
 | End-to-end                                                         | Playwright on staging with the demo accounts                                            | CI and daily   |
+| Hub screens in a browser                                           | OpenAppHub `e2e/` (Playwright on the dev preview `/dev/hub`, sample data, no backend)   | CI             |
 | Seeds                                                              | Every repo's DB test applies its seeds; a full suite build applies all of them in order | CI / by hand   |
 
 ---
 
 ## 20. Future architecture
 
-| Item                             | Shape                                                                                                                                                                                                                                                                                                                                                           | Roadmap    |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| **Automation engine**            | One engine for schedules and automations people can change: triggers (events, dates), conditions (rules engine), actions (email, tasks, approvals, documents). Replaces fixed jobs like the board-package schedule (S-20); drives Charter's awards workflow. Built on the email outbox and `email_jobs`, generalized to an `automations` table and a job runner | S-25       |
-| **Finish a task from the hub**   | Owning-app RPCs for tasks that can be completed with a click; tasks that need real work (approve an award, reconcile a statement) keep linking to the app                                                                                                                                                                                                       | S-19       |
-| **Charter payments into Ledger** | `charter.api_payments` + a Ledger import with a category map, booked like the demo                                                                                                                                                                                                                                                                              | S-18, L-17 |
-| **Dashboard editor**             | People choose, arrange and size the dashboard's panels                                                                                                                                                                                                                                                                                                          | H-08       |
-| **Generated types**              | `gen-types.yml` from the shared database                                                                                                                                                                                                                                                                                                                        | H-06       |
-| **Self-host packaging**          | Docker image + Compose (app + hosted or minimal Supabase)                                                                                                                                                                                                                                                                                                       | C-F11      |
+| Item                             | Shape                                                                                                                                                                       | Roadmap    |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| **Low-code workflow designer**   | Workflows as a graph the runner walks and can pause; loops, variables, waits, nested branches, retries per step, test runs; a drag-and-drop canvas over the same connectors | S-28       |
+| **Charter payments into Ledger** | `charter.api_payments` + a Ledger import with a category map, booked like the demo                                                                                          | S-18, L-17 |
+| **Dashboard editor**             | People choose, arrange and size the dashboard's panels                                                                                                                      | H-08       |
+| **Self-host packaging**          | Docker image + Compose (app + hosted or minimal Supabase)                                                                                                                   | C-F11      |
 
 ---
 

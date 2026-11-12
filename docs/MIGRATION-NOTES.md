@@ -69,7 +69,7 @@ Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (
 | Suite demo (one demo and one test account, reset every 12 hours) | ✅      | ✅      | ✅                                                            |
 | Staging as Worker previews of branch `staging`                   | ✅      | ✅      | ✅ (preview domains declared in `wrangler.jsonc`, 2026-11-12) |
 | End-to-end tests on staging in CI                                | ✅      | ✅      | ✅                                                            |
-| Integration views and `docs/INTEGRATION.md`                      | ⬜      | ⬜      | ⬜                                                            |
+| Integration views and `docs/INTEGRATION.md`                      | ✅ (PR) | ✅ (PR) | ✅ (PR)                                                       |
 | Help links map                                                   | ✅      | ✅      | ✅                                                            |
 | Write controls off when read-only                                | ✅ (PR) | ✅ (PR) | ✅ (PR)                                                       |
 | Export everything                                                | ✅ (PR) | ✅      | ✅                                                            |

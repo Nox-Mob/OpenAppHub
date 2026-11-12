@@ -8,7 +8,23 @@ export type AppRoles = {
   charter: Map<string, string> | null;
   board: Map<string, string> | null;
   ledger: Map<string, string> | null;
+  /** Roles set for one app only (core 0010), keyed `${app}:${userId}`. */
+  overrides: Map<string, OrgRole>;
+  /** People (besides owners and admins) who may build workflows (core 0009). */
+  workflowEditors: Set<string>;
 };
+
+export type SuiteApp = "charter" | "board" | "ledger";
+
+/** Someone's role in one app: the owner is the owner; otherwise the app's own, or their OpenAppHub role. */
+export function appRoleOf(
+  core: OrgRole,
+  app: SuiteApp,
+  userId: string,
+  overrides: Map<string, OrgRole>,
+): OrgRole {
+  return core === "owner" ? "owner" : (overrides.get(`${app}:${userId}`) ?? core);
+}
 
 const OFFICE: Record<string, string> = {
   chair: "Chair",
@@ -44,7 +60,7 @@ async function byUser(
 }
 
 export async function loadAppRoles(client: SupabaseClient, orgId: string): Promise<AppRoles> {
-  const [charter, board, ledger] = await Promise.all([
+  const [charter, board, ledger, ov, ed] = await Promise.all([
     byUser(
       client.schema("charter").from("api_people").select("user_id, roles").eq("org_id", orgId),
       "roles",
@@ -57,6 +73,22 @@ export async function loadAppRoles(client: SupabaseClient, orgId: string): Promi
       client.schema("ledger").from("api_people").select("user_id, role").eq("org_id", orgId),
       "role",
     ),
+    client
+      .schema("public")
+      .from("app_role_overrides")
+      .select("user_id, app, role")
+      .eq("org_id", orgId),
+    client.schema("public").from("automation_editors").select("user_id").eq("org_id", orgId),
   ]);
-  return { charter, board, ledger };
+  const overrides = new Map<string, OrgRole>();
+  for (const r of ((ov.error ? [] : ov.data) ?? []) as Array<{
+    user_id: string;
+    app: string;
+    role: OrgRole;
+  }>)
+    overrides.set(`${r.app}:${r.user_id}`, r.role);
+  const workflowEditors = new Set(
+    (((ed.error ? [] : ed.data) ?? []) as Array<{ user_id: string }>).map((r) => r.user_id),
+  );
+  return { charter, board, ledger, overrides, workflowEditors };
 }

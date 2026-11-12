@@ -17,7 +17,7 @@ import type { InviteResult } from "@/lib/members-core";
 import { HELP } from "@/config/help";
 import { ROLE_HELP, ROLE_LABEL, canManage } from "@/lib/roles";
 import { must, useAsync } from "@/lib/use-async";
-import { boardRole, ledgerRole, loadAppRoles } from "@/lib/people";
+import { appRoleOf, boardRole, ledgerRole, loadAppRoles } from "@/lib/people";
 
 type Member = { user_id: string; display_name: string | null; email: string; role: OrgRole };
 type Invitation = {
@@ -182,7 +182,13 @@ export function MembersScreen({
         </Panel>
         {manage ? (
           <div className="space-y-6">
-            <AppRolesPanel members={members.data ?? []} roles={appRoles.data ?? null} />
+            <AppRolesPanel
+              orgId={orgId!}
+              members={members.data ?? []}
+              roles={appRoles.data ?? null}
+              canEdit={manage}
+              onChanged={() => void appRoles.reload()}
+            />
             <InvitePanel
               orgId={orgId}
               invite={invite}
@@ -353,35 +359,54 @@ export function InvitePanel({
   );
 }
 
-/** H-04: one table of every person's role in OpenAppHub and in each app. */
-function AppRolesPanel({
+/**
+ * H-04 and a role per app: every person's role in OpenAppHub and in each app, changed here by
+ * owners and admins (core 0010: set_app_role; "Can build workflows": grant_automation_editor).
+ */
+export function AppRolesPanel({
+  orgId,
   members,
   roles,
+  canEdit,
+  onChanged,
 }: {
+  orgId: string;
   members: Member[];
   roles: Awaited<ReturnType<typeof loadAppRoles>> | null;
+  canEdit: boolean;
+  onChanged: () => void;
 }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   if (!roles || members.length === 0) return null;
   const cols = (["charter", "board", "ledger"] as const).filter((a) => roles[a] !== null);
-  if (cols.length === 0) return null;
   const head = {
     charter: "OpenCharterApp",
     board: "OpenBoardApp",
     ledger: "OpenLedgerApp",
   } as const;
-  const cell = (app: (typeof cols)[number], m: Member) => {
+  const detail = (app: (typeof cols)[number], m: Member, role: OrgRole) => {
     const v = roles[app]?.get(m.user_id);
-    if (app === "board") return boardRole(m.role, v);
-    if (app === "ledger") return ledgerRole(m.role, v);
-    return v || "—";
+    if (app === "board") return boardRole(role, v);
+    if (app === "ledger") return ledgerRole(role, v);
+    return v || null;
   };
+  async function run(key: string, fn: string, args: Record<string, unknown>, ok: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    setBusy(key);
+    const { error } = await supabase.rpc(fn, args);
+    setBusy(null);
+    setMsg(error ? { ok: false, text: error.message } : { ok: true, text: ok });
+    if (!error) onChanged();
+  }
   return (
     <Panel
       title="Roles in each app"
-      description="What each person can do in every app. Their OpenAppHub role sets the starting point; each app adds its own (offices in OpenBoardApp, treasurers in OpenLedgerApp, chapter roles in OpenCharterApp). Change those in the app."
+      description="Someone can have a different role in each app: for example an admin in OpenBoardApp, a member in OpenCharterApp and view-only in OpenLedgerApp. Each starts as their OpenAppHub role. Offices (chair, secretary), treasurers and chapter roles are set in the app and shown underneath."
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[36rem] text-left text-sm">
+        <table className="w-full min-w-[44rem] text-left text-sm">
           <thead className="text-xs text-muted-foreground">
             <tr>
               <th className="py-2 pr-3 font-medium">Person</th>
@@ -391,11 +416,12 @@ function AppRolesPanel({
                   {head[c]}
                 </th>
               ))}
+              <th className="py-2 pr-3 font-medium">Can build workflows</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {members.map((m) => (
-              <tr key={m.user_id}>
+              <tr key={m.user_id} className="align-top">
                 <td className="py-2 pr-3">
                   <span className="font-medium">{m.display_name || m.email}</span>
                   {m.display_name ? (
@@ -403,19 +429,84 @@ function AppRolesPanel({
                   ) : null}
                 </td>
                 <td className="py-2 pr-3">{ROLE_LABEL[m.role]}</td>
-                {cols.map((c) => (
-                  <td key={c} className="py-2 pr-3">
-                    {cell(c, m)}
-                  </td>
-                ))}
+                {cols.map((c) => {
+                  const role = appRoleOf(m.role, c, m.user_id, roles.overrides);
+                  const extra = detail(c, m, role);
+                  const own = roles.overrides.has(`${c}:${m.user_id}`);
+                  return (
+                    <td key={c} className="py-2 pr-3">
+                      {m.role === "owner" || !canEdit ? (
+                        <span>{ROLE_LABEL[role]}</span>
+                      ) : (
+                        <select
+                          aria-label={`${m.display_name || m.email} in ${head[c]}`}
+                          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                          value={role}
+                          disabled={busy !== null}
+                          onChange={(e) =>
+                            void run(
+                              `${c}:${m.user_id}`,
+                              "set_app_role",
+                              { p_org: orgId, p_user: m.user_id, p_app: c, p_role: e.target.value },
+                              `${m.display_name || m.email} is now ${ROLE_LABEL[e.target.value as OrgRole].toLowerCase()} in ${head[c]}.`,
+                            )
+                          }
+                        >
+                          {(["admin", "member", "viewer"] as const).map((r) => (
+                            <option key={r} value={r}>
+                              {ROLE_LABEL[r]}
+                              {r === m.role ? " (as in OpenAppHub)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {extra && extra !== ROLE_LABEL[role] ? (
+                        <span className="mt-0.5 block text-xs text-muted-foreground">{extra}</span>
+                      ) : null}
+                      {own ? (
+                        <span className="block text-xs text-muted-foreground">
+                          Set for this app
+                        </span>
+                      ) : null}
+                    </td>
+                  );
+                })}
+                <td className="py-2 pr-3">
+                  {m.role === "owner" || m.role === "admin" ? (
+                    <span className="text-muted-foreground">Yes (owners and admins)</span>
+                  ) : (
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-primary"
+                      aria-label={`${m.display_name || m.email} can build workflows`}
+                      checked={roles.workflowEditors.has(m.user_id)}
+                      disabled={!canEdit || busy !== null}
+                      onChange={(e) =>
+                        void run(
+                          `wf:${m.user_id}`,
+                          "grant_automation_editor",
+                          { p_org: orgId, p_user: m.user_id, p_grant: e.target.checked },
+                          e.target.checked
+                            ? "They can build workflows now."
+                            : "They can't build workflows anymore.",
+                        )
+                      }
+                    />
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {msg ? (
+        <p role="status" className={`mt-2 text-sm ${msg.ok ? "" : "text-destructive"}`}>
+          {msg.text}
+        </p>
+      ) : null}
       {roles.charter && roles.charter.size === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">
-          OpenCharterApp roles show for people who manage roles there; others see their own.
+          OpenCharterApp's chapter roles show for people who manage roles there.
         </p>
       ) : null}
     </Panel>

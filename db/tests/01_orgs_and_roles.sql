@@ -57,7 +57,12 @@ begin
   perform tests.throws(format('select public.rename_organization(%L, %L)', org_a, 'X'), 'viewer cannot rename', 'owner or an admin');
 
   perform tests.as_user(carol);
-  perform tests.ok(public.can_write(org_a, 'board'), 'member can write with billing off');
+  -- H-09: an OpenAppHub member is a viewer in each app until given a role there.
+  perform tests.ok(not public.can_write(org_a, 'board'), 'an OpenAppHub member alone cannot write in an app');
+  perform tests.as_super();
+  insert into public.app_role_overrides (org_id, user_id, app, role) values (org_a, carol, 'board', 'member');
+  perform tests.as_user(carol);
+  perform tests.ok(public.can_write(org_a, 'board'), 'a member in OpenBoardApp can write with billing off');
   update public.memberships set role = 'viewer' where org_id = org_a and user_id = dave;
   perform tests.ok((select role from public.memberships where org_id = org_a and user_id = dave) = 'viewer', 'member cannot change roles');
   perform tests.ok((select role from public.memberships where org_id = org_a and user_id = dave) = 'viewer', 'still viewer');

@@ -78,14 +78,46 @@ The de-duplication keys didn't change, so switching to the engine sent nothing t
 3. Write database tests for the defaults, a changed setting, and switched off.
 4. Document it in the customer docs (the app's guide and the hub's Automations page) and here.
 
-## 4. Later parts
+## 4. Where it's going: workflows each organization builds (owner direction, 2026-11-12)
 
-| Part | What                                                                                                                                                                                            | Needs           |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| 2    | **Move fixed schedules in**: the task summary's job (S-17's settings stay per person), Charter's renewal reminders and lapse notices (C-13), scheduled board packages (the former S-20)         | C-08            |
-| 3    | **Event triggers**: an outbox of events each app writes (`payment.received`, `appointment.made`, `meeting.scheduled`, `task.overdue`), a runner that matches them to automations                | —               |
-| 4    | **Conditions**: the rules engine (C-19) decides whether an automation applies ("only for Gold members", "only chapters in Region 2")                                                            | C-19 ✅         |
-| 5    | **More actions**: create a task, start an approval (C-24), add reports to a packet (S-13), change a status, call an app RPC                                                                     | C-24            |
-| 6    | **Organizations build their own** from triggers, conditions and actions, with a history of every run; **awards** (C-30…C-33): routing, reminders, escalation to national, purchase, fulfillment | Parts 3–5, C-29 |
+The goal is **fully custom**: every organization builds the workflows **it** wants, not the ones we expect it to want. Part 1's fixed kinds (Board's reminders) stay as ready-made workflows, but anything an organization can imagine with the building blocks below, it can build. No drag and drop is needed: a clear form of **When → If → Then** steps is enough.
 
-Every part keeps the same promise: sensible defaults are on, owners and admins see and change them in one place, and each run is recorded.
+### The shape of a workflow
+
+- **When** (trigger): something happens in any app (_a form is received_, _a payment arrives_, _a board meeting is scheduled_, _a membership lapses_), or a time comes (_every month on the 1st_, _5 days before each board meeting_).
+- **If** (conditions), any number, combined with and / or, and **branches**: _if rank is PFC or lower … else if rank is SPC to SFC … otherwise …_. Conditions read anything the trigger carries (the form's answers, the member's fields, rank, level, chapter, region, the meeting's date, an amount).
+- **Then** (actions), in order, per branch: _submit it for approval to …_, _send an email to …_, _create a task for …_, _generate documents from …_, _add them to the meeting's packet_, _change a status_, _wait N days_, _if no answer in N days, escalate to …_.
+- **Who** is always a role or seat, resolved at run time from the organization's own structure: _the member's chapter president_, _the regional president_, _the national's awards chair_, _the treasurer_, a named person, or the person who submitted.
+
+### Examples the owner gave
+
+**Award recommendations, routed by rank**
+
+|                            |                                                                             |
+| -------------------------- | --------------------------------------------------------------------------- |
+| When                       | Form received: _Award recommendation_                                       |
+| If rank ≤ PFC              | Submit for approval to **the member's chapter president**                   |
+| Else if rank is SPC to SFC | Submit for approval to **the regional president**                           |
+| Else                       | Submit for approval to **the national's awards committee**                  |
+| Then (on approval)         | Email the submitter; create a task for the quartermaster to order the award |
+
+**Board documents from the books**
+
+|      |                                                                                                                                                                                              |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| When | A board meeting is **less than 5 days away**                                                                                                                                                 |
+| Then | Generate the **financial reports** from OpenLedgerApp **as of the last closed month** (or **as of today**, or **as of a date they pick**) and add them to the meeting's documents and packet |
+
+### Parts
+
+| Part | What                                                                                                                                                                                                                                                                                                    | Needs         |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| 1 ✅ | Catalog of ready-made automations, each organization's settings, history (Board's reminders)                                                                                                                                                                                                            | —             |
+| 2    | **Workflow builder**: workflows as data (`automation_workflows`: trigger, ordered steps, branches with conditions, actions), a validated JSON definition, a step runner with a run history per item, the When → If → Then editor (forms, not drag and drop), test runs ("what would this do for Jane?") | Part 1        |
+| 3    | **Triggers from every app**: an event outbox each app writes (`form.received`, `payment.received`, `membership.lapsed`, `meeting.scheduled`, `task.overdue`, …) plus time triggers relative to dates (_N days before a meeting_)                                                                        | Part 2        |
+| 4    | **Conditions** on any field the trigger carries, including member fields and ordered lists like rank (_≤ PFC_, _between SPC and SFC_), using the rules engine (C-19)                                                                                                                                    | C-19 ✅       |
+| 5    | **Actions**: email, task, approval routing to roles and seats (with reminders and escalation; C-24), document generation from OpenLedgerApp and OpenCharterApp with an as-of choice (last closed month, today, a picked date) into a meeting's packet (S-13), status changes                            | C-24, S-13 ✅ |
+| 6    | **Forms** as a trigger (the form builder, C-29) and the **awards** flow built from all of the above (C-30…C-33)                                                                                                                                                                                         | C-29          |
+| 7    | **Nationals share workflows** with their chapters (use as-is, or copy and change), and fixed schedules move in (renewal reminders C-13, the former S-20)                                                                                                                                                | Parts 2–5     |
+
+Every part keeps the same promise: nothing runs without a record of what it did, owners and admins see and change everything in one place, and sensible ready-made workflows are there for those who don't want to build their own.

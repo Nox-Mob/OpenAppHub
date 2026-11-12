@@ -138,3 +138,13 @@ Triggers `board.meeting_upcoming` (N days before a meeting, a scan), `board.meet
 ## Roles (H-09, core 0011)
 
 Read someone's role here with `public.app_role(org, 'board', user)` (owner; else set for them in this app; else their named role's; else viewer) and extra permissions with `public.has_app_permission(org, 'board', key)`. The OpenAppHub role isn't used for anything in this app. Board registers `board.edit_records`, `board.read_audit` and `board.manage` (`0014_named_roles`). An officer needs a member or admin role in Board. An invitation made in Board makes the person an OpenAppHub member with the chosen Board role (`invitations.app_roles`); `board.on_invitation_accepted` then applies the office.
+
+## Designer steps (S-28, core 0012)
+
+Steps this app offers the low-code designer (`public.register_automation_step`). They run as the organization, inside it only; their output is what later steps can use.
+
+| Step                       | Kind   | Function                                                                                                    | Gives                                                                                                |
+| -------------------------- | ------ | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `board.find_meetings`      | lookup | `board.wf_find_meetings`: from/to days from today, status                                                   | `rows` (id, title, date, start time, location, days away, link), `count`                             |
+| `board.find_action_items`  | lookup | `board.wf_find_action_items`: open, overdue, done or any; due within N days                                 | `rows` (title, due date, status, assignee's name, email and account, days overdue, meeting), `count` |
+| `board.create_action_item` | call   | `board.wf_create_action_item`: title, details, assignee (email or account, members only), due date, meeting | `id`, `assigned`                                                                                     |

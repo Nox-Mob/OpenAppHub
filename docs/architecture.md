@@ -725,6 +725,8 @@ flowchart LR
 
 > **Diagram description:** Apps register their triggers, actions and recipients in the catalog. Every 5 minutes `run_workflows` reads new app events, scans and schedules, matches them against each organization's workflows and records each run once per subject. Its steps queue email, create tasks shown on the hub dashboard, or queue jobs for an app; the hub's cron then calls that app's signed endpoint, and the app does the work (for example, Ledger adds its financial reports to a Board meeting).
 
+**The low-code designer (S-28, core `0012_core_designer.sql`):** workflows as nested steps (conditions, switches, "for each", groups, variables, data steps, waits, stop) where every step's output is available to later steps (`{{steps.<id>.<field>}}`, `{{item.<field>}}`), with retries and "run after" per step. Runs record each step's status and output, so they pause (waits, retries, app jobs) and carry on without repeating anything. Apps add lookups and actions with `register_automation_step`; `test_workflow` runs a workflow without doing anything.
+
 Design, every function and what comes next: [`automation-engine.md`](automation-engine.md).
 
 ---
@@ -945,12 +947,11 @@ gitGraph
 
 ## 20. Future architecture
 
-| Item                             | Shape                                                                                                                                                                       | Roadmap    |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| **Low-code workflow designer**   | Workflows as a graph the runner walks and can pause; loops, variables, waits, nested branches, retries per step, test runs; a drag-and-drop canvas over the same connectors | S-28       |
-| **Charter payments into Ledger** | `charter.api_payments` + a Ledger import with a category map, booked like the demo                                                                                          | S-18, L-17 |
-| **Dashboard editor**             | People choose, arrange and size the dashboard's panels                                                                                                                      | H-08       |
-| **Self-host packaging**          | Docker image + Compose (app + hosted or minimal Supabase)                                                                                                                   | C-F11      |
+| Item                             | Shape                                                                              | Roadmap    |
+| -------------------------------- | ---------------------------------------------------------------------------------- | ---------- |
+| **Charter payments into Ledger** | `charter.api_payments` + a Ledger import with a category map, booked like the demo | S-18, L-17 |
+| **Dashboard editor**             | People choose, arrange and size the dashboard's panels                             | H-08       |
+| **Self-host packaging**          | Docker image + Compose (app + hosted or minimal Supabase)                          | C-F11      |
 
 ---
 

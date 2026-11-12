@@ -8,7 +8,7 @@ import { HelpLink } from "@shared/ui/HelpLink";
 import { HELP } from "@/config/help";
 import { NoOrganization, PageHeader } from "@/components/hub/HubShell";
 import { SetupChecklist } from "@/components/hub/SetupChecklist";
-import { AppSummary } from "@/components/hub/AppSummary";
+import { DashboardPanels } from "@/components/hub/Dashboard";
 import { Button } from "@/components/ui/button";
 import { APPS } from "@/config/apps";
 import type { HubContext } from "@/lib/orgs";
@@ -51,6 +51,7 @@ export function DashboardScreen({ user, hub }: ScreenProps) {
       ) : (
         <>
           {canManage(hub.role) ? <SetupChecklist orgId={org.id} /> : null}
+          <DashboardPanels orgId={org.id} userId={user.id} urls={urls} />
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Your apps</h2>
           <ul className="grid gap-4 md:grid-cols-3">
             {APPS.map((app) => {
@@ -75,10 +76,7 @@ export function DashboardScreen({ user, hub }: ScreenProps) {
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{app.tagline}</p>
-                  <div className="flex-1">
-                    {url ? <AppSummary app={app.id} orgId={org.id} /> : null}
-                  </div>
+                  <p className="mt-2 flex-1 text-sm text-muted-foreground">{app.tagline}</p>
                   {url ? (
                     <Button asChild variant="outline" size="sm" className="mt-4 self-start">
                       <a

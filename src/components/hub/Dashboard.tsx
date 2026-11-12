@@ -1,0 +1,330 @@
+// The dashboard's panels: key information from every app in one place (tasks, meetings, money,
+// membership). Data from src/lib/dashboard.ts; a panel whose app isn't here says so and links to it.
+import type { ReactNode } from "react";
+import { getSupabaseBrowserClient } from "@shared/supabase/client";
+import { formatDate, formatMoney } from "@shared/format";
+import { AppLogo } from "@shared/ui/AppLogo";
+import { loadDashboard, type DashboardData, type SuiteApp } from "@/lib/dashboard";
+import { useAsync } from "@/lib/use-async";
+
+const APP_LABEL: Record<SuiteApp, string> = {
+  charter: "OpenCharterApp",
+  board: "OpenBoardApp",
+  ledger: "OpenLedgerApp",
+};
+
+function Panel({
+  title,
+  app,
+  action,
+  children,
+}: {
+  title: string;
+  app?: SuiteApp;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      className="rounded-lg border bg-card p-5 shadow-sm"
+      {...(app ? { "data-app": app } : {})}
+      aria-label={title}
+    >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="inline-flex items-center gap-2 text-sm font-semibold">
+          {app ? <AppLogo app={app} size={18} /> : null}
+          {title}
+        </h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Tile({
+  label,
+  value,
+  sub,
+  app,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  app?: SuiteApp;
+}) {
+  return (
+    <div className="rounded-lg border bg-card p-4 shadow-sm" {...(app ? { "data-app": app } : {})}>
+      <p className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        {app ? <AppLogo app={app} size={14} /> : null}
+        {label}
+      </p>
+      <p className="mt-1 truncate text-xl font-semibold tabular-nums">{value}</p>
+      {sub ? <p className="mt-0.5 truncate text-xs text-muted-foreground">{sub}</p> : null}
+    </div>
+  );
+}
+
+const Empty = ({ children }: { children: ReactNode }) => (
+  <p className="text-sm text-muted-foreground">{children}</p>
+);
+
+function NotHere({ app, href }: { app: SuiteApp; href: string | undefined }) {
+  return (
+    <Empty>
+      Shows here once {APP_LABEL[app]} is in use.{" "}
+      {href ? (
+        <a className="underline" href={href}>
+          Open {APP_LABEL[app]}
+        </a>
+      ) : null}
+    </Empty>
+  );
+}
+
+function MonthBars({
+  data,
+  currency,
+}: {
+  data: DashboardData["money"] & object;
+  currency: string;
+}) {
+  const max = Math.max(1, ...data.months.flatMap((m) => [m.revenue_cents, m.expense_cents]));
+  return (
+    <div className="mt-4 flex h-24 items-end gap-1.5" aria-hidden="true">
+      {data.months.map((m) => (
+        <div key={m.month} className="flex flex-1 flex-col items-center gap-1">
+          <div className="flex h-20 w-full items-end justify-center gap-0.5">
+            <span
+              className="w-1/2 rounded-sm bg-app-accent"
+              style={{ height: `${(m.revenue_cents / max) * 100}%` }}
+              title={`In ${formatMoney(m.revenue_cents, { currency })}`}
+            />
+            <span
+              className="w-1/2 rounded-sm bg-muted-foreground/40"
+              style={{ height: `${(m.expense_cents / max) * 100}%` }}
+              title={`Out ${formatMoney(m.expense_cents, { currency })}`}
+            />
+          </div>
+          <span className="text-[10px] text-muted-foreground">
+            {new Date(`${m.month}T00:00:00Z`).toLocaleString("en-US", {
+              month: "short",
+              timeZone: "UTC",
+            })}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function DashboardPanels({
+  orgId,
+  userId,
+  urls,
+}: {
+  orgId: string;
+  userId: string;
+  urls: Partial<Record<SuiteApp, string>>;
+}) {
+  const state = useAsync(async (): Promise<DashboardData | null> => {
+    const client = getSupabaseBrowserClient();
+    return client ? loadDashboard(client, { orgId, userId, urls }) : null;
+  }, [orgId, userId]);
+  const d = state.data;
+  if (state.loading && !d)
+    return <p className="mb-6 text-sm text-muted-foreground">Loading your dashboard…</p>;
+  if (!d) return null;
+
+  const open = (app: SuiteApp, path: string) =>
+    urls[app] ? `${urls[app]!.replace(/\/+$/, "")}${path}` : undefined;
+  const next = d.meetings?.[0];
+  const money = d.money;
+
+  return (
+    <div className="mb-8 space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Tile
+          label="Open tasks"
+          value={d.tasks ? String(d.tasks.length) : "—"}
+          sub={
+            d.tasks
+              ? d.tasks.length
+                ? `Next: ${d.tasks[0]!.title}`
+                : "You're all caught up"
+              : "No apps with tasks yet"
+          }
+        />
+        <Tile
+          app="board"
+          label="Next meeting"
+          value={next ? formatDate(next.meeting_date) : "—"}
+          sub={next ? next.title : d.meetings ? "None scheduled" : "OpenBoardApp not in use"}
+        />
+        <Tile
+          app="charter"
+          label="Current members"
+          value={d.membership ? String(d.membership.current) : "—"}
+          sub={
+            d.membership
+              ? `${d.membership.pending} waiting · ${d.membership.renewals} renewing soon`
+              : "OpenCharterApp not in use"
+          }
+        />
+        <Tile
+          app="ledger"
+          label="Net this year"
+          value={money ? formatMoney(money.net, { currency: money.currency, sign: true }) : "—"}
+          sub={
+            money
+              ? `${formatMoney(money.revenue, { currency: money.currency })} in`
+              : "OpenLedgerApp not in use"
+          }
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <Panel title="Your tasks">
+            {!d.tasks ? (
+              <Empty>
+                Tasks from your apps show here: action items, join requests, seats to fill,
+                recurring transactions.
+              </Empty>
+            ) : d.tasks.length === 0 ? (
+              <Empty>Nothing waiting for you. Nice.</Empty>
+            ) : (
+              <ul className="divide-y">
+                {d.tasks.slice(0, 8).map((t, i) => (
+                  <li key={i} data-app={t.app} className="flex items-center gap-3 py-2.5">
+                    <AppLogo app={t.app} size={22} label />
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={t.href}
+                        className="block truncate text-sm font-medium hover:underline"
+                      >
+                        {t.title}
+                      </a>
+                      {t.detail ? (
+                        <p className="truncate text-xs text-muted-foreground">{t.detail}</p>
+                      ) : null}
+                    </div>
+                    {t.due ? (
+                      <span
+                        className={`shrink-0 text-xs tabular-nums ${t.due < new Date().toISOString().slice(0, 10) ? "font-semibold text-destructive" : "text-muted-foreground"}`}
+                      >
+                        {formatDate(t.due)}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+                {d.tasks.length > 8 ? (
+                  <li className="pt-2 text-xs text-muted-foreground">
+                    and {d.tasks.length - 8} more in your apps
+                  </li>
+                ) : null}
+              </ul>
+            )}
+          </Panel>
+
+          <Panel title="Money this year" app="ledger">
+            {!money ? (
+              <NotHere app="ledger" href={open("ledger", `/ledger?org=${orgId}`)} />
+            ) : money.months.length === 0 ? (
+              <Empty>No transactions this year yet.</Empty>
+            ) : (
+              <>
+                <dl className="grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Money in</dt>
+                    <dd className="font-semibold tabular-nums">
+                      {formatMoney(money.revenue, { currency: money.currency })}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Money out</dt>
+                    <dd className="font-semibold tabular-nums">
+                      {formatMoney(money.expenses, { currency: money.currency })}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Net</dt>
+                    <dd className="font-semibold tabular-nums">
+                      {formatMoney(money.net, { currency: money.currency, sign: true })}
+                    </dd>
+                  </div>
+                </dl>
+                <MonthBars data={money} currency={money.currency} />
+              </>
+            )}
+          </Panel>
+        </div>
+
+        <div className="space-y-6">
+          <Panel title="Upcoming meetings" app="board">
+            {!d.meetings ? (
+              <NotHere app="board" href={open("board", `/board?org=${orgId}`)} />
+            ) : d.meetings.length === 0 ? (
+              <Empty>No meetings scheduled.</Empty>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {d.meetings.map((m) => (
+                  <li key={m.id}>
+                    <a
+                      className="font-medium hover:underline"
+                      href={open("board", `/board/meetings/${m.id}?org=${orgId}`)}
+                    >
+                      {m.title}
+                    </a>
+                    <p className="text-xs text-muted-foreground">{formatDate(m.meeting_date)}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+
+          <Panel title="Recent decisions" app="board">
+            {!d.decisions ? (
+              <NotHere app="board" href={open("board", `/board?org=${orgId}`)} />
+            ) : d.decisions.length === 0 ? (
+              <Empty>No decisions recorded yet.</Empty>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {d.decisions.map((x, i) => (
+                  <li key={i}>
+                    <p className="line-clamp-2">{x.motion_text}</p>
+                    <p className="text-xs capitalize text-muted-foreground">
+                      {x.outcome} · {formatDate(x.meeting_date)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+
+          <Panel title="Officers" app="charter">
+            {!d.membership ? (
+              <NotHere app="charter" href={open("charter", `/orgs/${orgId}`)} />
+            ) : d.membership.officers.length === 0 ? (
+              <Empty>No officers recorded.</Empty>
+            ) : (
+              <ul className="space-y-1.5 text-sm">
+                {d.membership.officers.slice(0, 6).map((o, i) => (
+                  <li key={i} className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">{o.title}</span>
+                    <span className="truncate font-medium">{o.holder}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {d.membership?.units && d.membership.units > 1 ? (
+              <p className="mt-3 text-xs text-muted-foreground">
+                {d.membership.units} units, chapters included
+              </p>
+            ) : null}
+          </Panel>
+        </div>
+      </div>
+    </div>
+  );
+}

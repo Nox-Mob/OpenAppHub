@@ -615,10 +615,11 @@ flowchart LR
     subgraph Producers
         J1[board.queue_email_reminders<br/>job every 15 min]
         J2[charter._chapter_board_email<br/>on request / decision]
-        J3[future jobs: digest, renewals,<br/>automation engine]
+        J4[public.queue_digests<br/>task summary, every 15 min]
+        J3[future jobs: renewals,<br/>automation engine]
         T[Test email<br/>from settings]
     end
-    J1 & J2 & J3 & T --> EQ[public.enqueue_email<br/>template + data + category + dedupe key]
+    J1 & J2 & J4 & J3 & T --> EQ[public.enqueue_email<br/>template + data + category + dedupe key]
     EQ --> OB[(public.email_outbox)]
     subgraph Sender["Sender (every 5 minutes)"]
         RJ[run_email_jobs] --> CL[claim_emails<br/>suppress opted-out]
@@ -632,7 +633,7 @@ flowchart LR
     FIN --> OB
 ```
 
-> **Diagram description:** Producers (Board's reminder job, Charter's chapter-request emails, future jobs, and the test email from the settings page) all call `public.enqueue_email` with a template name, its data, a category and a de-duplication key; the row lands in the outbox. Every five minutes the sender runs the due jobs, claims a batch (suppressing what the recipient switched off), renders each email from the shared templates, and sends it through Resend when hosted or through the organization's SMTP server over Workers TCP sockets when self-hosted. It records the outcome: sent, retry with back-off, failed, or suppressed.
+> **Diagram description:** Producers (Board's reminder job, Charter's chapter-request emails, the task summary job, future jobs, and the test email from the settings page) all call `public.enqueue_email` with a template name, its data, a category and a de-duplication key; the row lands in the outbox. Every five minutes the sender runs the due jobs, claims a batch (suppressing what the recipient switched off), renders each email from the shared templates, and sends it through Resend when hosted or through the organization's SMTP server over Workers TCP sockets when self-hosted. It records the outcome: sent, retry with back-off, failed, or suppressed.
 
 | Part                                                                       | Where                                                            |
 | -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
@@ -650,6 +651,28 @@ flowchart LR
 - **Retries:** 1, 5, 30, 120 minutes; failed after 5 tries. A row stuck "sending" for 10 minutes is claimed again.
 - **Self-hosted SMTP:** set by the owner of the server's first organization (`is_instance_owner`); the password is encrypted (AES-GCM, key derived from the service role key) before it's stored.
 - Sign-in, password and invitation emails are still Supabase Auth's (custom SMTP in Supabase).
+
+### 13.1 The task summary (digest, S-17)
+
+Core `0007_core_digest.sql` adds each person's choices to `public.email_preferences` (`digest` off/daily/weekly, `digest_day` 0 Sunday…6 Saturday, `digest_hour` 0–23, `digest_time_zone`, `digest_org_ids` (null = all), `digest_include` tasks/meetings, `digest_last_sent_at`).
+
+```mermaid
+flowchart LR
+    UI[DigestFields<br/>hub account page / app Email page] -->|set_digest_preferences| EP[(public.email_preferences)]
+    JOB[core.digest job<br/>every 15 min] --> QD[public.queue_digests]
+    EP --> QD
+    QD -->|due: local hour reached,<br/>right weekday, not sent today| DF[public.digest_for user]
+    DF --> V1[board.api_action_items<br/>assigned to them]
+    DF --> V2[charter.api_tasks<br/>owners, admins, unit managers]
+    DF --> V3[ledger.api_tasks<br/>owners, admins, treasurers]
+    DF --> V4[board.api_meetings<br/>next 7 days, daily: 2]
+    DF -->|something to say| EQ[enqueue_email<br/>template digest, category digest,<br/>dedupe digest:user:local date]
+```
+
+> **Diagram description:** People set their choices with the shared `DigestFields` (hub account page, or an app's Email page), saved by `set_digest_preferences`. The `core.digest` email job runs `public.queue_digests` every 15 minutes; for each person whose local time has reached their hour (on their weekday, for weekly) and who hasn't had one today, `public.digest_for` collects their open Board action items, Charter tasks (owners, admins and people who manage the unit), Ledger tasks (owners, admins and treasurers) and upcoming Board meetings, per organization, from whichever app views exist on this database. If there's anything, one `digest` email is queued, de-duplicated per person per local day. Hosted, the hub's sender sends it; self-hosted, the installed app's sender does.
+
+- The time zone defaults to the person's first organization's, else UTC. Each app's checks run inside `digest_for` (security definer, service role only), since the job has no session.
+- The `digest` template groups items under each organization's name (`EmailContent.sections`); one organization gets a plain list.
 
 ---
 
@@ -871,7 +894,6 @@ gitGraph
 | Item                             | Shape                                                                                                                                                                                                                                                                                                                                                           | Roadmap    |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | **Automation engine**            | One engine for schedules and automations people can change: triggers (events, dates), conditions (rules engine), actions (email, tasks, approvals, documents). Replaces fixed jobs like the board-package schedule (S-20); drives Charter's awards workflow. Built on the email outbox and `email_jobs`, generalized to an `automations` table and a job runner | S-25       |
-| **Task digest**                  | A job that queues one `digest` email per person per their chosen frequency, from the same `api_*` task views                                                                                                                                                                                                                                                    | S-17       |
 | **Finish a task from the hub**   | Owning-app RPCs for tasks that can be completed with a click; tasks that need real work (approve an award, reconcile a statement) keep linking to the app                                                                                                                                                                                                       | S-19       |
 | **Charter payments into Ledger** | `charter.api_payments` + a Ledger import with a category map, booked like the demo                                                                                                                                                                                                                                                                              | S-18, L-17 |
 | **Dashboard editor**             | People choose, arrange and size the dashboard's panels                                                                                                                                                                                                                                                                                                          | H-08       |

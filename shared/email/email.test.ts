@@ -69,9 +69,44 @@ describe("templates", () => {
       }),
       ctx,
     );
-    expect(r.subject).toBe("Lakeview <Condo> Association: 2 open tasks this week");
+    expect(r.subject).toBe("2 open tasks this week: Lakeview <Condo> Association");
     expect(r.text).toContain("Send the budget (OpenBoardApp · due Nov 1, 2026, overdue)");
     expect(r.html).toContain("(overdue)");
+  });
+
+  it("groups a digest across several organizations", () => {
+    const r = renderEmail(
+      row({
+        app: "hub",
+        template: "digest",
+        category: "digest",
+        org_id: null,
+        data: {
+          period: "daily",
+          orgs: [
+            {
+              org_id: "a",
+              org_name: "Riverside",
+              tasks: [{ app: "ledger", title: "Record rent", due_on: "2026-11-01", link: "/x" }],
+              meetings: [],
+            },
+            {
+              org_id: "b",
+              org_name: "Northstar & Co",
+              tasks: [],
+              meetings: [
+                { title: "Budget", meeting_date: "2026-11-20", start_time: "6:30 PM", link: "/m" },
+              ],
+            },
+          ],
+        },
+      }),
+      ctx,
+    );
+    expect(r.subject).toBe("1 open task today: 2 organizations");
+    expect(r.html).toContain("Northstar &amp; Co");
+    expect(r.text).toContain("Riverside");
+    expect(r.text).toContain("Budget");
   });
 
   it("shows Board's meeting date and start time as given", () => {

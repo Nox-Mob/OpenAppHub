@@ -3,6 +3,13 @@ import { useRouter } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { openCookieSettings } from "@shared/consent";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
+import {
+  DigestFields,
+  digestIncomplete,
+  loadDigest,
+  saveDigest,
+  type DigestPrefs,
+} from "@shared/ui/DigestSettings";
 import { HelpLink } from "@shared/ui/HelpLink";
 import { ThemeToggle } from "@shared/ui/ThemeToggle";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -360,9 +367,21 @@ function NotificationsPanel() {
     return { ...DEFAULT_PREFS, ...hubRows[0], ...emailRows[0] } as Prefs;
   }, [supabase]);
   const [draft, setDraft] = useState<Prefs | null>(null);
+  const [digest, setDigest] = useState<DigestPrefs | null>(null);
+  const [digestDirty, setDigestDirty] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, setBusy] = useState(false);
   const prefs = draft ?? saved.data ?? DEFAULT_PREFS;
+  useEffect(() => {
+    if (!supabase || !saved.data) return;
+    let live = true;
+    void loadDigest(supabase, saved.data.digest).then((d) => {
+      if (live) setDigest(d);
+    });
+    return () => {
+      live = false;
+    };
+  }, [supabase, saved.data]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -378,13 +397,15 @@ function NotificationsPanel() {
       (
         await supabase.rpc("set_email_preferences", {
           p_reminders: prefs.reminders,
-          p_digest: prefs.digest,
+          p_digest: digest?.digest ?? prefs.digest,
         })
       ).error;
+    const err = error ? error.message : digest ? await saveDigest(supabase, digest) : null;
     setBusy(false);
-    setMsg(error ? { ok: false, text: error.message } : { ok: true, text: "Saved." });
-    if (!error) {
+    setMsg(err ? { ok: false, text: err } : { ok: true, text: "Saved." });
+    if (!err) {
       setDraft(null);
+      setDigestDirty(false);
       await saved.reload();
     }
   }
@@ -427,28 +448,21 @@ function NotificationsPanel() {
               </label>
             </li>
           ))}
-          <li className="flex items-start gap-3">
-            <label htmlFor="pref-digest" className="text-sm">
-              <span className="font-medium">Task summary</span>
-              <span className="block text-muted-foreground">
-                Your open tasks and upcoming meetings from every app, in one email. Coming soon:
-                your choice is saved now and used when it starts.
-              </span>
-              <select
-                id="pref-digest"
-                className="mt-2 h-9 rounded-md border border-input bg-background px-2 text-sm"
-                value={prefs.digest}
-                disabled={saved.loading}
-                onChange={(e) => setDraft({ ...prefs, digest: e.target.value as Digest })}
-              >
-                <option value="weekly">Weekly (Monday morning)</option>
-                <option value="daily">Daily</option>
-                <option value="off">Off</option>
-              </select>
-            </label>
+          <li>
+            <DigestFields
+              value={digest}
+              idPrefix="pref-digest"
+              onChange={(d) => {
+                setDigest(d);
+                setDigestDirty(true);
+              }}
+            />
           </li>
         </ul>
-        <Button type="submit" disabled={busy || !draft}>
+        <Button
+          type="submit"
+          disabled={busy || (!draft && !digestDirty) || digestIncomplete(digest)}
+        >
           {busy ? "Saving…" : "Save"}
         </Button>
       </form>

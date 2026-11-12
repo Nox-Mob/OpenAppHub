@@ -53,14 +53,14 @@ Recommended order, using the epic IDs already in `docs/epic.md`:
 
 ## 5. OpenLedgerApp
 
-| ID   | Epic                      | What it means                                                                                                              | Order |
-| ---- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----- |
-| L-10 | People checks             | A screen-reader pass by a person; the password reset email checked by hand.                                                | Now   |
-| L-17 | Charter income import     | The Ledger side of S-18: category map, matching and an import log.                                                         | Next  |
-| L-18 | Fund accounting          | Funds are tags today; make them real funds: restricted and unrestricted balances, releases from restriction, a statement by fund.                      | Next  |
-| L-19 | Budget vs. actual summary | `ledger.api_budget_summary` for the hub's money panel and the board package.                                               | Next  |
-| L-20 | Receipt attachments       | Attach a receipt image or PDF to an entry (pulled forward from L-16).                                                      | Later |
-| L-13 | v1.0 gates                | Accounting correctness, security tests, real-statement import, backup recovery, install and upgrade, non-accountant tests. | Later |
+| ID   | Epic                      | What it means                                                                                                                     | Order |
+| ---- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| L-10 | People checks             | A screen-reader pass by a person; the password reset email checked by hand.                                                       | Now   |
+| L-17 | Charter income import     | The Ledger side of S-18: category map, matching and an import log.                                                                | Next  |
+| L-18 | Fund accounting           | Funds are tags today; make them real funds: restricted and unrestricted balances, releases from restriction, a statement by fund. | Next  |
+| L-19 | Budget vs. actual summary | `ledger.api_budget_summary` for the hub's money panel and the board package.                                                      | Next  |
+| L-20 | Receipt attachments       | Attach a receipt image or PDF to an entry (pulled forward from L-16).                                                             | Later |
+| L-13 | v1.0 gates                | Accounting correctness, security tests, real-statement import, backup recovery, install and upgrade, non-accountant tests.        | Later |
 
 ## 6. Suggested first pick
 

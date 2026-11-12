@@ -63,7 +63,7 @@ See `docs/SECRETS.md` for what goes in each value.
 
 **Applying migrations on a fresh staging database** (after a reset of the Supabase project): merge to `staging` (the hub's `staging.yml` migrates and seeds the hub and core), then run **Migrate → staging** in OpenCharterApp, OpenLedgerApp and OpenBoardApp, in that order. Each run applies its seeds and rebuilds the demo; Ledger's books come from Charter's payments and Board's reports from both, so that order gives the right demo straight away (otherwise the next 12-hourly reset fixes it).
 
-Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (S-01 to S-15) in all three: production check, exposed schemas, integration views, help links, read-only screens, export, old build tooling, Worker secrets, end-to-end tests, retiring the old projects, one look, and the cross-app work (S-12 data between apps, S-13 reports into a board package, S-14 board members in sync between Charter and Board, S-15 tasks from every app on the hub's dashboard). What comes next: [`ROADMAP.md`](ROADMAP.md).
+Since 2026-11-12 there's one roadmap for the suite, [`ROADMAP.md`](ROADMAP.md) (S suite, H hub, C Charter, B Board, L Ledger, with what each epic needs first); the apps' old `epic.md` files are kept for history in `docs/<app>/`.
 
 | Suite item                                                       | Charter | Board                            | Ledger                                                        |
 | ---------------------------------------------------------------- | ------- | -------------------------------- | ------------------------------------------------------------- |

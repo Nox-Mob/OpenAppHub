@@ -4,6 +4,8 @@
 
 Save as `AGENTS.md` in the repo root. **Read `docs/SHARED-SPEC.md` (v2) first.**
 
+**This repository holds the suite's documentation** (`docs/`, reader: `docs/README.md`): the suite architecture, the database map, the one roadmap (`docs/ROADMAP.md`: S, H, C, B, L epics) and each app's documents (`docs/charter/`, `docs/board/`, `docs/ledger/`). App changes that need doc changes come with a pull request here. Regenerate `docs/database-map.md` after schema changes (`docs/tools/dbmap/regen.sh`).
+
 You're building the hub: the suite's front door and the owner of everything shared. In hosted mode, people sign up, sign in, create organizations, invite members, transfer ownership and pay **here**. This repo also holds the canonical shared code (`shared/`, `db/core/`, `scripts/migrate.mjs`) that every app vendors.
 
 **Everything else waits on this repo.** Charter, Board and Ledger are each blocked at their "vendor shared code" step until Phase 1–2 here is merged. Work fast on Phases 1–2.

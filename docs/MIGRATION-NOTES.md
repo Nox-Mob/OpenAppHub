@@ -61,6 +61,8 @@ See `docs/SECRETS.md` for what goes in each value.
 
 ## 4. What's left (2026-11-12)
 
+**Applying migrations on a fresh staging database** (after a reset of the Supabase project): merge to `staging` (the hub's `staging.yml` migrates and seeds the hub and core), then run **Migrate → staging** in OpenCharterApp, OpenLedgerApp and OpenBoardApp, in that order. Each run applies its seeds and rebuilds the demo; Ledger's books come from Charter's payments and Board's reports from both, so that order gives the right demo straight away (otherwise the next 12-hourly reset fixes it).
+
 Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (S-01 to S-15) in all three: production check, exposed schemas, integration views, help links, read-only screens, export, old build tooling, Worker secrets, end-to-end tests, retiring the old projects, one look, and the cross-app work (S-12 data between apps, S-13 reports into a board package, S-14 board members in sync between Charter and Board, S-15 tasks from every app on the hub's dashboard). What comes next: [`ROADMAP.md`](ROADMAP.md).
 
 | Suite item                                                       | Charter | Board                            | Ledger                                                        |
@@ -69,16 +71,19 @@ Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (
 | Suite demo (one demo and one test account, reset every 12 hours) | ✅      | ✅                               | ✅                                                            |
 | Staging as Worker previews of branch `staging`                   | ✅      | ✅                               | ✅ (preview domains declared in `wrangler.jsonc`, 2026-11-12) |
 | End-to-end tests on staging in CI                                | ✅      | ✅                               | ✅                                                            |
-| Integration views and `docs/INTEGRATION.md`                      | ✅ (PR) | ✅ (PR)                          | ✅ (PR)                                                       |
+| Integration views and `docs/INTEGRATION.md`                      | ✅      | ✅                               | ✅                                                            |
 | Help links map                                                   | ✅      | ✅                               | ✅                                                            |
-| Write controls off when read-only                                | ✅ (PR) | ✅ (PR)                          | ✅ (PR)                                                       |
-| Export everything                                                | ✅ (PR) | ✅                               | ✅                                                            |
+| Write controls off when read-only                                | ✅      | ✅                               | ✅                                                            |
+| Export everything                                                | ✅      | ✅                               | ✅                                                            |
 | Old projects retired (owner)                                     | ✅      | ✅                               | ✅                                                            |
 | Old build tooling removed (and Ledger's AI PDF import off)       | ✅      | ✅                               | ✅                                                            |
-| S-12 data between apps (offers and uses documented)              | ✅ (PR) | ✅ (PR)                          | ✅ (PR)                                                       |
-| S-13 reports into a board package                                | ✅ (PR) | ✅ (PR, `add_report_to_meeting`) | ✅ (PR)                                                       |
-| S-14 board members in sync                                       | ✅ (PR) | ✅ (PR)                          | —                                                             |
-| S-15 tasks on the hub dashboard                                  | ✅ (PR) | ✅ (PR)                          | ✅ (PR)                                                       |
+| S-12 data between apps (offers and uses documented)              | ✅      | ✅                               | ✅                                                            |
+| S-13 reports into a board package                                | ✅      | ✅ (PR, `add_report_to_meeting`) | ✅                                                            |
+| S-14 board members in sync                                       | ✅      | ✅                               | —                                                             |
+| S-15 tasks on the hub dashboard                                  | ✅      | ✅                               | ✅                                                            |
+| S-16 email (outbox, Resend hosted, SMTP self-hosted)             | ✅      | ✅ (B-09 reminders)              | ✅                                                            |
+| S-24 chapters on OpenBoardApp                                    | ✅      | ✅                               | —                                                             |
+| Suite demo: Riverside and Northstar Veterans League, apps agree  | ✅      | ✅                               | ✅                                                            |
 | Production checked by a person                                   | 🟡      | 🟡                               | 🟡                                                            |
 
 ### Hub
@@ -88,7 +93,7 @@ Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (
 | Secrets on `openapphub-staging` (Supabase secret key, Stripe sandbox key) and the Supabase secret key on production (`docs/SECRETS.md` §2) | Owner                                                             |
 | Stripe test run: trial → checkout → renewal → failed payment → cancel → read-only → export                                                 | The staging secrets                                               |
 | Billing and organization-activity emails (preferences are already saved)                                                                   | A way to send email from the Worker (custom SMTP or an email API) |
-| Dashboard: tasks, meetings, decisions, money and members from the apps (S-03, S-15)                                                        | ✅ (PR); needs the apps' migrations applied                       |
+| Dashboard: tasks, meetings, decisions, money and members from the apps (S-03, S-15)                                                        | ✅ ; needs the apps' migrations applied                           |
 | Publish `hub/hosting/plans.md` with the prices                                                                                             | Docs PR                                                           |
 | `gen-types.yml`                                                                                                                            | Nothing; low priority                                             |
 | Open sign-ups (`VITE_SIGNUPS_OPEN`, Supabase setting)                                                                                      | Launch                                                            |

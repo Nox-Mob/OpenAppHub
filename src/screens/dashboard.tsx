@@ -43,7 +43,9 @@ export function DashboardScreen({ user, hub }: ScreenProps) {
       <PageHeader
         title={`Welcome, ${name}`}
         description={
-          org ? `${org.name} · ${ROLE_LABEL[org.role]}` : "Let's get your organization set up."
+          org
+            ? `${org.name}${org.parent ? ` (chapter of ${org.parent.name})` : ""} · ${ROLE_LABEL[org.role]}`
+            : "Let's get your organization set up."
         }
       />
       {!org ? (
@@ -54,7 +56,8 @@ export function DashboardScreen({ user, hub }: ScreenProps) {
           <DashboardPanels orgId={org.id} userId={user.id} urls={urls} />
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Your apps</h2>
           <ul className="grid gap-4 md:grid-cols-3">
-            {APPS.map((app) => {
+            {/* A chapter's own organization is for its board; membership stays with the national. */}
+            {APPS.filter((app) => !org.parent || app.id === "board").map((app) => {
               const url = urls[app.id];
               const access = accessLabel(hub, app.id);
               return (

@@ -3,6 +3,7 @@ import { billingNotice, daysLeft, hasAppAccess, isReadOnly, type OrgBilling } fr
 import { appOrgUrl } from "../apps";
 import {
   getOrgPreferences,
+  listMyOrgs,
   orgCookieString,
   orgFromSearch,
   readOrgCookie,
@@ -219,5 +220,57 @@ describe("isReadOnly (S-05: write controls off)", () => {
     const starter = { ...base, status: "active" as const, plan_id: "starter", apps: ["board"] };
     expect(isReadOnly(starter, "ledger", now)).toBe(true);
     expect(isReadOnly({ ...base, status: "canceled" as const }, "hub", now)).toBe(false);
+  });
+});
+
+describe("listMyOrgs", () => {
+  const member = (rows: unknown[], failParent = false) => {
+    const calls: string[] = [];
+    const client = {
+      auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) },
+      from: (table: string) => ({
+        select: (cols: string) => {
+          calls.push(`${table}:${cols}`);
+          const result =
+            table === "memberships"
+              ? failParent && cols.includes("parent_org_id")
+                ? {
+                    data: null,
+                    error: { message: "column organizations_1.parent_org_id does not exist" },
+                  }
+                : { data: rows, error: null }
+              : { data: [{ id: "nat", name: "Delta National" }], error: null };
+          return { eq: async () => result, in: async () => result };
+        },
+      }),
+    };
+    return { client: client as never, calls };
+  };
+
+  it("adds a chapter's parent", async () => {
+    const { client } = member([
+      {
+        role: "owner",
+        organizations: { id: "c1", name: "Chapter 12", slug: null, parent_org_id: "nat" },
+      },
+      {
+        role: "admin",
+        organizations: { id: "nat", name: "Delta National", slug: null, parent_org_id: null },
+      },
+    ]);
+    const orgs = await listMyOrgs(client);
+    expect(orgs.find((o) => o.id === "c1")?.parent).toEqual({ id: "nat", name: "Delta National" });
+    expect(orgs.find((o) => o.id === "nat")?.parent).toBeUndefined();
+  });
+
+  it("works on a database without child organizations", async () => {
+    const { client, calls } = member(
+      [{ role: "owner", organizations: { id: "o1", name: "Org", slug: null } }],
+      true,
+    );
+    expect(await listMyOrgs(client)).toEqual([
+      { id: "o1", name: "Org", slug: null, role: "owner" },
+    ]);
+    expect(calls).toHaveLength(2);
   });
 });

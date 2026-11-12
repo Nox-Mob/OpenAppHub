@@ -76,6 +76,14 @@ async function requireManager(userClient: SupabaseClient, orgId: string) {
   if (error || ok !== true) {
     throw new BillingError("Only the owner or an admin can manage billing.");
   }
+  // A chapter's organization is covered by its parent's plan (core 0006, billing 0004).
+  const { data: parent } = await userClient.rpc("billing_parent_org", { p_org: orgId });
+  const p = (Array.isArray(parent) ? parent[0] : parent) as { name?: string } | null | undefined;
+  if (p?.name) {
+    throw new BillingError(
+      `This chapter is covered by ${p.name}'s plan. Its billing is managed there.`,
+    );
+  }
   return auth.user;
 }
 

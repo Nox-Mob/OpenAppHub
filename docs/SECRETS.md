@@ -51,19 +51,31 @@ live mode. To change a price, create the new price in Stripe and move the lookup
 old price. A plan with no active price shows "Price TBA" and can't be chosen. Delete any
 `STRIPE_PRICE_MAP` secret left on the Workers; nothing reads it.
 
-**Where they stand (2026-11-11):**
+**Where they stand (2026-11-12):**
 
-| Worker                    | `SUPABASE_SERVICE_ROLE_KEY` | `STRIPE_SECRET_KEY` | `STRIPE_WEBHOOK_SECRET`                              |
-| ------------------------- | --------------------------- | ------------------- | ---------------------------------------------------- |
-| `openapphub` (production) | not set                     | set                 | set                                                  |
-| `openapphub-staging`      | not set                     | not set             | set (sandbox endpoint `we_1UaUhWBMqAfLJdPPpMpH0k2b`) |
+| Worker                    | `SUPABASE_SERVICE_ROLE_KEY` | `STRIPE_SECRET_KEY` | `STRIPE_WEBHOOK_SECRET`                              | `RESEND_API_KEY` |
+| ------------------------- | --------------------------- | ------------------- | ---------------------------------------------------- | ---------------- |
+| `openapphub` (production) | set                         | set                 | set                                                  | not set          |
+| `openapphub-staging`      | set                         | set (`sk_test_`)    | set (sandbox endpoint `we_1UaUhWBMqAfLJdPPpMpH0k2b`) | not set          |
 
 Neither Stripe nor Supabase returns an existing secret key, so a missing one is created new (Stripe:
 roll or create the sandbox key; Supabase: create a secret key) and pasted straight into the Worker.
 
-Later, if the hub sends email itself rather than through Supabase Auth: `SMTP_HOST`,
-`SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`. Not needed while Supabase sends the emails
-(set custom SMTP in Supabase instead, section 4).
+**Email (S-16).** The hub's Worker sends the suite's email (reminders, the task summary, chapter
+requests) from the shared outbox every 5 minutes (`triggers` in `wrangler.jsonc`), through Resend:
+
+- `RESEND_API_KEY` (secret, both Workers): Resend → **API Keys** → create a key with **Sending
+  access** (one per Worker is tidiest). Until it's set, email waits in the outbox; nothing is lost.
+- The sending domain: Resend → **Domains** → add `openapphub.org`, then add its DNS records in
+  Cloudflare. The sender is `EMAIL_FROM` in `wrangler.jsonc` (`notifications@openapphub.org`).
+- Emails to the demo accounts (`*.demo.openapphub.org`) and example domains are never sent.
+
+Sign-in, password and invitation emails are still Supabase Auth's (set custom SMTP in Supabase,
+section 4; Resend offers SMTP for that too).
+
+**Self-hosted apps** don't use the hub: their owner enters an SMTP server on the app's Email page,
+or sets `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY` (`starttls`, `tls` or `none`), `SMTP_USERNAME`,
+`SMTP_PASSWORD` (secret) and `EMAIL_FROM` on the Worker, or `RESEND_API_KEY`.
 
 ## 3. Cloudflare build settings (Git connection)
 

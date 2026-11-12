@@ -7,6 +7,7 @@ import { APP_NAMES } from "@shared/apps";
 import type { AppId } from "@shared/supabase/hosted";
 import { NoOrganization, PageHeader, Panel } from "@/components/hub/HubShell";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { WORKFLOWS_RUN_AS_ORG } from "@/lib/roles";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -399,6 +400,7 @@ function EditorsPanel({
   call: (fn: string, args: Record<string, unknown>, ok: string) => Promise<boolean>;
 }) {
   const [pick, setPick] = useState("");
+  const [confirming, setConfirming] = useState(false);
   const candidates = o.members.filter(
     (m) => !["owner", "admin"].includes(m.role) && !o.editors.some((e) => e.user_id === m.user_id),
   );
@@ -436,6 +438,10 @@ function EditorsPanel({
       ) : (
         <p className="mb-3 text-sm text-muted-foreground">Only owners and admins, so far.</p>
       )}
+      <p className="mb-3 flex gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+        <span aria-hidden="true">⚠</span>
+        <span>{WORKFLOWS_RUN_AS_ORG}</span>
+      </p>
       {o.can_manage_editors && candidates.length ? (
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-56 flex-1">
@@ -449,16 +455,7 @@ function EditorsPanel({
               ))}
             </Select>
           </div>
-          <Button
-            disabled={!pick}
-            onClick={() =>
-              void call(
-                "grant_automation_editor",
-                { p_org: orgId, p_user: pick, p_grant: true },
-                "They can build workflows now.",
-              ).then((ok) => ok && setPick(""))
-            }
-          >
+          <Button disabled={!pick} onClick={() => setConfirming(true)}>
             Add
           </Button>
         </div>
@@ -485,6 +482,23 @@ function EditorsPanel({
             </span>
           </span>
         </label>
+      ) : null}
+      {confirming ? (
+        <ConfirmDialog
+          title={`Let ${o.members.find((m) => m.user_id === pick)?.name ?? "them"} build workflows?`}
+          confirmLabel="Let them build workflows"
+          onConfirm={() => {
+            setConfirming(false);
+            void call(
+              "grant_automation_editor",
+              { p_org: orgId, p_user: pick, p_grant: true },
+              "They can build workflows now.",
+            ).then((ok) => ok && setPick(""));
+          }}
+          onCancel={() => setConfirming(false)}
+        >
+          <p>{WORKFLOWS_RUN_AS_ORG}</p>
+        </ConfirmDialog>
       ) : null}
     </Panel>
   );

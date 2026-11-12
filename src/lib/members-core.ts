@@ -24,6 +24,9 @@ export async function inviteMember(opts: {
   orgId: string;
   email: string;
   role: InviteRole;
+  /** H-09: the named role and/or each app's role they get (unset: viewer in that app). */
+  namedRoleId?: string | null | undefined;
+  appRoles?: Record<string, string> | undefined;
   origin: string;
 }): Promise<InviteResult> {
   const email = opts.email.trim().toLowerCase();
@@ -35,8 +38,26 @@ export async function inviteMember(opts: {
     p_role: opts.role,
   });
   if (error) throw new FriendlyError(error.message);
-  const row = (Array.isArray(data) ? data[0] : data) as { token?: string } | undefined;
+  const row = (Array.isArray(data) ? data[0] : data) as
+    { token?: string; invitation_id?: string } | undefined;
   if (!row?.token) throw new FriendlyError("The invitation couldn't be created.");
+  const appRoles = Object.fromEntries(
+    Object.entries(opts.appRoles ?? {}).filter(
+      ([, v]) => v === "admin" || v === "member" || v === "viewer",
+    ),
+  );
+  if (opts.namedRoleId || Object.keys(appRoles).length > 0) {
+    const { error: rolesError } = await opts.userClient.rpc("set_invitation_roles", {
+      p_invitation: row.invitation_id,
+      p_named_role: opts.namedRoleId ?? null,
+      p_app_roles: appRoles,
+    });
+    if (rolesError) {
+      // Don't leave an invitation behind with less access than was chosen.
+      await opts.userClient.rpc("revoke_invitation", { p_id: row.invitation_id });
+      throw new FriendlyError(rolesError.message);
+    }
+  }
   const link = `${opts.origin.replace(/\/$/, "")}/invite/${row.token}`;
 
   if (!opts.adminClient) return { link, email: "unavailable" };

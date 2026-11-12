@@ -101,3 +101,7 @@ Trigger `ledger.books_locked` (event, when the books are closed through a month)
 ## Terms (H-07)
 
 Hosted, Ledger reads `public.hub_accepted_terms()`; when the hub already recorded the terms, Ledger asks only for its not-advice notice.
+
+## Roles (H-09, core 0011)
+
+Read someone's role here with `public.app_role(org, 'ledger', user)` (owner; else set for them in this app; else their named role's; else viewer) and extra permissions with `public.has_app_permission(org, 'ledger', key)`. The OpenAppHub role isn't used for anything in this app. Ledger registers `ledger.close_books` and `ledger.manage` (`0008_named_roles`). A treasurer needs a member or admin role in Ledger. An invitation made in Ledger makes the person an OpenAppHub member with the chosen Ledger role; `ledger.on_invitation_accepted` then adds the treasurer overlay.

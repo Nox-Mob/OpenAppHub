@@ -59,6 +59,10 @@ begin
   delete from public.email_outbox where to_user_id in (c_demo, c_test, c_natl);
   delete from billing.trial_grants where user_id in (c_demo, c_test, c_natl);
   delete from hub.legal_acceptances where user_id = c_test;
+  -- Self-hosted Ledger keeps its own record of accepted terms: the test account starts fresh there too.
+  if to_regclass('ledger.legal_acceptances') is not null then
+    execute 'delete from ledger.legal_acceptances where user_id = $1' using c_test;
+  end if;
   delete from hub.user_preferences where user_id in (c_demo, c_test, c_natl);
   insert into hub.legal_acceptances (user_id, document, accepted_at)
   values (c_demo, 'terms', now()), (c_demo, 'privacy', now()), (c_natl, 'terms', now()), (c_natl, 'privacy', now())

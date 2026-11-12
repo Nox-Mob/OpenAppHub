@@ -22,7 +22,8 @@
     "db:test:selfhosted": "bash db/tests/run-selfhosted.sh",
     "cf-typegen": "wrangler types",
     "build:staging": "CLOUDFLARE_ENV=staging vite build",
-    "check:shared-strict": "tsc --noEmit -p tsconfig.shared-strict.json"
+    "check:shared-strict": "tsc --noEmit -p tsconfig.shared-strict.json",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -43,6 +44,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.67.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.5",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

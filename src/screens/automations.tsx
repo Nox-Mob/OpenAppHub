@@ -1401,6 +1401,23 @@ function ParamFields({
                   </option>
                 ))}
               </Select>
+            ) : s.type === "text" && choices?.[k]?.length ? (
+              <Select
+                id={id}
+                className="h-9"
+                value={String(v ?? "")}
+                onChange={(e) => set(e.target.value)}
+              >
+                <option value="">Choose…</option>
+                {choices[k].map((op) => (
+                  <option key={op} value={op}>
+                    {labelFor(k, op)}
+                  </option>
+                ))}
+                {v && !choices[k].includes(String(v)) ? (
+                  <option value={String(v)}>{labelFor(k, String(v))}</option>
+                ) : null}
+              </Select>
             ) : s.type === "bool" ? (
               <input
                 id={id}

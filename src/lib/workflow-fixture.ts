@@ -98,6 +98,7 @@ export const FIXTURE_OVERVIEW: Overview = {
           options: ["unit", "parent", "region", "national"],
         },
       },
+      param_options: { seat: ["president", "vice_president", "secretary", "treasurer"] },
     },
     {
       type: "board.office",

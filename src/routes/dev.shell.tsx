@@ -3,10 +3,12 @@ import { docsUrl } from "@shared/docs";
 import type { OrgBilling } from "@shared/supabase/billing";
 import type { AppId } from "@shared/supabase/hosted";
 import { AppShell } from "@shared/ui/AppShell";
+import { EmailPreferencesPanel, EmailServerPanel } from "@shared/ui/EmailSettings";
 import { HelpLink } from "@shared/ui/HelpLink";
 
 // Development-only preview of the shared AppShell for screenshots and review:
 //   /dev/shell?app=board&billing=trial|ending|readonly|pastdue|none
+//   /dev/shell?app=board&screen=email   the self-hosted email settings (S-16)
 // Returns 404 in production and staging builds.
 const ORGS = [
   {
@@ -63,6 +65,7 @@ export const Route = createFileRoute("/dev/shell")({
       ? s["app"]
       : "board") as AppId,
     billing: typeof s["billing"] === "string" ? s["billing"] : "trial",
+    screen: s["screen"] === "email" ? "email" : "",
   }),
   beforeLoad: () => {
     if (!import.meta.env.DEV) throw notFound();
@@ -72,7 +75,7 @@ export const Route = createFileRoute("/dev/shell")({
 });
 
 function ShellPreview() {
-  const { app, billing } = Route.useSearch();
+  const { app, billing, screen } = Route.useSearch();
   const nav = NAV[app].map((label, i) => ({
     label,
     href: `#${label.toLowerCase()}`,
@@ -95,19 +98,45 @@ function ShellPreview() {
       accountHref="#account"
       onSignOut={() => {}}
     >
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      {screen === "email" ? (
+        <div className="mx-auto max-w-3xl space-y-6">
+          <h1 className="text-2xl font-semibold tracking-tight">Email</h1>
+          <EmailPreferencesPanel client={null} />
+          <EmailServerPanel
+            load={async () => ({
+              canEdit: true,
+              source: "smtp-settings",
+              host: "smtp.fastmail.com",
+              port: 587,
+              security: "starttls",
+              username: "board@riverside.org",
+              hasPassword: true,
+              fromAddress: "board@riverside.org",
+              fromName: "Riverside Board",
+              replyTo: "",
+              serverReady: true,
+            })}
+            save={async () => {}}
+            test={async () => ({
+              ok: true,
+              message: "Sent to mara@riverside.org. Check your inbox.",
+            })}
+          />
+        </div>
+      ) : null}
+      <div className={screen ? "hidden" : "flex flex-wrap items-end justify-between gap-4"}>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{nav[1]?.label}</h1>
           <p className="mt-1 text-sm text-muted-foreground">Shared AppShell preview · {app}</p>
         </div>
         <HelpLink path={`${app}/`}>How this works</HelpLink>
       </div>
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className={screen ? "hidden" : "mt-6 grid gap-4 sm:grid-cols-3"}>
         {[1, 2, 3].map((n) => (
           <div key={n} className="h-28 rounded-lg border bg-card shadow-sm" />
         ))}
       </div>
-      <div className="mt-4 h-72 rounded-lg border bg-card shadow-sm" />
+      <div className={screen ? "hidden" : "mt-4 h-72 rounded-lg border bg-card shadow-sm"} />
     </AppShell>
   );
 }

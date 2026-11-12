@@ -310,13 +310,29 @@ function PasswordPanel({ email }: { email: string | null }) {
   );
 }
 
-type Prefs = { billing_emails: boolean; org_activity_emails: boolean; product_news: boolean };
+type Digest = "off" | "daily" | "weekly";
+type Prefs = {
+  billing_emails: boolean;
+  org_activity_emails: boolean;
+  product_news: boolean;
+  // Email the apps send (core public.email_preferences, S-16).
+  reminders: boolean;
+  digest: Digest;
+};
+type BoolPref = "billing_emails" | "org_activity_emails" | "product_news" | "reminders";
 const DEFAULT_PREFS: Prefs = {
   billing_emails: true,
   org_activity_emails: true,
   product_news: false,
+  reminders: true,
+  digest: "weekly",
 };
-const PREF_ROWS: { key: keyof Prefs; label: string; help: string }[] = [
+const PREF_ROWS: { key: BoolPref; label: string; help: string }[] = [
+  {
+    key: "reminders",
+    label: "Reminders",
+    help: "Upcoming board meetings and action items due, from the apps you use.",
+  },
   {
     key: "billing_emails",
     label: "Billing",
@@ -334,8 +350,14 @@ function NotificationsPanel() {
   const supabase = getSupabaseBrowserClient();
   const saved = useAsync(async () => {
     if (!supabase) return DEFAULT_PREFS;
-    const rows = (await must(supabase.rpc("hub_get_my_preferences"))) as Prefs[];
-    return rows[0] ?? DEFAULT_PREFS;
+    const [hubRows, emailRows] = await Promise.all([
+      must(supabase.rpc("hub_get_my_preferences")) as Promise<Partial<Prefs>[]>,
+      // Missing until core 0005 is applied: keep the defaults.
+      supabase
+        .rpc("get_email_preferences")
+        .then((r) => (r.error ? [] : ((r.data ?? []) as Partial<Prefs>[]))),
+    ]);
+    return { ...DEFAULT_PREFS, ...hubRows[0], ...emailRows[0] } as Prefs;
   }, [supabase]);
   const [draft, setDraft] = useState<Prefs | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
@@ -346,11 +368,19 @@ function NotificationsPanel() {
     e.preventDefault();
     if (!supabase) return;
     setBusy(true);
-    const { error } = await supabase.rpc("hub_set_my_preferences", {
+    const first = await supabase.rpc("hub_set_my_preferences", {
       p_billing: prefs.billing_emails,
       p_org_activity: prefs.org_activity_emails,
       p_product_news: prefs.product_news,
     });
+    const error =
+      first.error ??
+      (
+        await supabase.rpc("set_email_preferences", {
+          p_reminders: prefs.reminders,
+          p_digest: prefs.digest,
+        })
+      ).error;
     setBusy(false);
     setMsg(error ? { ok: false, text: error.message } : { ok: true, text: "Saved." });
     if (!error) {
@@ -360,7 +390,7 @@ function NotificationsPanel() {
   }
 
   return (
-    <Panel title="Email notifications" description="Choose what we email you about.">
+    <Panel id="email" title="Email notifications" description="Choose what we email you about.">
       {saved.error ? <Alert variant="destructive">{saved.error}</Alert> : null}
       <form className="space-y-3" onSubmit={onSubmit}>
         <ul className="space-y-3">
@@ -397,6 +427,25 @@ function NotificationsPanel() {
               </label>
             </li>
           ))}
+          <li className="flex items-start gap-3">
+            <label htmlFor="pref-digest" className="text-sm">
+              <span className="font-medium">Task summary</span>
+              <span className="block text-muted-foreground">
+                Your open tasks and upcoming meetings from every app, in one email.
+              </span>
+              <select
+                id="pref-digest"
+                className="mt-2 h-9 rounded-md border border-input bg-background px-2 text-sm"
+                value={prefs.digest}
+                disabled={saved.loading}
+                onChange={(e) => setDraft({ ...prefs, digest: e.target.value as Digest })}
+              >
+                <option value="weekly">Weekly (Monday morning)</option>
+                <option value="daily">Daily</option>
+                <option value="off">Off</option>
+              </select>
+            </label>
+          </li>
         </ul>
         <Button type="submit" disabled={busy || !draft}>
           {busy ? "Saving…" : "Save"}

@@ -20,6 +20,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AppAccountRouteImport } from './routes/_app.account'
 import { Route as AppAuditRouteImport } from './routes/_app.audit'
+import { Route as AppAutomationsRouteImport } from './routes/_app.automations'
 import { Route as AppBillingRouteImport } from './routes/_app.billing'
 import { Route as AppMembersRouteImport } from './routes/_app.members'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
@@ -84,6 +85,11 @@ const AppAccountRoute = AppAccountRouteImport.update({
 const AppAuditRoute = AppAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAutomationsRoute = AppAutomationsRouteImport.update({
+  id: '/automations',
+  path: '/automations',
   getParentRoute: () => AppRoute,
 } as any)
 const AppBillingRoute = AppBillingRouteImport.update({
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/account': typeof AppAccountRoute
   '/audit': typeof AppAuditRoute
+  '/automations': typeof AppAutomationsRoute
   '/billing': typeof AppBillingRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/account': typeof AppAccountRoute
   '/audit': typeof AppAuditRoute
+  '/automations': typeof AppAutomationsRoute
   '/billing': typeof AppBillingRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_app/account': typeof AppAccountRoute
   '/_app/audit': typeof AppAuditRoute
+  '/_app/automations': typeof AppAutomationsRoute
   '/_app/billing': typeof AppBillingRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/settings': typeof AppSettingsRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/account'
     | '/audit'
+    | '/automations'
     | '/billing'
     | '/members'
     | '/settings'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/account'
     | '/audit'
+    | '/automations'
     | '/billing'
     | '/members'
     | '/settings'
@@ -273,6 +284,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_app/account'
     | '/_app/audit'
+    | '/_app/automations'
     | '/_app/billing'
     | '/_app/members'
     | '/_app/settings'
@@ -382,6 +394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/automations': {
+      id: '/_app/automations'
+      path: '/automations'
+      fullPath: '/automations'
+      preLoaderRoute: typeof AppAutomationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/billing': {
       id: '/_app/billing'
       path: '/billing'
@@ -465,6 +484,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
   AppAuditRoute: typeof AppAuditRoute
+  AppAutomationsRoute: typeof AppAutomationsRoute
   AppBillingRoute: typeof AppBillingRoute
   AppMembersRoute: typeof AppMembersRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -476,6 +496,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAccountRoute: AppAccountRoute,
   AppAuditRoute: AppAuditRoute,
+  AppAutomationsRoute: AppAutomationsRoute,
   AppBillingRoute: AppBillingRoute,
   AppMembersRoute: AppMembersRoute,
   AppSettingsRoute: AppSettingsRoute,

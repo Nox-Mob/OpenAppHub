@@ -3,6 +3,8 @@ import { HubShell } from "@/components/hub/HubShell";
 import type { HubContext } from "@/lib/orgs";
 import type { OrgRole } from "@shared/supabase/org";
 import { AccountScreen } from "@/screens/account";
+import { WorkflowEditor } from "@/screens/automations";
+import { FIXTURE_OVERVIEW } from "@/lib/workflow-fixture";
 import { AuditScreen } from "@/screens/audit";
 import { BillingScreen } from "@/screens/billing";
 import { DashboardScreen } from "@/screens/dashboard";
@@ -14,7 +16,7 @@ import { WELCOME_STEPS, WelcomeScreen, type WelcomeStep } from "@/screens/welcom
 // Development-only preview of the signed-in hub screens with sample data, for
 // review and browser tests (data calls are answered by the test). 404 in
 // production and staging builds.
-//   /dev/hub?screen=dashboard|welcome|billing|members|settings|account|audit|demo&role=owner|admin|member|viewer
+//   /dev/hub?screen=dashboard|welcome|billing|members|settings|account|audit|demo|workflow&role=owner|admin|member|viewer
 //   &step=organization|region|team|apps (welcome)  &billing=trialing|expired|active|past_due|canceling&configured=1  &orgs=0 (no organization yet)
 const ORG = "11111111-1111-4111-8111-111111111111";
 
@@ -135,6 +137,14 @@ function Preview() {
       {screen === "audit" ? <AuditScreen {...props} /> : null}
       {screen === "demo" ? <DemoScreen {...props} /> : null}
       {screen === "members" ? <MembersScreen {...props} invite={fakeInvite} /> : null}
+      {screen === "workflow" ? (
+        <WorkflowEditor
+          overview={FIXTURE_OVERVIEW}
+          workflow={null}
+          onSave={async () => null}
+          onCancel={() => {}}
+        />
+      ) : null}
     </HubShell>
   );
 }

@@ -109,6 +109,28 @@ describe("templates", () => {
     expect(r.text).toContain("Budget");
   });
 
+  it("renders a workflow's own message", () => {
+    const r = renderEmail(
+      row({
+        template: "automation.message",
+        category: "essential",
+        data: {
+          subject: "Award for Pat",
+          message: "Rank PFC.\n\nPlease review <soon>.",
+          workflow: "Award routing",
+          link: "/orgs/x",
+          link_app: "board",
+        },
+      }),
+      ctx,
+    );
+    expect(r.subject).toBe("Award for Pat");
+    expect(r.text).toContain("Please review <soon>.");
+    expect(r.html).toContain("Please review &lt;soon&gt;.");
+    expect(r.text).toContain('Sent by the "Award routing" workflow.');
+    expect(r.html).toContain("https://board.openapphub.org/orgs/x");
+  });
+
   it("shows Board's meeting date and start time as given", () => {
     const r = renderEmail(
       row({

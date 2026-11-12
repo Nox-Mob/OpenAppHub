@@ -2,7 +2,7 @@
 
 Every table in the suite's database, grouped by what it's for, with how the tables connect. Use it to answer questions like "how do we track billing?" or "where does a dues payment end up?": find the domain below, read the diagram, then open the column list.
 
-Generated from the schema built by every repo's migrations (core `0001`–`0010`, hub `0001`–`0005`, Charter `0001`–`0010`, Board `0001`–`0013`, Ledger `0001`–`0007`) on 2026-11-12: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
+Generated from the schema built by every repo's migrations (core `0001`–`0011`, hub `0001`–`0006`, Charter `0001`–`0011`, Board `0001`–`0014`, Ledger `0001`–`0008`) on 2026-11-12: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
 
 **How to read the diagrams** (Mermaid entity-relationship diagrams):
 
@@ -78,20 +78,20 @@ Tables per schema: `public` 9, `hub` 8, `billing` 4, `charter` 34, `board` 21, `
 
 ## 2. Follow a question
 
-| Question                                                | Start at                                                                                     | Then                                                                                                                                                                                                                                                                                           |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **How do we track billing?**                            | `billing.subscriptions` (one per organization)                                               | `billing.plans` (limits), `billing.trial_grants` (one trial per person), `billing.stripe_events` (webhook idempotency), `public.organizations.parent_org_id` (a chapter uses its parent's subscription), `hub.org_settings` (billing contact), `public.instance_settings.billing_enabled` (§5) |
-| **Who belongs to an organization, with what role?**     | `public.memberships`                                                                         | `public.profiles` (name), `public.invitations` (pending), a different role in one app: `public.app_role_overrides`; app overlays: `charter.role_assignments`, `board.officers`, `ledger.member_roles` (§3, §7, §8, §9)                                                                         |
-| **Where does a dues payment end up?**                   | `charter.payments`                                                                           | `charter.memberships` (what it paid for), `charter.receipts` (+ `receipt_counters`), `charter.gateway_connections` (whose Stripe), `charter.webhook_events`; in Ledger (demo, and S-18 later): `ledger.transactions` + `ledger.entries` on Membership Dues (§7.4)                              |
-| **Who is on a board?**                                  | `charter.appointments` (Charter's officers)                                                  | `charter.seat_templates`, `seat_terms`; mirrored to `board.terms` (`source = 'charter'`), `board.positions`, `board.officers` (app access) (§7.5, §8.1)                                                                                                                                        |
-| **What happened at a meeting?**                         | `board.meetings`                                                                             | `agenda_items`, `attendance`, `motions` (+ `vote_electorate`, `member_votes` for live votes), `minutes`, `action_items`, `packets` (§8.2)                                                                                                                                                      |
-| **Which reminders does an organization get, and when?** | `public.automations` (its choices) over `public.automation_kinds` (defaults)                 | `automation_log` (what each did), `email_outbox` (§6.1)                                                                                                                                                                                                                                        |
-| **What emails are waiting or were sent?**               | `public.email_outbox`                                                                        | `email_jobs` (what queues them), `email_preferences` (opt-outs), `hub.user_preferences` (billing/activity opt-outs), `instance_email_settings` (self-hosted SMTP) (§6)                                                                                                                         |
-| **How is a ledger balanced?**                           | `ledger.transactions`                                                                        | `ledger.entries` (debits positive, credits negative, sum to zero per transaction), `accounts`, `categories`, `funds`, `projects` (§9.1)                                                                                                                                                        |
-| **Is a month closed / reconciled?**                     | `ledger.period_closes`, `ledger.reconciliations`                                             | `ledger.entries.reconciliation_id`, `bank_transactions`, `import_batches` (§9.3)                                                                                                                                                                                                               |
-| **Which chapters use OpenBoardApp?**                    | `charter.chapter_board_requests`                                                             | `public.organizations` where `parent_org_id` is the national and `source_app = 'charter'` (§7.1)                                                                                                                                                                                               |
-| **Who changed what?**                                   | `hub.audit_log` (core tables), `charter.audit_events`, `board.audit_log`, `ledger.audit_log` | Each is append-only, written by triggers                                                                                                                                                                                                                                                       |
-| **What does the hub dashboard read?**                   | The `api_*` views                                                                            | §10                                                                                                                                                                                                                                                                                            |
+| Question                                                | Start at                                                                                     | Then                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **How do we track billing?**                            | `billing.subscriptions` (one per organization)                                               | `billing.plans` (limits), `billing.trial_grants` (one trial per person), `billing.stripe_events` (webhook idempotency), `public.organizations.parent_org_id` (a chapter uses its parent's subscription), `hub.org_settings` (billing contact), `public.instance_settings.billing_enabled` (§5)                                                             |
+| **Who belongs to an organization, with what role?**     | `public.memberships`                                                                         | `public.profiles` (name), `public.invitations` (pending), a role in each app: `public.app_role_overrides` (set for the person) and `public.org_named_roles` (their named role; extra permissions from `public.app_permission_types`), otherwise viewer; app overlays: `charter.role_assignments`, `board.officers`, `ledger.member_roles` (§3, §7, §8, §9) |
+| **Where does a dues payment end up?**                   | `charter.payments`                                                                           | `charter.memberships` (what it paid for), `charter.receipts` (+ `receipt_counters`), `charter.gateway_connections` (whose Stripe), `charter.webhook_events`; in Ledger (demo, and S-18 later): `ledger.transactions` + `ledger.entries` on Membership Dues (§7.4)                                                                                          |
+| **Who is on a board?**                                  | `charter.appointments` (Charter's officers)                                                  | `charter.seat_templates`, `seat_terms`; mirrored to `board.terms` (`source = 'charter'`), `board.positions`, `board.officers` (app access) (§7.5, §8.1)                                                                                                                                                                                                    |
+| **What happened at a meeting?**                         | `board.meetings`                                                                             | `agenda_items`, `attendance`, `motions` (+ `vote_electorate`, `member_votes` for live votes), `minutes`, `action_items`, `packets` (§8.2)                                                                                                                                                                                                                  |
+| **Which reminders does an organization get, and when?** | `public.automations` (its choices) over `public.automation_kinds` (defaults)                 | `automation_log` (what each did), `email_outbox` (§6.1)                                                                                                                                                                                                                                                                                                    |
+| **What emails are waiting or were sent?**               | `public.email_outbox`                                                                        | `email_jobs` (what queues them), `email_preferences` (opt-outs), `hub.user_preferences` (billing/activity opt-outs), `instance_email_settings` (self-hosted SMTP) (§6)                                                                                                                                                                                     |
+| **How is a ledger balanced?**                           | `ledger.transactions`                                                                        | `ledger.entries` (debits positive, credits negative, sum to zero per transaction), `accounts`, `categories`, `funds`, `projects` (§9.1)                                                                                                                                                                                                                    |
+| **Is a month closed / reconciled?**                     | `ledger.period_closes`, `ledger.reconciliations`                                             | `ledger.entries.reconciliation_id`, `bank_transactions`, `import_batches` (§9.3)                                                                                                                                                                                                                                                                           |
+| **Which chapters use OpenBoardApp?**                    | `charter.chapter_board_requests`                                                             | `public.organizations` where `parent_org_id` is the national and `source_app = 'charter'` (§7.1)                                                                                                                                                                                                                                                           |
+| **Who changed what?**                                   | `hub.audit_log` (core tables), `charter.audit_events`, `board.audit_log`, `ledger.audit_log` | Each is append-only, written by triggers                                                                                                                                                                                                                                                                                                                   |
+| **What does the hub dashboard read?**                   | The `api_*` views                                                                            | §10                                                                                                                                                                                                                                                                                                                                                        |
 
 ---
 
@@ -114,6 +114,7 @@ erDiagram
         uuid org_id PK,FK
         uuid user_id PK,FK
         org_role role
+        uuid named_role_id FK
     }
     public_profiles {
         uuid id PK,FK
@@ -126,6 +127,7 @@ erDiagram
         text token_hash UK
         uuid invited_by FK
         uuid accepted_by FK
+        uuid named_role_id FK
     }
     public_instance_settings {
         bool id PK
@@ -136,15 +138,30 @@ erDiagram
         text app PK
         org_role role
     }
+    public_org_named_roles {
+        uuid id PK
+        uuid org_id FK,UK
+        text name
+    }
+    public_app_permission_types {
+        text app PK
+        text key PK
+    }
+    public__core_migration_marks {
+        text mark PK
+    }
     auth_users {
         uuid id PK
     }
     public_app_role_overrides }o--|| public_memberships : "org_id,user_id"
     public_invitations }o--o| auth_users : "accepted_by"
     public_invitations }o--o| auth_users : "invited_by"
+    public_invitations }o--o| public_org_named_roles : "named_role_id"
     public_invitations }o--|| public_organizations : "org_id"
     public_memberships |o--|| public_organizations : "org_id"
+    public_memberships }o--o| public_org_named_roles : "org_id,named_role_id"
     public_memberships }o--|| auth_users : "user_id"
+    public_org_named_roles |o--|| public_organizations : "org_id"
     public_organizations }o--o| auth_users : "created_by"
     public_organizations }o--o| public_organizations : "parent_org_id"
     public_profiles |o--|| auth_users : "id"
@@ -169,14 +186,15 @@ Unique together: (source_app, source_ref).
 
 </details>
 
-<details><summary><code>public.memberships</code> (4 columns)</summary>
+<details><summary><code>public.memberships</code> (5 columns)</summary>
 
-| Column       | Type                     | Null | Default              | Key / reference                                        |
-| ------------ | ------------------------ | ---- | -------------------- | ------------------------------------------------------ |
-| `org_id`     | uuid                     |      |                      | PK unique → `public.organizations` (on delete cascade) |
-| `user_id`    | uuid                     |      |                      | PK → `auth.users` (on delete cascade)                  |
-| `role`       | org_role                 |      | `'member'::org_role` |                                                        |
-| `created_at` | timestamp with time zone |      | `now()`              |                                                        |
+| Column          | Type                     | Null | Default              | Key / reference                                           |
+| --------------- | ------------------------ | ---- | -------------------- | --------------------------------------------------------- |
+| `org_id`        | uuid                     |      |                      | PK unique → `public.org_named_roles` (on delete set null) |
+| `user_id`       | uuid                     |      |                      | PK → `auth.users` (on delete cascade)                     |
+| `role`          | org_role                 |      | `'member'::org_role` |                                                           |
+| `created_at`    | timestamp with time zone |      | `now()`              |                                                           |
+| `named_role_id` | uuid                     | yes  |                      | → `public.org_named_roles` (on delete set null)           |
 
 </details>
 
@@ -191,23 +209,25 @@ Unique together: (source_app, source_ref).
 
 </details>
 
-<details><summary><code>public.invitations</code> (13 columns)</summary>
+<details><summary><code>public.invitations</code> (15 columns)</summary>
 
-| Column        | Type                     | Null | Default             | Key / reference                              |
-| ------------- | ------------------------ | ---- | ------------------- | -------------------------------------------- |
-| `id`          | uuid                     |      | `gen_random_uuid()` | PK                                           |
-| `org_id`      | uuid                     |      |                     | → `public.organizations` (on delete cascade) |
-| `email`       | text                     | yes  |                     |                                              |
-| `role`        | org_role                 | yes  |                     |                                              |
-| `app`         | text                     | yes  |                     |                                              |
-| `app_payload` | jsonb                    |      | `'{}'::jsonb`       |                                              |
-| `token_hash`  | text                     |      |                     | unique                                       |
-| `expires_at`  | timestamp with time zone |      |                     |                                              |
-| `invited_by`  | uuid                     | yes  |                     | → `auth.users` (on delete set null)          |
-| `created_at`  | timestamp with time zone |      | `now()`             |                                              |
-| `accepted_by` | uuid                     | yes  |                     | → `auth.users` (on delete set null)          |
-| `accepted_at` | timestamp with time zone | yes  |                     |                                              |
-| `revoked_at`  | timestamp with time zone | yes  |                     |                                              |
+| Column          | Type                     | Null | Default             | Key / reference                                 |
+| --------------- | ------------------------ | ---- | ------------------- | ----------------------------------------------- |
+| `id`            | uuid                     |      | `gen_random_uuid()` | PK                                              |
+| `org_id`        | uuid                     |      |                     | → `public.organizations` (on delete cascade)    |
+| `email`         | text                     | yes  |                     |                                                 |
+| `role`          | org_role                 | yes  |                     |                                                 |
+| `app`           | text                     | yes  |                     |                                                 |
+| `app_payload`   | jsonb                    |      | `'{}'::jsonb`       |                                                 |
+| `token_hash`    | text                     |      |                     | unique                                          |
+| `expires_at`    | timestamp with time zone |      |                     |                                                 |
+| `invited_by`    | uuid                     | yes  |                     | → `auth.users` (on delete set null)             |
+| `created_at`    | timestamp with time zone |      | `now()`             |                                                 |
+| `accepted_by`   | uuid                     | yes  |                     | → `auth.users` (on delete set null)             |
+| `accepted_at`   | timestamp with time zone | yes  |                     |                                                 |
+| `revoked_at`    | timestamp with time zone | yes  |                     |                                                 |
+| `named_role_id` | uuid                     | yes  |                     | → `public.org_named_roles` (on delete set null) |
+| `app_roles`     | jsonb                    |      | `'{}'::jsonb`       |                                                 |
 
 </details>
 
@@ -231,6 +251,44 @@ Unique together: (source_app, source_ref).
 | `role`    | org_role                 |      |              |                                               |
 | `set_by`  | uuid                     | yes  | `auth.uid()` |                                               |
 | `set_at`  | timestamp with time zone |      | `now()`      |                                               |
+
+</details>
+
+<details><summary><code>public.org_named_roles</code> (8 columns)</summary>
+
+| Column        | Type                     | Null | Default             | Key / reference                                     |
+| ------------- | ------------------------ | ---- | ------------------- | --------------------------------------------------- |
+| `id`          | uuid                     |      | `gen_random_uuid()` | PK                                                  |
+| `org_id`      | uuid                     |      |                     | unique → `public.organizations` (on delete cascade) |
+| `name`        | text                     |      |                     |                                                     |
+| `description` | text                     |      | `''::text`          |                                                     |
+| `app_roles`   | jsonb                    |      | `'{}'::jsonb`       |                                                     |
+| `permissions` | jsonb                    |      | `'{}'::jsonb`       |                                                     |
+| `created_at`  | timestamp with time zone |      | `now()`             |                                                     |
+| `updated_at`  | timestamp with time zone |      | `now()`             |                                                     |
+
+Unique together: (id, org_id).
+
+</details>
+
+<details><summary><code>public.app_permission_types</code> (5 columns)</summary>
+
+| Column        | Type    | Null | Default    | Key / reference |
+| ------------- | ------- | ---- | ---------- | --------------- |
+| `app`         | text    |      |            | PK              |
+| `key`         | text    |      |            | PK              |
+| `label`       | text    |      |            |                 |
+| `description` | text    |      | `''::text` |                 |
+| `sort`        | integer |      | `100`      |                 |
+
+</details>
+
+<details><summary><code>public._core_migration_marks</code> (2 columns)</summary>
+
+| Column    | Type                     | Null | Default | Key / reference |
+| --------- | ------------------------ | ---- | ------- | --------------- |
+| `mark`    | text                     |      |         | PK              |
+| `done_at` | timestamp with time zone |      | `now()` |                 |
 
 </details>
 

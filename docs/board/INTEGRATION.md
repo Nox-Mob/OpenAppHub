@@ -134,3 +134,7 @@ A role set for this app alone is in `public.app_role_overrides` (core `0010`); r
 ## Workflow connectors (S-25, `0010_workflow_triggers`)
 
 Triggers `board.meeting_upcoming` (N days before a meeting, a scan), `board.meeting_scheduled` (event), `board.action_item_overdue` (N days overdue, a scan); they provide a meeting where there is one. Recipient `board.office`: whoever holds an office. The service role may call `add_report_to_meeting`, for other apps' workflow actions.
+
+## Roles (H-09, core 0011)
+
+Read someone's role here with `public.app_role(org, 'board', user)` (owner; else set for them in this app; else their named role's; else viewer) and extra permissions with `public.has_app_permission(org, 'board', key)`. The OpenAppHub role isn't used for anything in this app. Board registers `board.edit_records`, `board.read_audit` and `board.manage` (`0014_named_roles`). An officer needs a member or admin role in Board. An invitation made in Board makes the person an OpenAppHub member with the chosen Board role (`invitations.app_roles`); `board.on_invitation_accepted` then applies the office.

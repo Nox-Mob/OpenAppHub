@@ -135,3 +135,7 @@ A role set for this app alone is in `public.app_role_overrides` (core `0010`); r
 ## Workflow connectors (S-25, `0008_workflow_triggers`)
 
 Triggers `charter.payment_received`, `charter.member_joined`, `charter.membership_lapsed` (events), carrying the member, their unit and the organization's own member fields (rank, branch…, through `fields_fn`). Recipient `charter.seat`: whoever holds a seat in the member's unit, the level above, their region or the national (`wf_seat_options` offers the organization's seats).
+
+## Roles (H-09, core 0011)
+
+Read someone's role here with `public.app_role(org, 'charter', user)` (owner; else set for them in this app; else their named role's; else viewer) and extra permissions with `public.has_app_permission(org, 'charter', key)`. The OpenAppHub role isn't used for anything in this app. Charter registers all of its permission keys (`0011_named_roles`); `charter.has_permission` and `charter.permitted_units` accept a named role's permission in every unit of the organization, besides roles held in units. A role assigned in Charter makes someone new an OpenAppHub member (never raises the OpenAppHub role) and gives the Charter role the assignment needs (admin for the organization admin role, member otherwise).

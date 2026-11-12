@@ -308,26 +308,50 @@ sequenceDiagram
 
 ## 6. Organizations, roles and the Charter tree
 
-### 6.1 Core roles and app overlays
+### 6.1 Roles: OpenAppHub, each app, named roles
 
-| Core role (`public.memberships.role`) | Can                                                                                         |
-| ------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `owner`                               | Everything; exactly one per organization (deferred constraint trigger); transfers ownership |
-| `admin`                               | Manage the organization, people and billing                                                 |
-| `member`                              | Edit in the apps (counts as an editor for plan limits)                                      |
-| `viewer`                              | Read only (doesn't count against plan limits)                                               |
+Since H-09 (core `0011_core_named_roles.sql`, owner decision 2026-11-12) the OpenAppHub role and each app's role are **separate**:
 
-Apps add their own roles on top, in their own schemas, never granting more than the core role allows:
+| OpenAppHub role (`public.memberships.role`) | Can, in OpenAppHub only                                                                             |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `owner`                                     | Everything, in OpenAppHub and every app; exactly one per organization; transfers ownership          |
+| `admin`                                     | People, invitations, named roles, billing and organization settings. **Not an app admin by itself** |
+| `member`                                    | The dashboard and their tasks                                                                       |
+| `viewer`                                    | The dashboard                                                                                       |
 
-| App     | Overlay                                                                                                                                     | Rule                                                                                   |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Charter | `charter.roles`, `permissions`, `role_permissions`, `role_assignments` (custom roles, permission keys, inherited downward through the tree) | Write = `public.can_write(org, 'charter')` **and** the Charter permission on that unit |
-| Board   | `board.officers (org_id, user_id, office)`: chair, secretary, treasurer                                                                     | Edit records = `can_write(org, 'board')` and (owner/admin or chair/secretary)          |
-| Ledger  | `ledger.member_roles (org_id, user_id, role)`: treasurer                                                                                    | Close books etc. = `can_write(org, 'ledger')` and (owner/admin or treasurer)           |
+**A person's role in an app** (`public.app_role(org, app, user)`), in order:
 
-**Roles per app (H-04, core `0010_core_app_roles.sql`).** Someone can hold a different role in each app (an admin in Board, view only in Ledger): `public.app_role_overrides (org_id, user_id, app, role)`, set with `public.set_app_role` from the hub's People page or an app's own members page, read with `public.app_role(org, app, user)`. No row means their core role; the owner is the owner everywhere. Every app's checks use the app role.
+```mermaid
+flowchart LR
+    Q{Owner?} -->|yes| O[owner]
+    Q -->|no| P{Set for them<br/>in this app?<br/>app_role_overrides}
+    P -->|yes| PR[that role]
+    P -->|no| N{Named role gives<br/>this app a role?<br/>org_named_roles}
+    N -->|yes| NR[that role]
+    N -->|no| V[viewer<br/>shown as Not set]
+```
+
+> **Diagram description:** The owner is the owner in every app. Otherwise a role set for the person in that app wins; otherwise their named role's role for that app; otherwise viewer, which OpenAppHub shows as "Not set: viewer". `public.app_role_source` says which of these applied; `public.org_app_roles(org)` lists everyone's role in every app with its source.
+
+- **Named roles** (`public.org_named_roles`): a name (e.g. Treasurer), a role per app (`app_roles`: admin, member or viewer) and extra permissions per app (`permissions`), from the permissions each app registers in `public.app_permission_types` (`public.register_app_permission`). One per person (`memberships.named_role_id`). `public.has_app_permission(org, app, key)`: app admins have every permission in their app; otherwise the named role grants it.
+- **Invitations** carry a named role and/or each app's role (`invitations.named_role_id`, `app_roles`; `public.set_invitation_roles` right after `create_invitation`). An invitation made in an app (Board, Ledger) makes the person an OpenAppHub member with the chosen role in that app only.
+- **Who changes roles:** the owner and OpenAppHub admins (`save_named_role`, `delete_named_role`, `set_named_role`, `set_app_role`), on the hub's Members page or an app's members page.
+- **Plan limits** count editors with `public.is_org_editor`: the owner, OpenAppHub admins, and anyone who is a member or admin in at least one app (hub `0006_editors_per_app.sql`). Chapters' own organizations never count.
+- **The day it shipped:** everyone's role in each app was copied from their OpenAppHub role into `app_role_overrides` once, so nobody's access changed.
+
+Apps add their own roles on top, in their own schemas:
+
+| App     | Overlay                                                                                                                                     | Rule                                                                                                                                         |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Charter | `charter.roles`, `permissions`, `role_permissions`, `role_assignments` (custom roles, permission keys, inherited downward through the tree) | Write = `can_write(org, 'charter')` **and** the Charter permission on that unit, from a unit role **or** the named role (whole organization) |
+| Board   | `board.officers (org_id, user_id, office)`: chair, secretary, treasurer (needs a member or admin role in Board)                             | Edit records = `can_write(org, 'board')` and (Board admin, chair/secretary, or the `board.edit_records` permission)                          |
+| Ledger  | `ledger.member_roles (org_id, user_id, role)`: treasurer (needs a member or admin role in Ledger)                                           | Close books = `can_write(org, 'ledger')` and (Ledger admin, treasurer, or the `ledger.close_books` permission)                               |
+
+A role given inside OpenCharterApp no longer raises the OpenAppHub role: someone new becomes an OpenAppHub member, with the Charter role their assignment needs.
 
 `public.can_write(org, app)` = the person's role **in that app** is an editor role **and** `public.has_app_access(org, app)` (billing, §11). Every app's write policies call it, so a lapsed plan makes every app read-only in the database, not just on screen.
+
+**Workflows run as the organization** (owner decision 2026-11-12): a workflow's steps act with the organization's access, not the access of the person who built it, so being able to build workflows (owners, OpenAppHub admins, and people granted it) reaches every app's data through a workflow. The hub says so wherever that's granted.
 
 ### 6.2 Charter's tree inside one organization
 

@@ -15,9 +15,16 @@ import { Select } from "@/components/ui/select";
 import { sendInvitation } from "@/lib/members";
 import type { InviteResult } from "@/lib/members-core";
 import { HELP } from "@/config/help";
-import { ROLE_HELP, ROLE_LABEL, canManage } from "@/lib/roles";
+import { APP_ROLE_HELP, ROLE_HELP, ROLE_LABEL, WORKFLOWS_RUN_AS_ORG, canManage } from "@/lib/roles";
 import { must, useAsync } from "@/lib/use-async";
-import { appRoleOf, boardRole, ledgerRole, loadAppRoles } from "@/lib/people";
+import {
+  appRoleOf,
+  boardRole,
+  loadAppRoles,
+  type NamedRole,
+  type PermissionType,
+  type ResolvedRole,
+} from "@/lib/people";
 
 type Member = { user_id: string; display_name: string | null; email: string; role: OrgRole };
 type Invitation = {
@@ -189,9 +196,16 @@ export function MembersScreen({
               canEdit={manage}
               onChanged={() => void appRoles.reload()}
             />
+            <NamedRolesPanel
+              orgId={orgId!}
+              roles={appRoles.data ?? null}
+              canEdit={manage}
+              onChanged={() => void appRoles.reload()}
+            />
             <InvitePanel
               orgId={orgId}
               invite={invite}
+              namedRoles={appRoles.data?.namedRoles ?? []}
               onInvited={() => void invitations.reload()}
             />
             <Panel
@@ -253,25 +267,39 @@ export function MembersScreen({
   );
 }
 
+const APPS = ["charter", "board", "ledger"] as const;
+type App = (typeof APPS)[number];
+const APP_NAME: Record<App, string> = {
+  charter: "OpenCharterApp",
+  board: "OpenBoardApp",
+  ledger: "OpenLedgerApp",
+};
+
 export function InvitePanel({
   orgId,
   invite = sendInvitation,
   onInvited,
   title = "Invite someone",
   description,
+  namedRoles = [],
 }: {
   orgId: string;
   invite?: typeof sendInvitation;
   onInvited?: () => void;
   title?: string;
   description?: string;
+  /** H-09: the organization's named roles, to give on the invitation. */
+  namedRoles?: NamedRole[];
 }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "member" | "viewer">("member");
+  const [named, setNamed] = useState("");
+  const [appRoles, setAppRoles] = useState<Partial<Record<App, "admin" | "member" | "viewer">>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<(InviteResult & { to: string }) | null>(null);
   const [copied, setCopied] = useState(false);
+  const chosen = namedRoles.find((r) => r.id === named);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -279,7 +307,15 @@ export function InvitePanel({
     setError("");
     setResult(null);
     setCopied(false);
-    const res = await invite({ data: { orgId, email, role } });
+    const res = await invite({
+      data: {
+        orgId,
+        email,
+        role,
+        ...(named ? { namedRoleId: named } : {}),
+        ...(Object.keys(appRoles).length ? { appRoles } : {}),
+      },
+    });
     setBusy(false);
     if ("error" in res) return setError(res.error);
     setResult({ ...res, to: email.trim() });
@@ -301,7 +337,7 @@ export function InvitePanel({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="invite-role">Role</Label>
+          <Label htmlFor="invite-role">Role in OpenAppHub</Label>
           <Select
             id="invite-role"
             value={role}
@@ -318,6 +354,58 @@ export function InvitePanel({
             {ROLE_HELP[role]}
           </p>
         </div>
+        {namedRoles.length ? (
+          <div className="space-y-2">
+            <Label htmlFor="invite-named">Named role</Label>
+            <Select id="invite-named" value={named} onChange={(e) => setNamed(e.target.value)}>
+              <option value="">None</option>
+              {namedRoles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+        ) : null}
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">Role in each app</legend>
+          {APPS.map((app) => (
+            <div key={app} className="flex items-center gap-2">
+              <Label htmlFor={`invite-${app}`} className="w-36 shrink-0 font-normal">
+                {APP_NAME[app]}
+              </Label>
+              <Select
+                id={`invite-${app}`}
+                className="h-9"
+                value={appRoles[app] ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value as "" | "admin" | "member" | "viewer";
+                  setAppRoles((cur) => {
+                    const next = { ...cur };
+                    if (v) next[app] = v;
+                    else delete next[app];
+                    return next;
+                  });
+                }}
+              >
+                <option value="">
+                  {chosen?.app_roles[app]
+                    ? `From ${chosen.name}: ${ROLE_LABEL[chosen.app_roles[app]!]}`
+                    : "Not set: viewer"}
+                </option>
+                {(["admin", "member", "viewer"] as const).map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABEL[r]}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ))}
+          <p className="text-xs text-muted-foreground">
+            Each app's role is separate from the OpenAppHub role. Anything not set is view-only; you
+            can change it later.
+          </p>
+        </fieldset>
         {error ? <Alert variant="destructive">{error}</Alert> : null}
         <Button type="submit" disabled={busy}>
           {busy ? "Sending…" : "Send invitation"}
@@ -359,9 +447,18 @@ export function InvitePanel({
   );
 }
 
+function sourceText(r: ResolvedRole | undefined, namedName: string | undefined): string | null {
+  if (!r) return null;
+  if (r.source === "person") return "Set for this app";
+  if (r.source === "named") return `From ${namedName ?? "their named role"}`;
+  if (r.source === "fallback") return "Not set: viewer";
+  return null;
+}
+
 /**
- * H-04 and a role per app: every person's role in OpenAppHub and in each app, changed here by
- * owners and admins (core 0010: set_app_role; "Can build workflows": grant_automation_editor).
+ * H-04 and H-09: every person's role in OpenAppHub, their named role, and their role in each
+ * app, changed here by the owner and OpenAppHub admins (core 0011: set_named_role, set_app_role;
+ * "Can build workflows": grant_automation_editor).
  */
 export function AppRolesPanel({
   orgId,
@@ -378,18 +475,17 @@ export function AppRolesPanel({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [granting, setGranting] = useState<Member | null>(null);
   if (!roles || members.length === 0) return null;
-  const cols = (["charter", "board", "ledger"] as const).filter((a) => roles[a] !== null);
-  const head = {
-    charter: "OpenCharterApp",
-    board: "OpenBoardApp",
-    ledger: "OpenLedgerApp",
-  } as const;
-  const detail = (app: (typeof cols)[number], m: Member, role: OrgRole) => {
+  const cols = APPS.filter((a) => roles[a] !== null);
+  const hasNamed = roles.resolved.size > 0;
+  // What the app adds on top of the role: an office, the treasurer, Charter's roles in units.
+  const detail = (app: App, m: Member) => {
     const v = roles[app]?.get(m.user_id);
-    if (app === "board") return boardRole(role, v);
-    if (app === "ledger") return ledgerRole(role, v);
-    return v || null;
+    if (!v) return null;
+    if (app === "board") return boardRole("member", v);
+    if (app === "ledger") return v === "treasurer" ? "Treasurer" : null;
+    return v;
   };
   async function run(key: string, fn: string, args: Record<string, unknown>, ok: string) {
     const supabase = getSupabaseBrowserClient();
@@ -400,105 +496,166 @@ export function AppRolesPanel({
     setMsg(error ? { ok: false, text: error.message } : { ok: true, text: ok });
     if (!error) onChanged();
   }
+  const who = (m: Member) => m.display_name || m.email;
   return (
     <Panel
       title="Roles in each app"
-      description="Someone can have a different role in each app: for example an admin in OpenBoardApp, a member in OpenCharterApp and view-only in OpenLedgerApp. Each starts as their OpenAppHub role. Offices (chair, secretary), treasurers and chapter roles are set in the app and shown underneath."
+      description="Each app's role is separate from the OpenAppHub role: an OpenAppHub admin isn't an admin in the apps unless given that role there. A named role sets every app at once; a role set for one app wins over it. Anything not set is view-only. Offices (chair, secretary), treasurers and chapter roles are set in the app and shown underneath."
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[44rem] text-left text-sm">
+        <table className="w-full min-w-[48rem] text-left text-sm">
           <thead className="text-xs text-muted-foreground">
             <tr>
               <th className="py-2 pr-3 font-medium">Person</th>
               <th className="py-2 pr-3 font-medium">OpenAppHub</th>
+              {hasNamed ? <th className="py-2 pr-3 font-medium">Named role</th> : null}
               {cols.map((c) => (
                 <th key={c} className="py-2 pr-3 font-medium">
-                  {head[c]}
+                  {APP_NAME[c]}
                 </th>
               ))}
               <th className="py-2 pr-3 font-medium">Can build workflows</th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {members.map((m) => (
-              <tr key={m.user_id} className="align-top">
-                <td className="py-2 pr-3">
-                  <span className="font-medium">{m.display_name || m.email}</span>
-                  {m.display_name ? (
-                    <span className="block text-xs text-muted-foreground">{m.email}</span>
-                  ) : null}
-                </td>
-                <td className="py-2 pr-3">{ROLE_LABEL[m.role]}</td>
-                {cols.map((c) => {
-                  const role = appRoleOf(m.role, c, m.user_id, roles.overrides);
-                  const extra = detail(c, m, role);
-                  const own = roles.overrides.has(`${c}:${m.user_id}`);
-                  return (
-                    <td key={c} className="py-2 pr-3">
-                      {m.role === "owner" || !canEdit ? (
-                        <span>{ROLE_LABEL[role]}</span>
-                      ) : (
+            {members.map((m) => {
+              const namedId = roles.namedRoleOf.get(m.user_id) ?? "";
+              const namedName = roles.namedRoles.find((r) => r.id === namedId)?.name;
+              return (
+                <tr key={m.user_id} className="align-top">
+                  <td className="py-2 pr-3">
+                    <span className="font-medium">{who(m)}</span>
+                    {m.display_name ? (
+                      <span className="block text-xs text-muted-foreground">{m.email}</span>
+                    ) : null}
+                  </td>
+                  <td className="py-2 pr-3">{ROLE_LABEL[m.role]}</td>
+                  {hasNamed ? (
+                    <td className="py-2 pr-3">
+                      {m.role === "owner" ? (
+                        <span className="text-muted-foreground">Owner everywhere</span>
+                      ) : canEdit ? (
                         <select
-                          aria-label={`${m.display_name || m.email} in ${head[c]}`}
+                          aria-label={`${who(m)}'s named role`}
                           className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                          value={role}
+                          value={namedId}
                           disabled={busy !== null}
                           onChange={(e) =>
                             void run(
-                              `${c}:${m.user_id}`,
-                              "set_app_role",
-                              { p_org: orgId, p_user: m.user_id, p_app: c, p_role: e.target.value },
-                              `${m.display_name || m.email} is now ${ROLE_LABEL[e.target.value as OrgRole].toLowerCase()} in ${head[c]}.`,
+                              `nr:${m.user_id}`,
+                              "set_named_role",
+                              { p_org: orgId, p_user: m.user_id, p_role: e.target.value || null },
+                              e.target.value
+                                ? `${who(m)} is now ${roles.namedRoles.find((r) => r.id === e.target.value)?.name}.`
+                                : `${who(m)} has no named role now.`,
                             )
                           }
                         >
-                          {(["admin", "member", "viewer"] as const).map((r) => (
-                            <option key={r} value={r}>
-                              {ROLE_LABEL[r]}
-                              {r === m.role ? " (as in OpenAppHub)" : ""}
+                          <option value="">None</option>
+                          {roles.namedRoles.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name}
                             </option>
                           ))}
                         </select>
+                      ) : (
+                        <span>{namedName ?? "None"}</span>
                       )}
-                      {extra && extra !== ROLE_LABEL[role] ? (
-                        <span className="mt-0.5 block text-xs text-muted-foreground">{extra}</span>
-                      ) : null}
-                      {own ? (
-                        <span className="block text-xs text-muted-foreground">
-                          Set for this app
-                        </span>
-                      ) : null}
                     </td>
-                  );
-                })}
-                <td className="py-2 pr-3">
-                  {m.role === "owner" || m.role === "admin" ? (
-                    <span className="text-muted-foreground">Yes (owners and admins)</span>
-                  ) : (
-                    <input
-                      type="checkbox"
-                      className="size-4 accent-primary"
-                      aria-label={`${m.display_name || m.email} can build workflows`}
-                      checked={roles.workflowEditors.has(m.user_id)}
-                      disabled={!canEdit || busy !== null}
-                      onChange={(e) =>
-                        void run(
-                          `wf:${m.user_id}`,
-                          "grant_automation_editor",
-                          { p_org: orgId, p_user: m.user_id, p_grant: e.target.checked },
+                  ) : null}
+                  {cols.map((c) => {
+                    const role = appRoleOf(m.role, c, m.user_id, roles.overrides, roles.resolved);
+                    const extra = detail(c, m);
+                    const res = roles.resolved.get(`${c}:${m.user_id}`);
+                    const own = roles.overrides.has(`${c}:${m.user_id}`);
+                    const fromNamed = roles.namedRoles.find((r) => r.id === namedId)?.app_roles[c];
+                    const note = sourceText(res, namedName) ?? (own ? "Set for this app" : null);
+                    return (
+                      <td key={c} className="py-2 pr-3">
+                        {m.role === "owner" || !canEdit ? (
+                          <span>{ROLE_LABEL[role]}</span>
+                        ) : (
+                          <select
+                            aria-label={`${who(m)} in ${APP_NAME[c]}`}
+                            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                            value={own ? role : ""}
+                            disabled={busy !== null}
+                            onChange={(e) =>
+                              void run(
+                                `${c}:${m.user_id}`,
+                                "set_app_role",
+                                {
+                                  p_org: orgId,
+                                  p_user: m.user_id,
+                                  p_app: c,
+                                  p_role: e.target.value || null,
+                                },
+                                e.target.value
+                                  ? `${who(m)} is now ${ROLE_LABEL[e.target.value as OrgRole].toLowerCase()} in ${APP_NAME[c]}.`
+                                  : `${who(m)}'s role in ${APP_NAME[c]} now comes from ${fromNamed ? namedName : "nothing (viewer)"}.`,
+                              )
+                            }
+                          >
+                            <option value="">
+                              {fromNamed
+                                ? `From ${namedName}: ${ROLE_LABEL[fromNamed]}`
+                                : "Not set: viewer"}
+                            </option>
+                            {(["admin", "member", "viewer"] as const).map((r) => (
+                              <option key={r} value={r}>
+                                {ROLE_LABEL[r]}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        {extra && extra !== ROLE_LABEL[role] ? (
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {extra}
+                          </span>
+                        ) : null}
+                        {note && m.role !== "owner" && !canEdit ? (
+                          <span
+                            className={`block text-xs ${res?.source === "fallback" ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}
+                          >
+                            {note}
+                          </span>
+                        ) : null}
+                      </td>
+                    );
+                  })}
+                  <td className="py-2 pr-3">
+                    {m.role === "owner" || m.role === "admin" ? (
+                      <span className="text-muted-foreground">Yes (owners and admins)</span>
+                    ) : (
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-primary"
+                        aria-label={`${who(m)} can build workflows`}
+                        checked={roles.workflowEditors.has(m.user_id)}
+                        disabled={!canEdit || busy !== null}
+                        onChange={(e) =>
                           e.target.checked
-                            ? "They can build workflows now."
-                            : "They can't build workflows anymore.",
-                        )
-                      }
-                    />
-                  )}
-                </td>
-              </tr>
-            ))}
+                            ? setGranting(m)
+                            : void run(
+                                `wf:${m.user_id}`,
+                                "grant_automation_editor",
+                                { p_org: orgId, p_user: m.user_id, p_grant: false },
+                                "They can't build workflows anymore.",
+                              )
+                        }
+                      />
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+      <p className="mt-2 flex gap-1.5 text-xs text-muted-foreground">
+        <span aria-hidden="true">⚠</span>
+        <span>{WORKFLOWS_RUN_AS_ORG}</span>
+      </p>
       {msg ? (
         <p role="status" className={`mt-2 text-sm ${msg.ok ? "" : "text-destructive"}`}>
           {msg.text}
@@ -509,6 +666,287 @@ export function AppRolesPanel({
           OpenCharterApp's chapter roles show for people who manage roles there.
         </p>
       ) : null}
+      {granting ? (
+        <ConfirmDialog
+          title={`Let ${who(granting)} build workflows?`}
+          confirmLabel="Let them build workflows"
+          busy={busy !== null}
+          onConfirm={() => {
+            const m = granting;
+            setGranting(null);
+            void run(
+              `wf:${m.user_id}`,
+              "grant_automation_editor",
+              { p_org: orgId, p_user: m.user_id, p_grant: true },
+              "They can build workflows now.",
+            );
+          }}
+          onCancel={() => setGranting(null)}
+        >
+          <p>{WORKFLOWS_RUN_AS_ORG}</p>
+        </ConfirmDialog>
+      ) : null}
     </Panel>
   );
 }
+
+/**
+ * H-09: named roles. Each sets a role in every app (admin, member, viewer) and extra permissions
+ * each app offers. One per person; a role set for one person in one app wins over it.
+ */
+export function NamedRolesPanel({
+  orgId,
+  roles,
+  canEdit,
+  onChanged,
+}: {
+  orgId: string;
+  roles: Awaited<ReturnType<typeof loadAppRoles>> | null;
+  canEdit: boolean;
+  onChanged: () => void;
+}) {
+  const [editing, setEditing] = useState<NamedRole | "new" | null>(null);
+  const [deleting, setDeleting] = useState<NamedRole | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  if (!roles || roles.resolved.size === 0) return null;
+  const holders = (id: string) => [...roles.namedRoleOf.values()].filter((v) => v === id).length;
+  async function remove(r: NamedRole) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("delete_named_role", { p_org: orgId, p_id: r.id });
+    setBusy(false);
+    setDeleting(null);
+    setMsg(error ? { ok: false, text: error.message } : { ok: true, text: `${r.name} deleted.` });
+    if (!error) onChanged();
+  }
+  return (
+    <Panel
+      title="Named roles"
+      description="A role you name, like Treasurer: what it can do in each app, and any extra permissions. Give one to each person in the table above."
+    >
+      {roles.namedRoles.length === 0 && editing === null ? (
+        <p className="text-sm text-muted-foreground">No named roles yet.</p>
+      ) : null}
+      <ul className="divide-y">
+        {roles.namedRoles.map((r) =>
+          editing !== null && editing !== "new" && editing.id === r.id ? null : (
+            <li key={r.id} className="flex flex-wrap items-start gap-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">{r.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {APPS.map(
+                    (a) => `${APP_NAME[a]}: ${ROLE_LABEL[r.app_roles[a] ?? "viewer"]}`,
+                  ).join(" · ")}
+                </p>
+                {Object.values(r.permissions).flat().length ? (
+                  <p className="text-xs text-muted-foreground">
+                    Also:{" "}
+                    {APPS.flatMap((a) =>
+                      (r.permissions[a] ?? []).map(
+                        (k) =>
+                          roles.permissionTypes.find((p) => p.app === a && p.key === k)?.label ?? k,
+                      ),
+                    ).join(", ")}
+                  </p>
+                ) : null}
+                <p className="text-xs text-muted-foreground">
+                  {holders(r.id) === 1 ? "1 person" : `${holders(r.id)} people`}
+                </p>
+              </div>
+              {canEdit ? (
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm" onClick={() => setEditing(r)}>
+                    Edit
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setDeleting(r)}>
+                    Delete
+                  </Button>
+                </div>
+              ) : null}
+            </li>
+          ),
+        )}
+      </ul>
+      {editing !== null ? (
+        <NamedRoleEditor
+          orgId={orgId}
+          role={editing === "new" ? null : editing}
+          permissionTypes={roles.permissionTypes}
+          onDone={(text) => {
+            setEditing(null);
+            if (text) {
+              setMsg({ ok: true, text });
+              onChanged();
+            }
+          }}
+        />
+      ) : canEdit ? (
+        <Button className="mt-3" variant="outline" onClick={() => setEditing("new")}>
+          New named role
+        </Button>
+      ) : null}
+      {msg ? (
+        <p role="status" className={`mt-2 text-sm ${msg.ok ? "" : "text-destructive"}`}>
+          {msg.text}
+        </p>
+      ) : null}
+      {deleting ? (
+        <ConfirmDialog
+          title={`Delete ${deleting.name}?`}
+          confirmLabel="Delete"
+          destructive
+          busy={busy}
+          onConfirm={() => void remove(deleting)}
+          onCancel={() => setDeleting(null)}
+        >
+          <p>
+            The {holders(deleting.id) === 1 ? "person" : "people"} who hold it keep anything set for
+            them in a single app, and are view-only everywhere else until you give them a role.
+          </p>
+        </ConfirmDialog>
+      ) : null}
+    </Panel>
+  );
+}
+
+function NamedRoleEditor({
+  orgId,
+  role,
+  permissionTypes,
+  onDone,
+}: {
+  orgId: string;
+  role: NamedRole | null;
+  permissionTypes: PermissionType[];
+  onDone: (message: string | null) => void;
+}) {
+  const [name, setName] = useState(role?.name ?? "");
+  const [description, setDescription] = useState(role?.description ?? "");
+  const [appRoles, setAppRoles] = useState<NamedRole["app_roles"]>(role?.app_roles ?? {});
+  const [perms, setPerms] = useState<NamedRole["permissions"]>(role?.permissions ?? {});
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    setBusy(true);
+    setError("");
+    const { error } = await supabase.rpc("save_named_role", {
+      p_org: orgId,
+      p_id: role?.id ?? null,
+      p_name: name,
+      p_description: description,
+      p_app_roles: appRoles,
+      p_permissions: perms,
+    });
+    setBusy(false);
+    if (error) return setError(error.message);
+    onDone(role ? `${name.trim()} saved.` : `${name.trim()} created.`);
+  }
+  const prefix = role ? `nr-${role.id}` : "nr-new";
+  return (
+    <form className="mt-3 space-y-3 rounded-md border p-3" onSubmit={save}>
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}-name`}>Name</Label>
+        <Input
+          id={`${prefix}-name`}
+          required
+          maxLength={60}
+          value={name}
+          placeholder="Treasurer"
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}-desc`}>Description (optional)</Label>
+        <Input
+          id={`${prefix}-desc`}
+          maxLength={300}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+      </div>
+      {APPS.map((app) => {
+        const options = permissionTypes.filter((p) => p.app === app);
+        const roleHere = appRoles[app] ?? "viewer";
+        return (
+          <fieldset key={app} className="space-y-2 rounded-md bg-muted/40 p-2">
+            <legend className="sr-only">{APP_NAME[app]}</legend>
+            <div className="flex items-center gap-2">
+              <Label htmlFor={`${prefix}-${app}`} className="w-36 shrink-0">
+                {APP_NAME[app]}
+              </Label>
+              <Select
+                id={`${prefix}-${app}`}
+                className="h-9"
+                value={roleHere}
+                onChange={(e) =>
+                  setAppRoles((cur) => ({
+                    ...cur,
+                    [app]: e.target.value as "admin" | "member" | "viewer",
+                  }))
+                }
+              >
+                {(["admin", "member", "viewer"] as const).map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABEL[r]}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">{APP_ROLE_HELP[roleHere]}</p>
+            {options.length && roleHere !== "admin" ? (
+              <div className="space-y-1">
+                <p className="text-xs font-medium">Extra permissions</p>
+                {options.map((p) => {
+                  const id = `${prefix}-${app}-${p.key}`;
+                  const on = (perms[app] ?? []).includes(p.key);
+                  return (
+                    <div key={p.key} className="flex items-start gap-2">
+                      <input
+                        id={id}
+                        type="checkbox"
+                        className="mt-0.5 size-4 accent-primary"
+                        checked={on}
+                        onChange={(e) =>
+                          setPerms((cur) => {
+                            const list = new Set(cur[app] ?? []);
+                            if (e.target.checked) list.add(p.key);
+                            else list.delete(p.key);
+                            return { ...cur, [app]: [...list] };
+                          })
+                        }
+                      />
+                      <label htmlFor={id} className="text-sm">
+                        {p.label}
+                        {p.description ? (
+                          <span className="block text-xs text-muted-foreground">
+                            {p.description}
+                          </span>
+                        ) : null}
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </fieldset>
+        );
+      })}
+      {error ? <Alert variant="destructive">{error}</Alert> : null}
+      <div className="flex gap-2">
+        <Button type="submit" disabled={busy}>
+          {busy ? "Saving…" : role ? "Save role" : "Create role"}
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => onDone(null)}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+export { WORKFLOWS_RUN_AS_ORG };

@@ -9,6 +9,14 @@ const inviteInput = z.object({
   orgId: z.string().uuid(),
   email: z.string().min(3).max(254),
   role: z.enum(["admin", "member", "viewer"]),
+  namedRoleId: z.string().uuid().nullable().optional(),
+  appRoles: z
+    .object({
+      charter: z.enum(["admin", "member", "viewer"]).optional(),
+      board: z.enum(["admin", "member", "viewer"]).optional(),
+      ledger: z.enum(["admin", "member", "viewer"]).optional(),
+    })
+    .optional(),
 });
 
 export const sendInvitation = createServerFn({ method: "POST" })

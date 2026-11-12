@@ -4,26 +4,59 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { OrgRole } from "@shared/supabase/org";
 import { isMissing } from "@shared/integrations/detect";
 
+export type RoleSource = "owner" | "person" | "named" | "fallback";
+export type ResolvedRole = { role: OrgRole; source: RoleSource };
+export type NamedRole = {
+  id: string;
+  name: string;
+  description: string;
+  app_roles: Partial<Record<SuiteApp, Exclude<OrgRole, "owner">>>;
+  permissions: Partial<Record<SuiteApp, string[]>>;
+};
+export type PermissionType = {
+  app: SuiteApp;
+  key: string;
+  label: string;
+  description: string;
+  sort: number;
+};
+
 export type AppRoles = {
   charter: Map<string, string> | null;
   board: Map<string, string> | null;
   ledger: Map<string, string> | null;
-  /** Roles set for one app only (core 0010), keyed `${app}:${userId}`. */
+  /** Roles set for one person in one app (core 0010), keyed `${app}:${userId}`. */
   overrides: Map<string, OrgRole>;
+  /** Each person's role in each app as the database works it out (core 0011), keyed
+   * `${app}:${userId}`; empty on a database before core 0011. */
+  resolved: Map<string, ResolvedRole>;
+  /** Each person's named role id (core 0011). */
+  namedRoleOf: Map<string, string>;
+  namedRoles: NamedRole[];
+  permissionTypes: PermissionType[];
   /** People (besides owners and admins) who may build workflows (core 0009). */
   workflowEditors: Set<string>;
 };
 
 export type SuiteApp = "charter" | "board" | "ledger";
 
-/** Someone's role in one app: the owner is the owner; otherwise the app's own, or their OpenAppHub role. */
+/**
+ * Someone's role in one app (H-09): the owner is the owner; otherwise what the database worked
+ * out (set for them, their named role, or viewer). On a database before core 0011, the role set
+ * for the app, or their OpenAppHub role.
+ */
 export function appRoleOf(
   core: OrgRole,
   app: SuiteApp,
   userId: string,
   overrides: Map<string, OrgRole>,
+  resolved?: Map<string, ResolvedRole>,
 ): OrgRole {
-  return core === "owner" ? "owner" : (overrides.get(`${app}:${userId}`) ?? core);
+  if (core === "owner") return "owner";
+  const r = resolved?.get(`${app}:${userId}`);
+  if (r) return r.role;
+  if (resolved && resolved.size > 0) return overrides.get(`${app}:${userId}`) ?? "viewer";
+  return overrides.get(`${app}:${userId}`) ?? core;
 }
 
 const OFFICE: Record<string, string> = {
@@ -60,7 +93,7 @@ async function byUser(
 }
 
 export async function loadAppRoles(client: SupabaseClient, orgId: string): Promise<AppRoles> {
-  const [charter, board, ledger, ov, ed] = await Promise.all([
+  const [charter, board, ledger, ov, ed, res, nr, pt, mem] = await Promise.all([
     byUser(
       client.schema("charter").from("api_people").select("user_id, roles").eq("org_id", orgId),
       "roles",
@@ -79,7 +112,38 @@ export async function loadAppRoles(client: SupabaseClient, orgId: string): Promi
       .select("user_id, app, role")
       .eq("org_id", orgId),
     client.schema("public").from("automation_editors").select("user_id").eq("org_id", orgId),
+    client.schema("public").rpc("org_app_roles", { p_org: orgId }),
+    client
+      .schema("public")
+      .from("org_named_roles")
+      .select("id, name, description, app_roles, permissions")
+      .eq("org_id", orgId)
+      .order("name"),
+    client
+      .schema("public")
+      .from("app_permission_types")
+      .select("app, key, label, description, sort")
+      .order("sort"),
+    client
+      .schema("public")
+      .from("memberships")
+      .select("user_id, named_role_id")
+      .eq("org_id", orgId),
   ]);
+  const resolved = new Map<string, ResolvedRole>();
+  for (const r of ((res.error ? [] : res.data) ?? []) as Array<{
+    user_id: string;
+    app: string;
+    role: OrgRole;
+    source: RoleSource;
+  }>)
+    resolved.set(`${r.app}:${r.user_id}`, { role: r.role, source: r.source });
+  const namedRoleOf = new Map<string, string>();
+  for (const m of ((mem.error ? [] : mem.data) ?? []) as Array<{
+    user_id: string;
+    named_role_id: string | null;
+  }>)
+    if (m.named_role_id) namedRoleOf.set(m.user_id, m.named_role_id);
   const overrides = new Map<string, OrgRole>();
   for (const r of ((ov.error ? [] : ov.data) ?? []) as Array<{
     user_id: string;
@@ -90,5 +154,15 @@ export async function loadAppRoles(client: SupabaseClient, orgId: string): Promi
   const workflowEditors = new Set(
     (((ed.error ? [] : ed.data) ?? []) as Array<{ user_id: string }>).map((r) => r.user_id),
   );
-  return { charter, board, ledger, overrides, workflowEditors };
+  return {
+    charter,
+    board,
+    ledger,
+    overrides,
+    resolved,
+    namedRoleOf,
+    namedRoles: ((nr.error ? [] : nr.data) ?? []) as NamedRole[],
+    permissionTypes: ((pt.error ? [] : pt.data) ?? []) as PermissionType[],
+    workflowEditors,
+  };
 }

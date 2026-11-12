@@ -9,14 +9,15 @@ import { AuditScreen } from "@/screens/audit";
 import { BillingScreen } from "@/screens/billing";
 import { DashboardScreen } from "@/screens/dashboard";
 import { DemoScreen } from "@/screens/demo";
-import { MembersScreen } from "@/screens/members";
+import { AppRolesPanel, InvitePanel, MembersScreen, NamedRolesPanel } from "@/screens/members";
+import { FIXTURE_MEMBERS, FIXTURE_ROLES } from "@/lib/roles-fixture";
 import { SettingsScreen } from "@/screens/settings";
 import { WELCOME_STEPS, WelcomeScreen, type WelcomeStep } from "@/screens/welcome";
 
 // Development-only preview of the signed-in hub screens with sample data, for
 // review and browser tests (data calls are answered by the test). 404 in
 // production and staging builds.
-//   /dev/hub?screen=dashboard|welcome|billing|members|settings|account|audit|demo|workflow&role=owner|admin|member|viewer
+//   /dev/hub?screen=dashboard|welcome|billing|members|roles|settings|account|audit|demo|workflow&role=owner|admin|member|viewer
 //   &step=organization|region|team|apps (welcome)  &billing=trialing|expired|active|past_due|canceling&configured=1  &orgs=0 (no organization yet)
 const ORG = "11111111-1111-4111-8111-111111111111";
 
@@ -137,6 +138,21 @@ function Preview() {
       {screen === "audit" ? <AuditScreen {...props} /> : null}
       {screen === "demo" ? <DemoScreen {...props} /> : null}
       {screen === "members" ? <MembersScreen {...props} invite={fakeInvite} /> : null}
+      {screen === "roles" ? (
+        <div className="space-y-6">
+          <AppRolesPanel
+            orgId={ORG}
+            members={FIXTURE_MEMBERS}
+            roles={FIXTURE_ROLES}
+            canEdit
+            onChanged={() => {}}
+          />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <NamedRolesPanel orgId={ORG} roles={FIXTURE_ROLES} canEdit onChanged={() => {}} />
+            <InvitePanel orgId={ORG} invite={fakeInvite} namedRoles={FIXTURE_ROLES.namedRoles} />
+          </div>
+        </div>
+      ) : null}
       {screen === "workflow" ? (
         <WorkflowEditor
           overview={FIXTURE_OVERVIEW}

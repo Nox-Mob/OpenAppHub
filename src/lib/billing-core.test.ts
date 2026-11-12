@@ -116,6 +116,26 @@ describe("fetchPlanPrices", () => {
 
 describe("createCheckout", () => {
   beforeEach(() => clearPriceCache());
+  it("refuses a chapter's organization: its parent's plan covers it", async () => {
+    const chapter = client((name) =>
+      name === "has_role"
+        ? { data: true, error: null }
+        : name === "billing_parent_org"
+          ? { data: [{ id: "p", name: "Delta National" }], error: null }
+          : { data: null, error: null },
+    );
+    await expect(
+      createCheckout({
+        userClient: chapter,
+        service: client(() => ({ data: null, error: null })),
+        config: CONFIG,
+        orgId: ORG,
+        plan: "suite",
+        interval: "month",
+        origin: "https://openapphub.org",
+      }),
+    ).rejects.toThrow("covered by Delta National's plan");
+  });
   it("creates the customer once and a subscription checkout with the org in metadata", async () => {
     const service = client((name) => ({
       data: name === "billing_customer_for_org" ? null : null,

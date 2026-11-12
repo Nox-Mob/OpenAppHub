@@ -84,7 +84,17 @@ export function BillingScreen({
           <Alert role="status">Checkout was cancelled. Nothing was charged.</Alert>
         ) : null}
 
-        {!b ? (
+        {org.parent ? (
+          <Panel
+            title={`Covered by ${org.parent.name}`}
+            description="This chapter's organization uses its national's plan."
+          >
+            <p className="text-sm text-muted-foreground">
+              {org.name} doesn't have a plan or a bill of its own. If {org.parent.name}'s plan ends,
+              this chapter's board becomes read-only too.
+            </p>
+          </Panel>
+        ) : !b ? (
           <Panel title="Billing is off" description="Every app is available without a plan here.">
             <p className="text-sm text-muted-foreground">
               This server doesn't use OpenAppHub plans (for example, it's self-hosted).
@@ -100,7 +110,7 @@ export function BillingScreen({
           />
         )}
 
-        {b && !paying ? (
+        {b && !paying && !org.parent ? (
           manager ? (
             <PlanPicker
               orgId={org.id}

@@ -61,20 +61,21 @@ See `docs/SECRETS.md` for what goes in each value.
 
 ## 4. What's left (2026-11-11)
 
-Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (S-01 to S-11) in all three: production check, exposed schemas, integration views, help links, read-only screens, export, old build tooling, Worker secrets, end-to-end tests, retiring the old projects, one look.
+Each app keeps its own to-do list in `docs/epic.md`, with the same suite items (S-01 to S-15) in all three: production check, exposed schemas, integration views, help links, read-only screens, export, old build tooling, Worker secrets, end-to-end tests, retiring the old projects, one look, and the cross-app work (S-12 data between apps, S-13 reports into a board package, S-14 board members in sync between Charter and Board, S-15 tasks from every app on the hub's dashboard).
 
-| Suite item                                                       | Charter | Board | Ledger                                              |
-| ---------------------------------------------------------------- | ------- | ----- | --------------------------------------------------- |
-| Schema, runner, seed, client, org scoping, hosted mode, restyle  | ✅      | ✅    | ✅                                                  |
-| Suite demo (one demo and one test account, reset every 12 hours) | ✅      | ✅    | ✅                                                  |
-| Staging as Worker previews of branch `staging`                   | ✅      | ✅    | ✅ (pushes reach Cloudflare again since 2026-11-11) |
-| End-to-end tests on staging in CI                                | ✅      | ✅    | ✅                                                  |
-| Integration views and `docs/INTEGRATION.md`                      | ⬜      | ⬜    | ⬜                                                  |
-| Help links map                                                   | ⬜      | ⬜    | ⬜                                                  |
-| Write controls off when read-only                                | 🟠      | 🟠    | 🟠                                                  |
-| Export everything                                                | 🟠      | ✅    | ✅                                                  |
-| Old build tooling removed (and Ledger's AI PDF import off)       | ✅      | ✅    | ✅                                                  |
-| Production checked by a person                                   | 🟡      | 🟡    | 🟡                                                  |
+| Suite item                                                       | Charter                                     | Board   | Ledger                                                        |
+| ---------------------------------------------------------------- | ------------------------------------------- | ------- | ------------------------------------------------------------- |
+| Schema, runner, seed, client, org scoping, hosted mode, restyle  | ✅                                          | ✅      | ✅                                                            |
+| Suite demo (one demo and one test account, reset every 12 hours) | ✅                                          | ✅      | ✅                                                            |
+| Staging as Worker previews of branch `staging`                   | ✅                                          | ✅      | ✅ (preview domains declared in `wrangler.jsonc`, 2026-11-12) |
+| End-to-end tests on staging in CI                                | ✅                                          | ✅      | ✅                                                            |
+|                                                                  | Integration views and `docs/INTEGRATION.md` | ✅ (PR) | ✅ (PR)                                                       | ✅ (PR) |     | ✅ (PR) | ✅ (PR) | ✅ (PR) |
+| Help links map                                                   | ✅                                          | ✅      | ✅                                                            |
+| Write controls off when read-only                                | ✅ (PR)                                     | ✅ (PR) | ✅ (PR)                                                       |
+| Export everything                                                | ✅ (PR)                                     | ✅      | ✅                                                            |
+| Old projects retired (owner)                                     | ✅                                          | ✅      | ✅                                                            |
+| Old build tooling removed (and Ledger's AI PDF import off)       | ✅                                          | ✅      | ✅                                                            |
+| Production checked by a person                                   | 🟡                                          | 🟡      | 🟡                                                            |
 
 ### Hub
 

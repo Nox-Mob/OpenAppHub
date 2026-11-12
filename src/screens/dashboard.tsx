@@ -8,6 +8,7 @@ import { HelpLink } from "@shared/ui/HelpLink";
 import { HELP } from "@/config/help";
 import { NoOrganization, PageHeader } from "@/components/hub/HubShell";
 import { SetupChecklist } from "@/components/hub/SetupChecklist";
+import { AppSummary } from "@/components/hub/AppSummary";
 import { Button } from "@/components/ui/button";
 import { APPS } from "@/config/apps";
 import type { HubContext } from "@/lib/orgs";
@@ -74,7 +75,10 @@ export function DashboardScreen({ user, hub }: ScreenProps) {
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-2 flex-1 text-sm text-muted-foreground">{app.tagline}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{app.tagline}</p>
+                  <div className="flex-1">
+                    {url ? <AppSummary app={app.id} orgId={org.id} /> : null}
+                  </div>
                   {url ? (
                     <Button asChild variant="outline" size="sm" className="mt-4 self-start">
                       <a

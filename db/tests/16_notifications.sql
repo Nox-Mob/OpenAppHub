@@ -46,11 +46,17 @@ begin
     insert into public.memberships (org_id, user_id, role) values (org, cy, 'member');
     insert into public.app_role_overrides (org_id, user_id, app, role) values (org, cy, 'charter', 'member');
     perform tests.ok((select count(*) from public.notifications where user_id = ann and title like 'Cy%') = 1, 'joining with roles is one notification');
+    -- A later change to an app role (an update of that row) is told; the same role again isn't.
+    perform set_config('openapphub.joined_' || replace(cy::text, '-', '') || replace(org::text, '-', ''), '', true);
+    update public.app_role_overrides set role = 'admin' where org_id = org and user_id = cy and app = 'charter';
+    perform tests.ok((select count(*) from public.notifications where user_id = ann and title = 'Cy''s role changed') = 1, 'an app role changed is told');
+    update public.app_role_overrides set set_at = now() where org_id = org and user_id = cy and app = 'charter';
+    perform tests.ok((select count(*) from public.notifications where user_id = ann and title = 'Cy''s role changed') = 1, 'nothing when the role stays the same');
     -- Leaving takes their app roles with them: only "left".
     delete from public.memberships where org_id = org and user_id = cy;
   end;
   perform tests.ok(exists (select 1 from public.notifications where user_id = ann and kind = 'people.left' and title = 'Cy left'), 'leaving is told');
-  perform tests.ok((select count(*) from public.notifications where user_id = ann and title like 'Cy%') = 2, 'and nothing about the roles that went with them');
+  perform tests.ok((select count(*) from public.notifications where user_id = ann and title like 'Cy%') = 3, 'and nothing about the roles that went with them');
 
   -- Settings: the owner turns email off for people joining; an admin opts in to them.
   perform tests.as_user(ann);

@@ -5,6 +5,8 @@ import type { MyOrg, OrgPreferences, OrgRole } from "@shared/supabase/org";
 export type HubContext = {
   orgs: MyOrg[];
   currentOrgId: string | null;
+  /** The organization the person chose to open first (H-03), if any. */
+  defaultOrgId: string | null;
   role: OrgRole | null;
   billing: OrgBilling | null;
   demoTools: boolean;
@@ -15,6 +17,7 @@ export type HubContext = {
 const EMPTY: HubContext = {
   orgs: [],
   currentOrgId: null,
+  defaultOrgId: null,
   role: null,
   billing: null,
   demoTools: false,
@@ -39,11 +42,21 @@ export const getHubContext = createServerFn({ method: "GET" }).handler(
     const supabase = getSupabaseServerClient();
     if (!supabase) return EMPTY;
     try {
-      const orgs = await org.listMyOrgs(supabase);
+      const [orgs, defaultOrgId] = await Promise.all([
+        org.listMyOrgs(supabase),
+        // H-03: the person's default organization (hub 0008); none before that migration.
+        supabase.rpc("hub_get_dashboard_prefs").then(
+          ({ data }) =>
+            ((data as Array<{ default_org_id: string | null }> | null)?.[0]?.default_org_id ??
+              null) as string | null,
+          () => null,
+        ),
+      ]);
       const cookie = getCookie(org.ORG_COOKIE) ?? null;
       const current = org.resolveCurrentOrg(
         orgs,
         cookie ? org.readOrgCookie(`oah_org=${cookie}`) : null,
+        defaultOrgId,
       );
       const [orgBilling, demo, prefs] = await Promise.all([
         current
@@ -58,6 +71,7 @@ export const getHubContext = createServerFn({ method: "GET" }).handler(
       return {
         orgs,
         currentOrgId: current?.id ?? null,
+        defaultOrgId: defaultOrgId && orgs.some((o) => o.id === defaultOrgId) ? defaultOrgId : null,
         role: current?.role ?? null,
         billing: orgBilling,
         demoTools: demo,

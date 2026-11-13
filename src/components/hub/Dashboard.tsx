@@ -5,11 +5,15 @@ import { getSupabaseBrowserClient } from "@shared/supabase/client";
 import { formatDate, formatMoney } from "@shared/format";
 import { AppLogo } from "@shared/ui/AppLogo";
 import {
+  PANELS,
   completeTask,
   loadDashboard,
+  thisWeek,
   type DashboardData,
   type DashboardTask,
+  type PanelId,
   type SuiteApp,
+  type Week,
 } from "@/lib/dashboard";
 import { useAsync } from "@/lib/use-async";
 
@@ -124,15 +128,173 @@ function MonthBars({
   );
 }
 
+/** Today in the organization's time zone, as yyyy-mm-dd. */
+export function todayIn(timeZone: string, now: Date = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+  } catch {
+    return now.toISOString().slice(0, 10);
+  }
+}
+
+function dayLabel(date: string, today: string): string {
+  if (date === today) return "Today";
+  const d = new Date(`${date}T12:00:00Z`);
+  const t = new Date(`${today}T12:00:00Z`);
+  if (d.getTime() - t.getTime() === 86_400_000) return "Tomorrow";
+  return d.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function WeekPanel({
+  week,
+  today,
+  meetingHref,
+}: {
+  week: Week | null;
+  today: string;
+  meetingHref: (id: string) => string | undefined;
+}) {
+  return (
+    <Panel title="This week">
+      {!week ? (
+        <Empty>Meetings and due dates from your apps show here.</Empty>
+      ) : week.days.length === 0 && week.overdue.length === 0 ? (
+        <Empty>Nothing scheduled or due in the next seven days.</Empty>
+      ) : (
+        <ol className="space-y-4">
+          {week.overdue.length ? (
+            <li>
+              <p className="mb-1 text-xs font-semibold text-destructive">Overdue</p>
+              <ul className="space-y-1 text-sm">
+                {week.overdue.map((t, i) => (
+                  <WeekLine
+                    key={`o${i}`}
+                    app={t.app}
+                    href={t.href}
+                    title={t.title}
+                    note={formatDate(t.due!)}
+                  />
+                ))}
+              </ul>
+            </li>
+          ) : null}
+          {week.days.map((d) => (
+            <li key={d.date}>
+              <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                {dayLabel(d.date, today)}
+              </p>
+              <ul className="space-y-1 text-sm">
+                {d.meetings.map((m) => (
+                  <WeekLine
+                    key={m.id}
+                    app="board"
+                    href={meetingHref(m.id)}
+                    title={m.title}
+                    note="Meeting"
+                  />
+                ))}
+                {d.tasks.map((t, i) => (
+                  <WeekLine
+                    key={`${d.date}${i}`}
+                    app={t.app}
+                    href={t.href}
+                    title={t.title}
+                    note="Due"
+                  />
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Panel>
+  );
+}
+
+function WeekLine({
+  app,
+  href,
+  title,
+  note,
+}: {
+  app: SuiteApp | "hub";
+  href: string | undefined;
+  title: string;
+  note: string;
+}) {
+  return (
+    <li data-app={app} className="flex items-center gap-2">
+      <AppLogo app={app} size={16} />
+      {href ? (
+        <a href={href} className="min-w-0 flex-1 truncate font-medium hover:underline">
+          {title}
+        </a>
+      ) : (
+        <span className="min-w-0 flex-1 truncate font-medium">{title}</span>
+      )}
+      <span className="shrink-0 text-xs text-muted-foreground">{note}</span>
+    </li>
+  );
+}
+
+/** Choose which panels show (H-03). Saved for the person, on every organization. */
+export function PanelChooser({
+  hidden,
+  onChange,
+}: {
+  hidden: PanelId[];
+  onChange: (hidden: PanelId[]) => void;
+}) {
+  return (
+    <fieldset className="rounded-lg border bg-card p-4 shadow-sm">
+      <legend className="px-1 text-sm font-semibold">Show on your dashboard</legend>
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {PANELS.map((p) => (
+          <li key={p.id} className="flex items-start gap-2">
+            <input
+              id={`panel-${p.id}`}
+              type="checkbox"
+              className="mt-0.5 size-4 accent-primary"
+              checked={!hidden.includes(p.id)}
+              onChange={(e) =>
+                onChange(e.target.checked ? hidden.filter((x) => x !== p.id) : [...hidden, p.id])
+              }
+            />
+            <label htmlFor={`panel-${p.id}`} className="text-sm">
+              <span className="font-medium">{p.label}</span>
+              <span className="block text-xs text-muted-foreground">{p.help}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </fieldset>
+  );
+}
+
 export function DashboardPanels({
   orgId,
   userId,
   urls,
+  hidden = [],
+  timeZone = "UTC",
 }: {
   orgId: string;
   userId: string;
   urls: Partial<Record<SuiteApp, string>>;
+  hidden?: PanelId[];
+  timeZone?: string;
 }) {
+  const shows = (id: PanelId) => !hidden.includes(id);
   const state = useAsync(async (): Promise<DashboardData | null> => {
     const client = getSupabaseBrowserClient();
     return client ? loadDashboard(client, { orgId, userId, urls }) : null;
@@ -146,6 +308,11 @@ export function DashboardPanels({
     urls[app] ? `${urls[app]!.replace(/\/+$/, "")}${path}` : undefined;
   const next = d.meetings?.[0];
   const money = d.money;
+  const today = todayIn(timeZone);
+  const week = thisWeek(d.tasks, d.meetings, today);
+  const meetingHref = (id: string) => open("board", `/board/meetings/${id}?org=${orgId}`);
+  const main = shows("week") || shows("tasks") || shows("money");
+  const side = shows("meetings") || shows("decisions") || shows("officers");
 
   return (
     <div className="mb-8 space-y-6">
@@ -189,131 +356,147 @@ export function DashboardPanels({
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Panel title="Your tasks">
-            {!d.tasks ? (
-              <Empty>
-                Tasks from your apps show here: action items, join requests, seats to fill,
-                recurring transactions.
-              </Empty>
-            ) : d.tasks.length === 0 ? (
-              <Empty>Nothing waiting for you. Nice.</Empty>
-            ) : (
-              <ul className="divide-y">
-                {d.tasks.slice(0, 8).map((t, i) => (
-                  <TaskRow
-                    key={`${t.app}-${t.title}-${i}`}
-                    t={t}
-                    onDone={() => void state.reload()}
-                  />
-                ))}
-                {d.tasks.length > 8 ? (
-                  <li className="pt-2 text-xs text-muted-foreground">
-                    and {d.tasks.length - 8} more in your apps
-                  </li>
-                ) : null}
-              </ul>
-            )}
-          </Panel>
-
-          <Panel title="Money this year" app="ledger">
-            {!money ? (
-              <NotHere app="ledger" href={open("ledger", `/ledger?org=${orgId}`)} />
-            ) : money.months.length === 0 ? (
-              <Empty>No transactions this year yet.</Empty>
-            ) : (
-              <>
-                <dl className="grid grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Money in</dt>
-                    <dd className="font-semibold tabular-nums">
-                      {formatMoney(money.revenue, { currency: money.currency })}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Money out</dt>
-                    <dd className="font-semibold tabular-nums">
-                      {formatMoney(money.expenses, { currency: money.currency })}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Net</dt>
-                    <dd className="font-semibold tabular-nums">
-                      {formatMoney(money.net, { currency: money.currency, sign: true })}
-                    </dd>
-                  </div>
-                </dl>
-                <MonthBars data={money} currency={money.currency} />
-              </>
-            )}
-          </Panel>
-        </div>
-
-        <div className="space-y-6">
-          <Panel title="Upcoming meetings" app="board">
-            {!d.meetings ? (
-              <NotHere app="board" href={open("board", `/board?org=${orgId}`)} />
-            ) : d.meetings.length === 0 ? (
-              <Empty>No meetings scheduled.</Empty>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                {d.meetings.map((m) => (
-                  <li key={m.id}>
-                    <a
-                      className="font-medium hover:underline"
-                      href={open("board", `/board/meetings/${m.id}?org=${orgId}`)}
-                    >
-                      {m.title}
-                    </a>
-                    <p className="text-xs text-muted-foreground">{formatDate(m.meeting_date)}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Panel>
-
-          <Panel title="Recent decisions" app="board">
-            {!d.decisions ? (
-              <NotHere app="board" href={open("board", `/board?org=${orgId}`)} />
-            ) : d.decisions.length === 0 ? (
-              <Empty>No decisions recorded yet.</Empty>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                {d.decisions.map((x, i) => (
-                  <li key={i}>
-                    <p className="line-clamp-2">{x.motion_text}</p>
-                    <p className="text-xs capitalize text-muted-foreground">
-                      {x.outcome} · {formatDate(x.meeting_date)}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Panel>
-
-          <Panel title="Officers" app="charter">
-            {!d.membership ? (
-              <NotHere app="charter" href={open("charter", `/orgs/${orgId}`)} />
-            ) : d.membership.officers.length === 0 ? (
-              <Empty>No officers recorded.</Empty>
-            ) : (
-              <ul className="space-y-1.5 text-sm">
-                {d.membership.officers.slice(0, 6).map((o, i) => (
-                  <li key={i} className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">{o.title}</span>
-                    <span className="truncate font-medium">{o.holder}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {d.membership?.units && d.membership.units > 1 ? (
-              <p className="mt-3 text-xs text-muted-foreground">
-                {d.membership.units} units, chapters included
-              </p>
+      <div className={`grid gap-6 ${main && side ? "lg:grid-cols-3" : ""}`}>
+        {main ? (
+          <div className={`space-y-6 ${side ? "lg:col-span-2" : ""}`}>
+            {shows("week") ? (
+              <WeekPanel week={week} today={today} meetingHref={meetingHref} />
             ) : null}
-          </Panel>
-        </div>
+            {shows("tasks") ? (
+              <Panel title="Your tasks">
+                {!d.tasks ? (
+                  <Empty>
+                    Tasks from your apps show here: action items, join requests, seats to fill,
+                    recurring transactions.
+                  </Empty>
+                ) : d.tasks.length === 0 ? (
+                  <Empty>Nothing waiting for you. Nice.</Empty>
+                ) : (
+                  <ul className="divide-y">
+                    {d.tasks.slice(0, 8).map((t, i) => (
+                      <TaskRow
+                        key={`${t.app}-${t.title}-${i}`}
+                        t={t}
+                        onDone={() => void state.reload()}
+                      />
+                    ))}
+                    {d.tasks.length > 8 ? (
+                      <li className="pt-2 text-xs text-muted-foreground">
+                        and {d.tasks.length - 8} more in your apps
+                      </li>
+                    ) : null}
+                  </ul>
+                )}
+              </Panel>
+            ) : null}
+
+            {shows("money") ? (
+              <Panel title="Money this year" app="ledger">
+                {!money ? (
+                  <NotHere app="ledger" href={open("ledger", `/ledger?org=${orgId}`)} />
+                ) : money.months.length === 0 ? (
+                  <Empty>No transactions this year yet.</Empty>
+                ) : (
+                  <>
+                    <dl className="grid grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Money in</dt>
+                        <dd className="font-semibold tabular-nums">
+                          {formatMoney(money.revenue, { currency: money.currency })}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Money out</dt>
+                        <dd className="font-semibold tabular-nums">
+                          {formatMoney(money.expenses, { currency: money.currency })}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Net</dt>
+                        <dd className="font-semibold tabular-nums">
+                          {formatMoney(money.net, { currency: money.currency, sign: true })}
+                        </dd>
+                      </div>
+                    </dl>
+                    <MonthBars data={money} currency={money.currency} />
+                  </>
+                )}
+              </Panel>
+            ) : null}
+          </div>
+        ) : null}
+
+        {side ? (
+          <div className="space-y-6">
+            {shows("meetings") ? (
+              <Panel title="Upcoming meetings" app="board">
+                {!d.meetings ? (
+                  <NotHere app="board" href={open("board", `/board?org=${orgId}`)} />
+                ) : d.meetings.length === 0 ? (
+                  <Empty>No meetings scheduled.</Empty>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {d.meetings.slice(0, 4).map((m) => (
+                      <li key={m.id}>
+                        <a className="font-medium hover:underline" href={meetingHref(m.id)}>
+                          {m.title}
+                        </a>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(m.meeting_date)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Panel>
+            ) : null}
+
+            {shows("decisions") ? (
+              <Panel title="Recent decisions" app="board">
+                {!d.decisions ? (
+                  <NotHere app="board" href={open("board", `/board?org=${orgId}`)} />
+                ) : d.decisions.length === 0 ? (
+                  <Empty>No decisions recorded yet.</Empty>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {d.decisions.map((x, i) => (
+                      <li key={i}>
+                        <p className="line-clamp-2">{x.motion_text}</p>
+                        <p className="text-xs capitalize text-muted-foreground">
+                          {x.outcome} · {formatDate(x.meeting_date)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Panel>
+            ) : null}
+
+            {shows("officers") ? (
+              <Panel title="Officers" app="charter">
+                {!d.membership ? (
+                  <NotHere app="charter" href={open("charter", `/orgs/${orgId}`)} />
+                ) : d.membership.officers.length === 0 ? (
+                  <Empty>No officers recorded.</Empty>
+                ) : (
+                  <ul className="space-y-1.5 text-sm">
+                    {d.membership.officers.slice(0, 6).map((o, i) => (
+                      <li key={i} className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">{o.title}</span>
+                        <span className="truncate font-medium">{o.holder}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {d.membership?.units && d.membership.units > 1 ? (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    {d.membership.units} units, chapters included
+                  </p>
+                ) : null}
+              </Panel>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );

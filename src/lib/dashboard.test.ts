@@ -6,6 +6,10 @@ import {
   mergeTasks,
   summarizeMembership,
   summarizeMoney,
+  thisWeek,
+  addDays,
+  type DashboardTask,
+  type Meeting,
 } from "./dashboard";
 
 const urls = {
@@ -192,5 +196,53 @@ describe("finishing tasks from the hub (S-19)", () => {
       href: "/automations",
       complete: { fn: "complete_automation_task", args: { p_id: "w1" } },
     });
+  });
+});
+
+describe("this week (H-03)", () => {
+  const task = (title: string, due: string | null): DashboardTask => ({
+    app: "board",
+    title,
+    detail: null,
+    due,
+    href: "/x",
+  });
+  const meeting = (id: string, date: string): Meeting => ({
+    id,
+    title: `Meeting ${id}`,
+    meeting_date: date,
+    minutes_status: null,
+  });
+
+  it("groups meetings and due dates by day for seven days, overdue apart", () => {
+    const w = thisWeek(
+      [
+        task("Late", "2026-11-10"),
+        task("Today", "2026-11-13"),
+        task("Sunday", "2026-11-15"),
+        task("Next week", "2026-11-20"),
+        task("Undated", null),
+      ],
+      [meeting("a", "2026-11-14"), meeting("b", "2026-11-19"), meeting("c", "2026-11-20")],
+      "2026-11-13",
+    )!;
+    expect(w.overdue.map((t) => t.title)).toEqual(["Late"]);
+    expect(w.days.map((d) => d.date)).toEqual([
+      "2026-11-13",
+      "2026-11-14",
+      "2026-11-15",
+      "2026-11-19",
+    ]);
+    expect(w.days[1]!.meetings.map((m) => m.id)).toEqual(["a"]);
+    expect(w.days.flatMap((d) => d.tasks).map((t) => t.title)).toEqual(["Today", "Sunday"]);
+  });
+
+  it("is null with no apps, and empty with nothing coming", () => {
+    expect(thisWeek(null, null, "2026-11-13")).toBeNull();
+    expect(thisWeek([], [], "2026-11-13")).toEqual({ overdue: [], days: [] });
+  });
+
+  it("adds days across months", () => {
+    expect(addDays("2026-11-28", 6)).toBe("2026-12-04");
   });
 });

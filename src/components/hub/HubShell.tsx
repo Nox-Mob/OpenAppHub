@@ -1,11 +1,13 @@
 // The hub's signed-in frame: the shared AppShell with the hub's menu.
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { ORG_COOKIE, setCurrentOrg } from "@shared/supabase/org";
 import { docsUrl } from "@shared/docs";
 import { AppShell, type NavItem } from "@shared/ui/AppShell";
 import type { SessionUser } from "@/lib/session";
 import type { HubContext } from "@/lib/orgs";
 import { signOut } from "@/lib/auth-client";
+import { getSupabaseBrowserClient } from "@shared/supabase/client";
 import { canManage } from "@/lib/roles";
 import { RouterLink } from "@/lib/router-link";
 
@@ -47,6 +49,15 @@ export function HubShell({
 }) {
   const router = useRouter();
   const path = useRouterState({ select: (s) => s.location.pathname });
+  // The organization chosen here (the default one, H-03, when nothing was picked yet) is the
+  // one every app opens: remember it suite-wide if no choice is stored.
+  useEffect(() => {
+    if (
+      hub.currentOrgId &&
+      !document.cookie.split("; ").some((c) => c.startsWith(`${ORG_COOKIE}=`))
+    )
+      setCurrentOrg(hub.currentOrgId);
+  }, [hub.currentOrgId]);
   const item = (label: string, href: string, i: ReactNode): NavItem => ({
     label,
     href,
@@ -77,6 +88,8 @@ export function HubShell({
       billingHref="/billing"
       helpHref={docsUrl("hub/")}
       accountHref="/account"
+      notificationsClient={getSupabaseBrowserClient()}
+      notificationSettingsHref="/account#notifications"
       onSignOut={() => void signOut()}
       LinkComponent={RouterLink}
     >

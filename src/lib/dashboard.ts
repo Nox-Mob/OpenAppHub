@@ -261,7 +261,7 @@ export async function loadDashboard(
         .gte("meeting_date", today)
         .in("status", ["scheduled", "in_progress"])
         .order("meeting_date")
-        .limit(4),
+        .limit(12),
     ),
     rows(
       board
@@ -314,5 +314,64 @@ export async function loadDashboard(
     decisions: decisions as Decision[] | null,
     money: summarizeMoney(months),
     membership: summarizeMembership(members, units, seats),
+  };
+}
+
+// ── H-03: which panels show, and "This week" ─────────────────────────────────────────────────
+
+export type PanelId = "week" | "tasks" | "money" | "meetings" | "decisions" | "officers" | "apps";
+export const PANELS: { id: PanelId; label: string; help: string }[] = [
+  { id: "week", label: "This week", help: "Meetings and due dates for the next seven days" },
+  { id: "tasks", label: "Your tasks", help: "What's waiting for you in every app" },
+  { id: "money", label: "Money this year", help: "From OpenLedgerApp" },
+  { id: "meetings", label: "Upcoming meetings", help: "From OpenBoardApp" },
+  { id: "decisions", label: "Recent decisions", help: "From OpenBoardApp" },
+  { id: "officers", label: "Officers", help: "From OpenCharterApp" },
+  { id: "apps", label: "Your apps", help: "A card for each app, with its access" },
+];
+export const PANEL_IDS = PANELS.map((p) => p.id);
+
+export type WeekDay = { date: string; meetings: Meeting[]; tasks: DashboardTask[] };
+export type Week = { overdue: DashboardTask[]; days: WeekDay[] };
+
+/** Adds days to a yyyy-mm-dd date. */
+export function addDays(date: string, n: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Today and the six days after it, each with its meetings and what's due; overdue tasks
+ * separately. Days with nothing are left out. `today` is the organization's date.
+ */
+export function thisWeek(
+  tasks: DashboardTask[] | null,
+  meetings: Meeting[] | null,
+  today: string,
+): Week | null {
+  if (!tasks && !meetings) return null;
+  const days: WeekDay[] = [];
+  for (let i = 0; i <= 6; i++) {
+    const date = addDays(today, i);
+    const dm = (meetings ?? []).filter((m) => m.meeting_date.slice(0, 10) === date);
+    const dt = (tasks ?? []).filter((t) => t.due && t.due.slice(0, 10) === date);
+    if (dm.length || dt.length) days.push({ date, meetings: dm, tasks: dt });
+  }
+  const overdue = (tasks ?? []).filter((t) => t.due && t.due.slice(0, 10) < today);
+  return { overdue, days };
+}
+
+export type DashboardPrefs = { hidden: PanelId[]; defaultOrgId: string | null };
+
+export async function loadDashboardPrefs(client: SupabaseClient): Promise<DashboardPrefs> {
+  const { data, error } = await client.rpc("hub_get_dashboard_prefs");
+  const row = (
+    data as Array<{ hidden: string[] | null; default_org_id: string | null }> | null
+  )?.[0];
+  if (error || !row) return { hidden: [], defaultOrgId: null };
+  return {
+    hidden: (row.hidden ?? []).filter((x): x is PanelId => PANEL_IDS.includes(x as PanelId)),
+    defaultOrgId: row.default_org_id,
   };
 }

@@ -11,6 +11,7 @@ import {
   type DigestPrefs,
 } from "@shared/ui/DigestSettings";
 import { HelpLink } from "@shared/ui/HelpLink";
+import { NotificationSettings } from "@shared/ui/Notifications";
 import { ThemeToggle } from "@shared/ui/ThemeToggle";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageHeader, Panel } from "@/components/hub/HubShell";
@@ -101,21 +102,15 @@ export function AccountScreen({ user, hub }: ScreenProps) {
         </Panel>
         <EmailPanel email={user.email} />
         <PasswordPanel email={user.email} />
-        <NotificationsPanel />
-        <Panel title="Your organizations">
-          {hub.orgs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">You're not in any organization yet.</p>
-          ) : (
-            <ul className="divide-y text-sm">
-              {hub.orgs.map((o) => (
-                <li key={o.id} className="flex items-center justify-between gap-3 py-2">
-                  <span className="font-medium">{o.name}</span>
-                  <span className="text-muted-foreground">{ROLE_LABEL[o.role]}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+        <Panel
+          id="notifications"
+          title="Notifications"
+          description="What you're told about, in the apps (the bell at the top) and by email. These are fixed by OpenAppHub and don't depend on your organization's workflows."
+        >
+          <NotificationSettings client={getSupabaseBrowserClient()} />
         </Panel>
+        <NotificationsPanel />
+        <OrganizationsPanel hub={hub} />
         <Panel title="Appearance and cookies">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-sm text-muted-foreground">Theme</span>
@@ -411,7 +406,11 @@ function NotificationsPanel() {
   }
 
   return (
-    <Panel id="email" title="Email notifications" description="Choose what we email you about.">
+    <Panel
+      id="email"
+      title="Emails"
+      description="Kinds of email as a whole. Turning one off here stops those emails, whatever is chosen for each notification above."
+    >
       {saved.error ? <Alert variant="destructive">{saved.error}</Alert> : null}
       <form className="space-y-3" onSubmit={onSubmit}>
         <ul className="space-y-3">
@@ -488,6 +487,77 @@ function SessionsPanel() {
       <Button variant="outline" disabled={busy} onClick={() => void signOutEverywhere()}>
         {busy ? "Signing out…" : "Sign out everywhere"}
       </Button>
+    </Panel>
+  );
+}
+
+/** Your organizations, and which one opens first (H-03). */
+function OrganizationsPanel({ hub }: { hub: ScreenProps["hub"] }) {
+  const router = useRouter();
+  const [chosen, setChosen] = useState<string | null>(hub.defaultOrgId);
+  const [msg, setMsg] = useState<Msg>(null);
+  async function choose(id: string | null) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    const prev = chosen;
+    setChosen(id);
+    const { error } = await supabase.rpc("hub_set_default_org", { p_org: id });
+    if (error) {
+      setChosen(prev);
+      setMsg({ ok: false, text: error.message });
+      return;
+    }
+    setMsg({ ok: true, text: "Saved." });
+    await router.invalidate();
+  }
+  return (
+    <Panel
+      id="organizations"
+      title="Your organizations"
+      description={
+        hub.orgs.length > 1
+          ? "Choose the one that opens first when you sign in. Switching organizations at the top still works as before."
+          : undefined
+      }
+    >
+      {hub.orgs.length === 0 ? (
+        <p className="text-sm text-muted-foreground">You're not in any organization yet.</p>
+      ) : (
+        <ul className="divide-y text-sm">
+          {hub.orgs.map((o) => (
+            <li key={o.id} className="flex items-center justify-between gap-3 py-2">
+              {hub.orgs.length > 1 ? (
+                <label className="flex min-w-0 items-center gap-2">
+                  <input
+                    type="radio"
+                    name="default-org"
+                    className="size-4 accent-primary"
+                    checked={chosen === o.id}
+                    onChange={() => void choose(o.id)}
+                  />
+                  <span className="truncate font-medium">{o.name}</span>
+                  {chosen === o.id ? (
+                    <span className="text-xs text-muted-foreground">(opens first)</span>
+                  ) : null}
+                </label>
+              ) : (
+                <span className="font-medium">{o.name}</span>
+              )}
+              <span className="text-muted-foreground">{ROLE_LABEL[o.role]}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {hub.orgs.length > 1 && chosen ? (
+        <button
+          type="button"
+          className="mt-2 text-xs font-medium text-primary hover:underline"
+          onClick={() => void choose(null)}
+        >
+          No default (the first by name)
+        </button>
+      ) : null}
+      <Note msg={msg} />
     </Panel>
   );
 }

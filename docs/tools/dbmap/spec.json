@@ -63,7 +63,12 @@
       "public.automation_events",
       "public.automation_runs",
       "public.automation_tasks",
-      "public.automation_jobs"
+      "public.automation_jobs",
+      "public.approval_requests",
+      "public.approval_approvers",
+      "public.email_action_kinds",
+      "public.email_action_settings",
+      "public.action_links"
     ]
   },
   {

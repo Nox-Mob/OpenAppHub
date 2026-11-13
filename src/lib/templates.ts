@@ -17,6 +17,7 @@ export type WorkflowTemplate = {
 };
 
 const BUILT_IN = new Set([
+  "approval",
   "email",
   "task",
   "condition",

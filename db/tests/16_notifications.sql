@@ -67,7 +67,7 @@ begin
   perform public.set_notification_preference('people.joined', true, true);
   perform tests.as_user(bob);
   perform tests.ok(not exists (select 1 from public.notification_settings() where kind = 'people.joined'), 'a member doesn''t see it');
-  perform tests.ok((select in_app and not email and by_default from public.notification_settings() where kind = 'tasks.assigned'), 'but sees their tasks, on by default');
+  perform tests.ok((select in_app and email and by_default from public.notification_settings() where kind = 'tasks.assigned'), 'but sees their tasks, on by default');
   perform tests.throws($q$select public.set_notification_preference('people.joined', true, true)$q$, 'and may not turn it on', 'available');
   perform tests.throws($q$select public.set_notification_preference('nope.kind', true, true)$q$, 'unknown kinds are refused', 'Unknown');
   perform tests.as_super();
@@ -104,9 +104,10 @@ begin
   -- Tasks a workflow gives someone go to that person.
   perform tests.as_super();
   insert into public.automation_tasks (org_id, assignee_id, title, note) values (org, bob, 'Call the new members', 'Before Friday');
-  perform tests.ok(exists (select 1 from public.notifications where user_id = bob and kind = 'tasks.assigned' and title = 'Call the new members'), 'a task is told to its person');
-  perform tests.ok(not exists (select 1 from public.email_outbox where template = 'notification' and to_user_id = bob and data ->> 'title' = 'Call the new members'),
-    'in the list only, by default (the digest covers email)');
+  perform tests.ok(exists (select 1 from public.notifications where user_id = bob and kind = 'tasks.assigned' and title = 'A task is waiting for you: Call the new members'), 'a task is told to its person, saying what it is');
+  perform tests.ok(exists (select 1 from public.email_outbox where template = 'notification' and to_user_id = bob
+                           and data ->> 'title' = 'A task is waiting for you: Call the new members' and data -> 'actions' = '[]'::jsonb),
+    'by email too, without links until the organization allows them (C-08)');
 
   -- A workflow that couldn't finish: the owner hears once.
   insert into public.automation_workflows (org_id, name, enabled, definition)

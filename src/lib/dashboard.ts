@@ -104,12 +104,26 @@ export function appHref(base: string | undefined, link: string, orgId: string): 
 }
 
 export function mergeTasks(
-  p: { board: Row[] | null; charter: Row[] | null; ledger: Row[] | null; hub?: Row[] | null },
+  p: {
+    board: Row[] | null;
+    charter: Row[] | null;
+    ledger: Row[] | null;
+    hub?: Row[] | null;
+    approvals?: Row[] | null;
+  },
   urls: Partial<Record<SuiteApp | "hub", string>>,
   orgId: string,
 ): DashboardTask[] | null {
-  if (!p.board && !p.charter && !p.ledger && !p.hub) return null;
+  if (!p.board && !p.charter && !p.ledger && !p.hub && !p.approvals) return null;
   const tasks: DashboardTask[] = [
+    // Approvals a workflow asks of this person (core 0014): answered on their page.
+    ...(p.approvals ?? []).map((r) => ({
+      app: "hub" as const,
+      title: `${String(r["what"])}: pending your approval`,
+      detail: r["workflow"] ? `From the "${String(r["workflow"])}" workflow` : "Approve or decline",
+      due: r["due_at"] ? String(r["due_at"]).slice(0, 10) : null,
+      href: `/approvals/${String(r["id"])}`,
+    })),
     ...(p.hub ?? []).map((r) => ({
       app: "hub" as const,
       title: String(r["title"]),
@@ -229,6 +243,7 @@ export async function loadDashboard(
     units,
     seats,
     hubTasks,
+    approvals,
   ] = await Promise.all([
     withFallback(
       (cols) =>
@@ -303,10 +318,22 @@ export async function loadDashboard(
         .eq("assignee_id", p.userId)
         .eq("status", "open") as unknown as PromiseLike<Res>,
     ),
+    // Approvals waiting for this person (core 0014; none before it).
+    (async () => {
+      try {
+        return await rows(
+          client
+            .schema("public")
+            .rpc("my_approvals", { p_org: p.orgId }) as unknown as PromiseLike<Res>,
+        );
+      } catch {
+        return null;
+      }
+    })(),
   ]);
   return {
     tasks: mergeTasks(
-      { board: actions, charter: charterTasks, ledger: ledgerTasks, hub: hubTasks },
+      { board: actions, charter: charterTasks, ledger: ledgerTasks, hub: hubTasks, approvals },
       p.urls,
       p.orgId,
     ),

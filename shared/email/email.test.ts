@@ -151,6 +151,43 @@ describe("templates", () => {
     expect(r.text).toContain("which notifications you get");
   });
 
+  it("has buttons to act when the organization allows it, and says what's waiting either way", () => {
+    const token = "a".repeat(64);
+    const base = {
+      template: "notification",
+      category: "essential" as const,
+      app: "hub",
+      data: {
+        title: "An award submission is pending your approval",
+        link: "/approvals/x",
+        link_app: "hub",
+      },
+    };
+    const off = renderEmail(row({ ...base, data: { ...base.data, actions: [] } }), ctx);
+    expect(off.text).toContain("An award submission is pending your approval");
+    expect(off.text).not.toContain("/act/");
+    expect(off.text).toContain("Open it: https://openapphub.org/approvals/x");
+    const on = renderEmail(
+      row({
+        ...base,
+        data: {
+          ...base.data,
+          actions: [
+            { label: "Approve", token },
+            { label: "Decline", token: "b".repeat(64) },
+            { label: "Bad", token: "not-a-token" },
+          ],
+        },
+      }),
+      ctx,
+    );
+    expect(on.text).toContain(`Approve: https://openapphub.org/act/${token}`);
+    expect(on.text).toContain("Decline: https://openapphub.org/act/");
+    expect(on.text).not.toContain("Bad:");
+    expect(on.text).toContain("work once, for 7 days");
+    expect(on.html).toContain(">Approve</a>");
+  });
+
   it("shows Board's meeting date and start time as given", () => {
     const r = renderEmail(
       row({

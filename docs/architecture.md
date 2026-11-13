@@ -730,6 +730,29 @@ flowchart LR
 
 Who gets what by default (owner decision 2026-11-13): the **owner** gets people and billing notifications and failed workflows; billing ones also go by email to the **billing contact** (`hub.org_settings.billing_email`; hub `0007_billing_notifications`); a task goes to **its person**. Admins may turn the owner's kinds on for themselves. The bell (`NotificationBell`, shared 1.16.0) is in `AppShell`'s top bar of every app (pass `notificationsClient`) and polls the unread count every minute; `NotificationSettings` is on the hub's account page (Notifications) and, self-hosted, on each app's email page.
 
+### 13.2.1 Approvals and actions from email (C-08)
+
+Core `0014_core_approvals.sql`. **Approvals:** the designer's "Ask for approval" step creates an `approval_requests` row with one `approval_approvers` row per person asked, notifies them (`workflows.approval_requested`), and pauses the run. `decide_approval` records an answer; when the request is decided (the first answer, or everyone approved / one declined, as the builder chose) it calls `_wf2_continue`, and the step gives later steps `outcome`, `approved`, `decided_by`, `comment`, the counts and each response. A time limit sets the run's `resume_at`; when it passes the outcome is `timed_out`. The hub shows waiting approvals in **Your tasks** and on `/approvals/<id>`.
+
+**Actions from email:** each organization allows each kind (`email_action_kinds`: `workflow_tasks`, `workflow_approvals`, Charter's `charter_join_requests`, Board's `board_action_items`; `email_action_settings`, off by default). `notify(…, p_actions, p_action_kind)` and Board's reminder job call `action_links_for`, which makes **one person's** links (two random UUIDs as the token; only its SHA-256 is stored; 7 days; single use) or none when the kind isn't allowed. The email shows them as buttons to the sending app's `/act/<token>` (shared `ActionLinkPage`). That page requires signing in as the person it was sent to (`action_link` returns `other_person` otherwise, and nothing about the action), says what will happen, and on **Confirm** calls the stored function (`rpc_schema.rpc_fn` with `rpc_args`, plus the comment) **as the signed-in person**, so the app's own permission checks apply; then `consume_action_link` uses the link (and its sibling, such as Decline) up. Switching a kind off stops links already sent.
+
+```mermaid
+sequenceDiagram
+    participant W as Workflow run
+    participant DB as Database
+    participant E as Email
+    participant P as Approver
+    W->>DB: Ask for approval (request + approvers)
+    DB->>E: notify: "… is pending your approval" (+ Approve / Decline if allowed)
+    W-->>W: pauses
+    P->>DB: /act/<token>, signed in → action_link (what it does)
+    P->>DB: Confirm → decide_approval as P
+    DB->>W: decided → _wf2_continue
+    W->>W: later steps use outcome, decided_by, comment
+```
+
+> **Diagram description:** A workflow run asks for approval: the database records the request and the people asked, and notifies them by email with Approve and Decline buttons when the organization allows it. The run pauses. An approver opens the link, signs in, sees what it will do and confirms; the confirm page calls decide_approval as them. When the request is decided, the run carries on and later steps use the outcome, who answered and their comments.
+
 ### 13.3 Automations and workflows (S-25)
 
 **Part 1:** reminders and other things the apps do on their own are **automations** each organization can change (core `0008_core_automations.sql`): an app registers each kind with its defaults and a schema; owners and admins change them in the shared Automations panel; the app's job reads them with `public.automation_settings` and records what it did in `public.automation_log`. Board's reminders are the first.

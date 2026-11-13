@@ -722,7 +722,7 @@ function StepEditor({ ctx, s, siblings }: { ctx: Ctx; s: Step; siblings: Step[] 
         </p>
       ) : null}
 
-      {s.type === "email" || s.type === "task" ? (
+      {s.type === "email" || s.type === "task" || s.type === "approval" ? (
         <>
           <Who
             id={id("to")}
@@ -733,7 +733,64 @@ function StepEditor({ ctx, s, siblings }: { ctx: Ctx; s: Step; siblings: Step[] 
             ro={ro}
             onChange={(v) => set("to", v)}
           />
-          {s.type === "email" ? (
+          {s.type === "approval" ? (
+            <>
+              <DataInput
+                id={id("what")}
+                label="What needs approving"
+                value={p["what"]}
+                data={data}
+                def={def}
+                o={o}
+                ro={ro}
+                onChange={(v) => set("what", v)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Said as "… is pending your approval", in the notification and the email: for example
+                "An award submission from" and then the member's name.
+              </p>
+              <DataInput
+                id={id("details")}
+                label="Details (optional)"
+                multiline
+                value={p["details"]}
+                data={data}
+                def={def}
+                o={o}
+                ro={ro}
+                onChange={(v) => set("details", v)}
+              />
+              <div className="space-y-1.5">
+                <Label htmlFor={id("mode")}>When several people are asked</Label>
+                <select
+                  id={id("mode")}
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={String(p["mode"] ?? "first")}
+                  disabled={ro}
+                  onChange={(e) => set("mode", e.target.value)}
+                >
+                  <option value="first">The first answer decides</option>
+                  <option value="all">Everyone must approve (one decline declines)</option>
+                </select>
+              </div>
+              <DataInput
+                id={id("timeout")}
+                label="Days to answer (optional)"
+                value={p["timeout_days"]}
+                data={data}
+                def={def}
+                o={o}
+                ro={ro}
+                onChange={(v) => set("timeout_days", v || undefined)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Without a limit the workflow waits until someone answers. With one, the outcome is
+                "timed_out" if nobody does in time, and the next steps can remind, pass it on or
+                decline. Approve and Decline buttons are in the email only if your organization
+                allows answering approvals from email (Organization settings).
+              </p>
+            </>
+          ) : s.type === "email" ? (
             <>
               <DataInput
                 id={id("subject")}

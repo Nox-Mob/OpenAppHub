@@ -1574,7 +1574,13 @@ export function ParamFields({
 }
 
 /** Ready-made workflows to start from (owner direction 2026-11-13). */
-export function TemplateGallery({ o, onUse }: { o: Overview; onUse: (t: WorkflowTemplate) => void }) {
+export function TemplateGallery({
+  o,
+  onUse,
+}: {
+  o: Overview;
+  onUse: (t: WorkflowTemplate) => void;
+}) {
   return (
     <Panel
       title="Start from a template"

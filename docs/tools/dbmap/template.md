@@ -2,7 +2,7 @@
 
 Every table in the suite's database, grouped by what it's for, with how the tables connect. Use it to answer questions like "how do we track billing?" or "where does a dues payment end up?": find the domain below, read the diagram, then open the column list.
 
-Generated from the schema built by every repo's migrations (core `0001`–`0014`, hub `0001`–`0008`, Charter `0001`–`0013`, Board `0001`–`0016`, Ledger `0001`–`0009`) on 2026-11-13: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
+Generated from the schema built by every repo's migrations (core `0001`–`0015`, hub `0001`–`0008`, Charter `0001`–`0015`, Board `0001`–`0017`, Ledger `0001`–`0011`) on 2026-11-13: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
 
 **How to read the diagrams** (Mermaid entity-relationship diagrams):
 
@@ -252,9 +252,11 @@ A `transaction` has two or more `entries` (each on an `account`, `amount_cents` 
 
 <!--GEN:ledger-planning-->
 
-### 9.3 Bank import and statement checks
+### 9.3 Bank import, statement checks and OpenCharterApp dues
 
 `import_batches` (a CSV/OFX/QFX file) create `bank_transactions` (deduplicated by FITID or hash), matched to transactions; `import_profiles` remember a bank's column mapping; `reconciliations` (statement checks) lock the entries they cover (`entries.reconciliation_id`).
+
+**OpenCharterApp dues (S-18, Ledger `0011`).** `charter_import_settings` is each organization's choice (off by default; whose payments, the start date, the five accounts, the estimated card fee). `charter_drafts()` offers what `charter.api_payments` (Charter `0015`) has that isn't booked yet, one draft per day and channel. Posting goes through the usual transaction service. `charter_imports` keeps each posted or skipped draft and its transaction, and `charter_import_payments` its payments: a payment is covered once, refunds by amount.
 
 <!--GEN:ledger-bank-->
 

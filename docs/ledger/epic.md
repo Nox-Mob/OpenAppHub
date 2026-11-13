@@ -54,7 +54,7 @@ Proposed, not scheduled; the whole suite's plan is in the hub's [`docs/ROADMAP.m
 | ID   | Epic                                                                                         | Order |
 | ---- | -------------------------------------------------------------------------------------------- | ----- |
 | L-10 | People checks                                                                                | Now   |
-| L-17 | Charter income import (the Ledger side of S-18)                                              | Next  |
+| L-17 | Charter income import (the Ledger side of S-18): ✅ done 2026-11-13, Ledger `0011`           | Done  |
 | L-18 | Fund accounting: funds are tags today; restricted balances, releases and a statement by fund | Next  |
 | L-19 | Budget vs. actual summary (`ledger.api_budget_summary`) for the hub and the board package    | Next  |
 | L-20 | Receipt attachments (pulled forward from L-16)                                               | Later |

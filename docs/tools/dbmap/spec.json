@@ -197,7 +197,10 @@
       "ledger.import_batches",
       "ledger.import_profiles",
       "ledger.bank_transactions",
-      "ledger.reconciliations"
+      "ledger.reconciliations",
+      "ledger.charter_import_settings",
+      "ledger.charter_imports",
+      "ledger.charter_import_payments"
     ]
   },
   {

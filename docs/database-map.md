@@ -2,7 +2,7 @@
 
 Every table in the suite's database, grouped by what it's for, with how the tables connect. Use it to answer questions like "how do we track billing?" or "where does a dues payment end up?": find the domain below, read the diagram, then open the column list.
 
-Generated from the schema built by every repo's migrations (core `0001`–`0014`, hub `0001`–`0008`, Charter `0001`–`0013`, Board `0001`–`0016`, Ledger `0001`–`0009`) on 2026-11-13: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
+Generated from the schema built by every repo's migrations (core `0001`–`0015`, hub `0001`–`0008`, Charter `0001`–`0015`, Board `0001`–`0017`, Ledger `0001`–`0011`) on 2026-11-13: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
 
 **How to read the diagrams** (Mermaid entity-relationship diagrams):
 
@@ -143,6 +143,9 @@ erDiagram
         uuid org_id FK,UK
         text name
     }
+    public_org_role_settings {
+        uuid org_id PK,FK
+    }
     public_app_permission_types {
         text app PK
         text key PK
@@ -162,6 +165,7 @@ erDiagram
     public_memberships }o--o| public_org_named_roles : "org_id,named_role_id"
     public_memberships }o--|| auth_users : "user_id"
     public_org_named_roles |o--|| public_organizations : "org_id"
+    public_org_role_settings |o--|| public_organizations : "org_id"
     public_organizations }o--o| auth_users : "created_by"
     public_organizations }o--o| public_organizations : "parent_org_id"
     public_profiles |o--|| auth_users : "id"
@@ -241,16 +245,17 @@ Unique together: (source_app, source_ref).
 
 </details>
 
-<details><summary><code>public.app_role_overrides</code> (6 columns)</summary>
+<details><summary><code>public.app_role_overrides</code> (7 columns)</summary>
 
-| Column    | Type                     | Null | Default      | Key / reference                               |
-| --------- | ------------------------ | ---- | ------------ | --------------------------------------------- |
-| `org_id`  | uuid                     |      |              | PK → `public.memberships` (on delete cascade) |
-| `user_id` | uuid                     |      |              | PK → `public.memberships` (on delete cascade) |
-| `app`     | text                     |      |              | PK                                            |
-| `role`    | org_role                 |      |              |                                               |
-| `set_by`  | uuid                     | yes  | `auth.uid()` |                                               |
-| `set_at`  | timestamp with time zone |      | `now()`      |                                               |
+| Column      | Type                     | Null | Default      | Key / reference                               |
+| ----------- | ------------------------ | ---- | ------------ | --------------------------------------------- |
+| `org_id`    | uuid                     |      |              | PK → `public.memberships` (on delete cascade) |
+| `user_id`   | uuid                     |      |              | PK → `public.memberships` (on delete cascade) |
+| `app`       | text                     |      |              | PK                                            |
+| `role`      | org_role                 |      |              |                                               |
+| `set_by`    | uuid                     | yes  | `auth.uid()` |                                               |
+| `set_at`    | timestamp with time zone |      | `now()`      |                                               |
+| `no_access` | boolean                  |      | `false`      |                                               |
 
 </details>
 
@@ -268,6 +273,17 @@ Unique together: (source_app, source_ref).
 | `updated_at`  | timestamp with time zone |      | `now()`             |                                                     |
 
 Unique together: (id, org_id).
+
+</details>
+
+<details><summary><code>public.org_role_settings</code> (4 columns)</summary>
+
+| Column                    | Type                     | Null | Default      | Key / reference                                 |
+| ------------------------- | ------------------------ | ---- | ------------ | ----------------------------------------------- |
+| `org_id`                  | uuid                     |      |              | PK → `public.organizations` (on delete cascade) |
+| `app_admins_manage_roles` | boolean                  |      | `false`      |                                                 |
+| `set_by`                  | uuid                     | yes  | `auth.uid()` |                                                 |
+| `set_at`                  | timestamp with time zone |      | `now()`      |                                                 |
 
 </details>
 
@@ -3150,9 +3166,11 @@ Unique together: (template_id, due_date).
 
 </details>
 
-### 9.3 Bank import and statement checks
+### 9.3 Bank import, statement checks and OpenCharterApp dues
 
 `import_batches` (a CSV/OFX/QFX file) create `bank_transactions` (deduplicated by FITID or hash), matched to transactions; `import_profiles` remember a bank's column mapping; `reconciliations` (statement checks) lock the entries they cover (`entries.reconciliation_id`).
+
+**OpenCharterApp dues (S-18, Ledger `0011`).** `charter_import_settings` is each organization's choice (off by default; whose payments, the start date, the five accounts, the estimated card fee). `charter_drafts()` offers what `charter.api_payments` (Charter `0015`) has that isn't booked yet, one draft per day and channel. Posting goes through the usual transaction service. `charter_imports` keeps each posted or skipped draft and its transaction, and `charter_import_payments` its payments: a payment is covered once, refunds by amount.
 
 ```mermaid
 erDiagram
@@ -3183,6 +3201,29 @@ erDiagram
         reconcile_status status
         uuid batch_id FK
     }
+    ledger_charter_import_settings {
+        uuid org_id PK,FK
+        date starts_on
+        uuid card_account_id FK
+        uuid other_account_id FK
+        uuid fee_account_id FK
+        uuid join_account_id FK
+        uuid renew_account_id FK
+    }
+    ledger_charter_imports {
+        uuid id PK
+        uuid org_id FK
+        text kind
+        text status
+        uuid transaction_id FK
+    }
+    ledger_charter_import_payments {
+        uuid import_id PK,FK
+        uuid org_id FK
+        uuid payment_id PK
+        text kind
+        bigint amount_cents
+    }
     ledger_accounts {
         uuid id PK
     }
@@ -3196,6 +3237,16 @@ erDiagram
     ledger_bank_transactions }o--o| ledger_transactions : "transaction_id"
     ledger_bank_transactions }o--|| ledger_accounts : "account_id"
     ledger_bank_transactions }o--|| public_organizations : "org_id"
+    ledger_charter_import_payments }o--|| ledger_charter_imports : "import_id"
+    ledger_charter_import_payments }o--|| public_organizations : "org_id"
+    ledger_charter_import_settings |o--|| public_organizations : "org_id"
+    ledger_charter_import_settings }o--o| ledger_accounts : "card_account_id"
+    ledger_charter_import_settings }o--o| ledger_accounts : "fee_account_id"
+    ledger_charter_import_settings }o--o| ledger_accounts : "join_account_id"
+    ledger_charter_import_settings }o--o| ledger_accounts : "other_account_id"
+    ledger_charter_import_settings }o--o| ledger_accounts : "renew_account_id"
+    ledger_charter_imports }o--o| ledger_transactions : "transaction_id"
+    ledger_charter_imports }o--|| public_organizations : "org_id"
     ledger_import_batches }o--|| ledger_accounts : "account_id"
     ledger_import_batches }o--|| public_organizations : "org_id"
     ledger_import_profiles }o--|| ledger_accounts : "account_id"
@@ -3288,6 +3339,57 @@ Unique together: (org_id, account_id, fingerprint).
 | `completed_at`            | timestamp with time zone | yes  |                                          |                                                  |
 | `created_at`              | timestamp with time zone |      | `now()`                                  |                                                  |
 | `updated_at`              | timestamp with time zone |      | `now()`                                  |                                                  |
+
+</details>
+
+<details><summary><code>ledger.charter_import_settings</code> — S-18: whether and how OpenCharterApp payments are offered for the books, per organization. (13 columns)</summary>
+
+| Column             | Type                     | Null | Default            | Key / reference                                 |
+| ------------------ | ------------------------ | ---- | ------------------ | ----------------------------------------------- |
+| `org_id`           | uuid                     |      |                    | PK → `public.organizations` (on delete cascade) |
+| `enabled`          | boolean                  |      | `false`            |                                                 |
+| `scope`            | text                     |      | `'national'::text` |                                                 |
+| `starts_on`        | date                     |      | `CURRENT_DATE`     |                                                 |
+| `card_account_id`  | uuid                     | yes  |                    | → `ledger.accounts` (on delete set null)        |
+| `other_account_id` | uuid                     | yes  |                    | → `ledger.accounts` (on delete set null)        |
+| `fee_account_id`   | uuid                     | yes  |                    | → `ledger.accounts` (on delete set null)        |
+| `join_account_id`  | uuid                     | yes  |                    | → `ledger.accounts` (on delete set null)        |
+| `renew_account_id` | uuid                     | yes  |                    | → `ledger.accounts` (on delete set null)        |
+| `fee_percent_bp`   | integer                  |      | `290`              |                                                 |
+| `fee_fixed_cents`  | integer                  |      | `30`               |                                                 |
+| `updated_by`       | uuid                     | yes  |                    |                                                 |
+| `updated_at`       | timestamp with time zone |      | `now()`            |                                                 |
+
+</details>
+
+<details><summary><code>ledger.charter_imports</code> — S-18: each OpenCharterApp draft someone posted or skipped, with the transaction it became. (12 columns)</summary>
+
+| Column           | Type                     | Null | Default             | Key / reference                              |
+| ---------------- | ------------------------ | ---- | ------------------- | -------------------------------------------- |
+| `id`             | uuid                     |      | `gen_random_uuid()` | PK                                           |
+| `org_id`         | uuid                     |      |                     | → `public.organizations` (on delete cascade) |
+| `day`            | date                     |      |                     |                                              |
+| `channel`        | text                     |      |                     |                                              |
+| `kind`           | text                     |      |                     |                                              |
+| `status`         | text                     |      |                     |                                              |
+| `transaction_id` | uuid                     | yes  |                     | → `ledger.transactions` (on delete set null) |
+| `payment_count`  | integer                  |      |                     |                                              |
+| `gross_cents`    | bigint                   |      |                     |                                              |
+| `fee_cents`      | bigint                   |      | `0`                 |                                              |
+| `decided_by`     | uuid                     | yes  |                     |                                              |
+| `decided_at`     | timestamp with time zone |      | `now()`             |                                              |
+
+</details>
+
+<details><summary><code>ledger.charter_import_payments</code> — S-18: which OpenCharterApp payments (and refunded amounts) each import covered. (5 columns)</summary>
+
+| Column         | Type   | Null | Default | Key / reference                                   |
+| -------------- | ------ | ---- | ------- | ------------------------------------------------- |
+| `import_id`    | uuid   |      |         | PK → `ledger.charter_imports` (on delete cascade) |
+| `org_id`       | uuid   |      |         | → `public.organizations` (on delete cascade)      |
+| `payment_id`   | uuid   |      |         | PK unique                                         |
+| `kind`         | text   |      |         |                                                   |
+| `amount_cents` | bigint |      |         |                                                   |
 
 </details>
 

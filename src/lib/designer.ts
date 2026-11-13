@@ -66,6 +66,13 @@ export const CORE_STEPS: CoreStep[] = [
     description: "A task on their OpenAppHub dashboard.",
   },
   {
+    type: "approval",
+    label: "Ask for approval",
+    group: "Do",
+    description:
+      "Ask people to approve or decline something, and wait for their answer. Later steps use the outcome.",
+  },
+  {
     type: "condition",
     label: "Condition (if / otherwise)",
     group: "Decide and repeat",
@@ -163,6 +170,9 @@ export function newStep(type: string, id: string): Step {
       break;
     case "task":
       s.params = { to: { type: "role", roles: ["owner"] }, title: "", note: "" };
+      break;
+    case "approval":
+      s.params = { to: { type: "role", roles: ["owner"] }, what: "", details: "", mode: "first" };
       break;
     case "condition":
       s.params = { match: "all", conditions: [{ left: "", op: "eq", right: "" }] };
@@ -411,6 +421,25 @@ export function outputsOf(s: Step, o: Pick<Overview, "actions">, steps: Step[]):
       return [{ key: "count", label: "People emailed", type: "number" }];
     case "task":
       return [{ key: "count", label: "Tasks created", type: "number" }];
+    case "approval":
+      return [
+        { key: "outcome", label: "Outcome (approved, declined or timed_out)", type: "text" },
+        { key: "approved", label: "Approved (yes or no)", type: "boolean" },
+        { key: "decided_by", label: "Who answered", type: "text" },
+        { key: "comment", label: "Their comments", type: "text" },
+        { key: "approvals", label: "How many approved", type: "number" },
+        { key: "declines", label: "How many declined", type: "number" },
+        {
+          key: "responses",
+          label: "Each answer",
+          type: "list",
+          fields: [
+            { key: "name", label: "Name", type: "text" },
+            { key: "decision", label: "Answer", type: "text" },
+            { key: "comment", label: "Comment", type: "text" },
+          ],
+        },
+      ];
     case "condition":
       return [{ key: "result", label: "Result (yes or no)", type: "boolean" }];
     case "foreach":
@@ -661,6 +690,14 @@ export function designerProblems(
       out.push(`"${label}" needs a subject and a message.`);
     if (s.type === "task" && !String(s.params?.["title"] ?? "").trim())
       out.push(`"${label}" needs a title.`);
+    if (s.type === "approval" && !String(s.params?.["what"] ?? "").trim())
+      out.push(`"${label}" needs to say what is to be approved.`);
+    if (
+      s.type === "approval" &&
+      !/^(|\d{1,3})$/.test(String(s.params?.["timeout_days"] ?? "")) &&
+      !String(s.params?.["timeout_days"] ?? "").startsWith("{{")
+    )
+      out.push(`"${label}": the time to answer is a number of days.`);
     const at = o.actions.find((a) => a.type === s.type);
     if (at)
       for (const [k, spec] of Object.entries(at.params_schema as Record<string, ParamSpec>))
@@ -725,6 +762,11 @@ export function describeSteps(
         break;
       case "task":
         out.push(`${pad}${name}Task "${words(p["title"])}"`);
+        break;
+      case "approval":
+        out.push(
+          `${pad}${name}Ask for approval: "${words(p["what"])}" (${p["mode"] === "all" ? "everyone must approve" : "the first answer decides"}${p["timeout_days"] ? `, ${String(p["timeout_days"])} days to answer` : ""})`,
+        );
         break;
       case "wait":
         out.push(

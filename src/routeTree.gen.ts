@@ -25,11 +25,13 @@ import { Route as AppBillingRouteImport } from './routes/_app.billing'
 import { Route as AppMembersRouteImport } from './routes/_app.members'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppWelcomeRouteImport } from './routes/_app.welcome'
+import { Route as ActTokenRouteImport } from './routes/act.$token'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as DevHubRouteImport } from './routes/dev.hub'
 import { Route as DevShellRouteImport } from './routes/dev.shell'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AppAdminDemoRouteImport } from './routes/_app.admin.demo'
+import { Route as AppApprovalsIdRouteImport } from './routes/_app.approvals.$id'
 import { Route as AppOrgsNewRouteImport } from './routes/_app.orgs.new'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api.stripe.webhook'
 
@@ -112,6 +114,11 @@ const AppWelcomeRoute = AppWelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => AppRoute,
 } as any)
+const ActTokenRoute = ActTokenRouteImport.update({
+  id: '/act/$token',
+  path: '/act/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -135,6 +142,11 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
 const AppAdminDemoRoute = AppAdminDemoRouteImport.update({
   id: '/admin/demo',
   path: '/admin/demo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppApprovalsIdRoute = AppApprovalsIdRouteImport.update({
+  id: '/approvals/$id',
+  path: '/approvals/$id',
   getParentRoute: () => AppRoute,
 } as any)
 const AppOrgsNewRoute = AppOrgsNewRouteImport.update({
@@ -164,11 +176,13 @@ export interface FileRoutesByFullPath {
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
   '/welcome': typeof AppWelcomeRoute
+  '/act/$token': typeof ActTokenRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/dev/hub': typeof DevHubRoute
   '/dev/shell': typeof DevShellRoute
   '/invite/$token': typeof InviteTokenRoute
   '/admin/demo': typeof AppAdminDemoRoute
+  '/approvals/$id': typeof AppApprovalsIdRoute
   '/orgs/new': typeof AppOrgsNewRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
@@ -188,11 +202,13 @@ export interface FileRoutesByTo {
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
   '/welcome': typeof AppWelcomeRoute
+  '/act/$token': typeof ActTokenRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/dev/hub': typeof DevHubRoute
   '/dev/shell': typeof DevShellRoute
   '/invite/$token': typeof InviteTokenRoute
   '/admin/demo': typeof AppAdminDemoRoute
+  '/approvals/$id': typeof AppApprovalsIdRoute
   '/orgs/new': typeof AppOrgsNewRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
@@ -214,11 +230,13 @@ export interface FileRoutesById {
   '/_app/members': typeof AppMembersRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/welcome': typeof AppWelcomeRoute
+  '/act/$token': typeof ActTokenRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/dev/hub': typeof DevHubRoute
   '/dev/shell': typeof DevShellRoute
   '/invite/$token': typeof InviteTokenRoute
   '/_app/admin/demo': typeof AppAdminDemoRoute
+  '/_app/approvals/$id': typeof AppApprovalsIdRoute
   '/_app/orgs/new': typeof AppOrgsNewRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
@@ -240,11 +258,13 @@ export interface FileRouteTypes {
     | '/members'
     | '/settings'
     | '/welcome'
+    | '/act/$token'
     | '/auth/callback'
     | '/dev/hub'
     | '/dev/shell'
     | '/invite/$token'
     | '/admin/demo'
+    | '/approvals/$id'
     | '/orgs/new'
     | '/api/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -264,11 +284,13 @@ export interface FileRouteTypes {
     | '/members'
     | '/settings'
     | '/welcome'
+    | '/act/$token'
     | '/auth/callback'
     | '/dev/hub'
     | '/dev/shell'
     | '/invite/$token'
     | '/admin/demo'
+    | '/approvals/$id'
     | '/orgs/new'
     | '/api/stripe/webhook'
   id:
@@ -289,11 +311,13 @@ export interface FileRouteTypes {
     | '/_app/members'
     | '/_app/settings'
     | '/_app/welcome'
+    | '/act/$token'
     | '/auth/callback'
     | '/dev/hub'
     | '/dev/shell'
     | '/invite/$token'
     | '/_app/admin/demo'
+    | '/_app/approvals/$id'
     | '/_app/orgs/new'
     | '/api/stripe/webhook'
   fileRoutesById: FileRoutesById
@@ -308,6 +332,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
+  ActTokenRoute: typeof ActTokenRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   DevHubRoute: typeof DevHubRoute
   DevShellRoute: typeof DevShellRoute
@@ -429,6 +454,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWelcomeRouteImport
       parentRoute: typeof AppRoute
     }
+    '/act/$token': {
+      id: '/act/$token'
+      path: '/act/$token'
+      fullPath: '/act/$token'
+      preLoaderRoute: typeof ActTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
@@ -464,6 +496,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminDemoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/approvals/$id': {
+      id: '/_app/approvals/$id'
+      path: '/approvals/$id'
+      fullPath: '/approvals/$id'
+      preLoaderRoute: typeof AppApprovalsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/orgs/new': {
       id: '/_app/orgs/new'
       path: '/orgs/new'
@@ -490,6 +529,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppWelcomeRoute: typeof AppWelcomeRoute
   AppAdminDemoRoute: typeof AppAdminDemoRoute
+  AppApprovalsIdRoute: typeof AppApprovalsIdRoute
   AppOrgsNewRoute: typeof AppOrgsNewRoute
 }
 
@@ -502,6 +542,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppWelcomeRoute: AppWelcomeRoute,
   AppAdminDemoRoute: AppAdminDemoRoute,
+  AppApprovalsIdRoute: AppApprovalsIdRoute,
   AppOrgsNewRoute: AppOrgsNewRoute,
 }
 
@@ -517,6 +558,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
+  ActTokenRoute: ActTokenRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   DevHubRoute: DevHubRoute,
   DevShellRoute: DevShellRoute,

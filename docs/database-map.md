@@ -2,7 +2,7 @@
 
 Every table in the suite's database, grouped by what it's for, with how the tables connect. Use it to answer questions like "how do we track billing?" or "where does a dues payment end up?": find the domain below, read the diagram, then open the column list.
 
-Generated from the schema built by every repo's migrations (core `0001`–`0013`, hub `0001`–`0008`, Charter `0001`–`0012`, Board `0001`–`0015`, Ledger `0001`–`0009`) on 2026-11-13: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
+Generated from the schema built by every repo's migrations (core `0001`–`0014`, hub `0001`–`0008`, Charter `0001`–`0013`, Board `0001`–`0016`, Ledger `0001`–`0009`) on 2026-11-13: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
 
 **How to read the diagrams** (Mermaid entity-relationship diagrams):
 
@@ -813,6 +813,8 @@ erDiagram
 
 In the core (`0009_core_workflows.sql`). Apps register what they offer in `automation_trigger_types`, `automation_action_types` and `automation_recipient_types`; each organization's workflows are `automation_workflows` (the When → If → Then definition as JSON; `shared` for a national's chapters, `adopted_from` when a chapter uses one). `automation_events` is what apps report happened; `automation_runs` records each run once per workflow and subject; steps create `automation_tasks` (on the hub dashboard) and `automation_jobs` (for an app to do). `automation_org_settings` holds whether chapters may build their own; `automation_editors` are the people besides owners and admins who may build. See [`automation-engine.md`](automation-engine.md) §5.
 
+**Approvals and actions from email (C-08, core `0014`).** `approval_requests` is one "Ask for approval" step's question (what, how it's decided, an optional time limit, its outcome), with one `approval_approvers` row per person asked (their answer and comment). `email_action_kinds` lists the kinds of action an email may carry (apps register theirs); `email_action_settings` is each organization's choice per kind (off by default). `action_links` are the signed links themselves: one person, one action (the app function to call and its arguments), 7 days, used once; only the token's SHA-256 is kept.
+
 ```mermaid
 erDiagram
     public_automation_workflows {
@@ -865,12 +867,43 @@ erDiagram
         text kind
         text status
     }
+    public_approval_requests {
+        uuid id PK
+        uuid org_id FK
+        bigint run_id FK
+        text status
+    }
+    public_approval_approvers {
+        uuid request_id PK,FK
+        uuid user_id PK,FK
+    }
+    public_email_action_kinds {
+        text kind PK
+    }
+    public_email_action_settings {
+        uuid org_id PK,FK
+        text kind PK,FK
+    }
+    public_action_links {
+        uuid id PK
+        text token_hash UK
+        uuid org_id FK
+        uuid user_id FK
+        text kind FK
+    }
     auth_users {
         uuid id PK
     }
     public_organizations {
         uuid id PK
     }
+    public_action_links }o--|| auth_users : "user_id"
+    public_action_links }o--|| public_email_action_kinds : "kind"
+    public_action_links }o--|| public_organizations : "org_id"
+    public_approval_approvers }o--|| auth_users : "user_id"
+    public_approval_approvers }o--|| public_approval_requests : "request_id"
+    public_approval_requests }o--o| public_automation_runs : "run_id"
+    public_approval_requests }o--|| public_organizations : "org_id"
     public_automation_editors }o--|| auth_users : "user_id"
     public_automation_editors }o--|| public_organizations : "org_id"
     public_automation_events }o--|| public_organizations : "org_id"
@@ -884,6 +917,8 @@ erDiagram
     public_automation_tasks }o--|| public_organizations : "org_id"
     public_automation_workflows }o--o| public_automation_workflows : "adopted_from"
     public_automation_workflows }o--|| public_organizations : "org_id"
+    public_email_action_settings }o--|| public_email_action_kinds : "kind"
+    public_email_action_settings }o--|| public_organizations : "org_id"
 ```
 
 <details><summary><code>public.automation_workflows</code> (12 columns)</summary>
@@ -1052,6 +1087,83 @@ Unique together: (workflow_id, dedupe_key).
 | `error`      | text                     | yes  |                  |                                                 |
 | `created_at` | timestamp with time zone |      | `now()`          |                                                 |
 | `updated_at` | timestamp with time zone |      | `now()`          |                                                 |
+
+</details>
+
+<details><summary><code>public.approval_requests</code> (11 columns)</summary>
+
+| Column       | Type                     | Null | Default             | Key / reference                                |
+| ------------ | ------------------------ | ---- | ------------------- | ---------------------------------------------- |
+| `id`         | uuid                     |      | `gen_random_uuid()` | PK                                             |
+| `org_id`     | uuid                     |      |                     | → `public.organizations` (on delete cascade)   |
+| `run_id`     | bigint                   | yes  |                     | → `public.automation_runs` (on delete cascade) |
+| `step_key`   | text                     |      | `''::text`          |                                                |
+| `what`       | text                     |      |                     |                                                |
+| `details`    | text                     |      | `''::text`          |                                                |
+| `mode`       | text                     |      | `'first'::text`     |                                                |
+| `due_at`     | timestamp with time zone | yes  |                     |                                                |
+| `status`     | text                     |      | `'pending'::text`   |                                                |
+| `decided_at` | timestamp with time zone | yes  |                     |                                                |
+| `created_at` | timestamp with time zone |      | `now()`             |                                                |
+
+</details>
+
+<details><summary><code>public.approval_approvers</code> (5 columns)</summary>
+
+| Column       | Type                     | Null | Default    | Key / reference                                     |
+| ------------ | ------------------------ | ---- | ---------- | --------------------------------------------------- |
+| `request_id` | uuid                     |      |            | PK → `public.approval_requests` (on delete cascade) |
+| `user_id`    | uuid                     |      |            | PK → `auth.users` (on delete cascade)               |
+| `decision`   | text                     | yes  |            |                                                     |
+| `comment`    | text                     |      | `''::text` |                                                     |
+| `decided_at` | timestamp with time zone | yes  |            |                                                     |
+
+</details>
+
+<details><summary><code>public.email_action_kinds</code> (5 columns)</summary>
+
+| Column        | Type    | Null | Default    | Key / reference |
+| ------------- | ------- | ---- | ---------- | --------------- |
+| `kind`        | text    |      |            | PK              |
+| `app`         | text    |      |            |                 |
+| `label`       | text    |      |            |                 |
+| `description` | text    |      | `''::text` |                 |
+| `sort`        | integer |      | `100`      |                 |
+
+</details>
+
+<details><summary><code>public.email_action_settings</code> (5 columns)</summary>
+
+| Column    | Type                     | Null | Default      | Key / reference                                      |
+| --------- | ------------------------ | ---- | ------------ | ---------------------------------------------------- |
+| `org_id`  | uuid                     |      |              | PK → `public.organizations` (on delete cascade)      |
+| `kind`    | text                     |      |              | PK → `public.email_action_kinds` (on delete cascade) |
+| `allowed` | boolean                  |      | `false`      |                                                      |
+| `set_by`  | uuid                     | yes  | `auth.uid()` |                                                      |
+| `set_at`  | timestamp with time zone |      | `now()`      |                                                      |
+
+</details>
+
+<details><summary><code>public.action_links</code> (16 columns)</summary>
+
+| Column        | Type                     | Null | Default                        | Key / reference                                   |
+| ------------- | ------------------------ | ---- | ------------------------------ | ------------------------------------------------- |
+| `id`          | uuid                     |      | `gen_random_uuid()`            | PK                                                |
+| `token_hash`  | text                     |      |                                | unique                                            |
+| `org_id`      | uuid                     |      |                                | → `public.organizations` (on delete cascade)      |
+| `user_id`     | uuid                     |      |                                | → `auth.users` (on delete cascade)                |
+| `kind`        | text                     |      |                                | → `public.email_action_kinds` (on delete cascade) |
+| `label`       | text                     |      |                                |                                                   |
+| `what`        | text                     |      | `''::text`                     |                                                   |
+| `rpc_schema`  | text                     |      |                                |                                                   |
+| `rpc_fn`      | text                     |      |                                |                                                   |
+| `rpc_args`    | jsonb                    |      | `'{}'::jsonb`                  |                                                   |
+| `comment_arg` | text                     | yes  |                                |                                                   |
+| `open_link`   | text                     | yes  |                                |                                                   |
+| `open_app`    | text                     | yes  |                                |                                                   |
+| `created_at`  | timestamp with time zone |      | `now()`                        |                                                   |
+| `expires_at`  | timestamp with time zone |      | `(now() + '7 days'::interval)` |                                                   |
+| `used_at`     | timestamp with time zone | yes  |                                |                                                   |
 
 </details>
 

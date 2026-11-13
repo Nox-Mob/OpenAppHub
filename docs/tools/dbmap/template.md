@@ -2,7 +2,7 @@
 
 Every table in the suite's database, grouped by what it's for, with how the tables connect. Use it to answer questions like "how do we track billing?" or "where does a dues payment end up?": find the domain below, read the diagram, then open the column list.
 
-Generated from the schema built by every repo's migrations (core `0001`–`0013`, hub `0001`–`0008`, Charter `0001`–`0012`, Board `0001`–`0015`, Ledger `0001`–`0009`) on 2026-11-13: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
+Generated from the schema built by every repo's migrations (core `0001`–`0014`, hub `0001`–`0008`, Charter `0001`–`0013`, Board `0001`–`0016`, Ledger `0001`–`0009`) on 2026-11-13: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
 
 **How to read the diagrams** (Mermaid entity-relationship diagrams):
 
@@ -169,6 +169,8 @@ In the core (`0008_core_automations.sql`). Apps register their kinds (`register_
 ### 6.2 Workflows each organization builds (S-25 part 2)
 
 In the core (`0009_core_workflows.sql`). Apps register what they offer in `automation_trigger_types`, `automation_action_types` and `automation_recipient_types`; each organization's workflows are `automation_workflows` (the When → If → Then definition as JSON; `shared` for a national's chapters, `adopted_from` when a chapter uses one). `automation_events` is what apps report happened; `automation_runs` records each run once per workflow and subject; steps create `automation_tasks` (on the hub dashboard) and `automation_jobs` (for an app to do). `automation_org_settings` holds whether chapters may build their own; `automation_editors` are the people besides owners and admins who may build. See [`automation-engine.md`](automation-engine.md) §5.
+
+**Approvals and actions from email (C-08, core `0014`).** `approval_requests` is one "Ask for approval" step's question (what, how it's decided, an optional time limit, its outcome), with one `approval_approvers` row per person asked (their answer and comment). `email_action_kinds` lists the kinds of action an email may carry (apps register theirs); `email_action_settings` is each organization's choice per kind (off by default). `action_links` are the signed links themselves: one person, one action (the app function to call and its arguments), 7 days, used once; only the token's SHA-256 is kept.
 
 <!--GEN:workflows-->
 

@@ -190,3 +190,43 @@ describe("opening a When → If → Then workflow in the designer", () => {
     expect(designerProblems("Converted", v2, o)).toEqual([]);
   });
 });
+
+describe("asking for approval (C-08)", () => {
+  it("starts with sensible settings, needs to say what, and gives later steps the outcome", () => {
+    const ask = { ...newStep("approval", "ok"), name: "Approve it" };
+    expect(ask.params).toEqual({
+      to: { type: "role", roles: ["owner"] },
+      what: "",
+      details: "",
+      mode: "first",
+    });
+    expect(designerProblems("X", def([ask]), o)).toContain(
+      '"Approve it" needs to say what is to be approved.',
+    );
+    const filled = {
+      ...ask,
+      params: { ...ask.params, what: "An award submission", mode: "all", timeout_days: "3" },
+    };
+    const after: Step = { id: "say", type: "compose", params: { value: "{{steps.ok.outcome}}" } };
+    const d = def([filled, after]);
+    expect(designerProblems("X", d, o)).toEqual([]);
+    const group = availableData(d, "say", o).find((g) => g.label === "Approve it")!;
+    expect(group.items.map((i) => i.token)).toEqual(
+      expect.arrayContaining([
+        "{{steps.ok.outcome}}",
+        "{{steps.ok.decided_by}}",
+        "{{steps.ok.comment}}",
+      ]),
+    );
+    expect(describeSteps(d.steps, d, o)[0]).toBe(
+      'Approve it: Ask for approval: "An award submission" (everyone must approve, 3 days to answer)',
+    );
+    expect(
+      designerProblems(
+        "X",
+        def([{ ...filled, params: { ...filled.params, timeout_days: "soon" } }]),
+        o,
+      ),
+    ).toContain('"Approve it": the time to answer is a number of days.');
+  });
+});

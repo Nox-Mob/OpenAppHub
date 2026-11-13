@@ -246,3 +246,33 @@ describe("this week (H-03)", () => {
     expect(addDays("2026-11-28", 6)).toBe("2026-12-04");
   });
 });
+
+describe("approvals on the dashboard (C-08)", () => {
+  it("lists what's pending the person's approval, with its page", () => {
+    const tasks = mergeTasks(
+      {
+        board: null,
+        charter: null,
+        ledger: null,
+        approvals: [
+          {
+            id: "r1",
+            what: "An award submission from Pat",
+            workflow: "Awards",
+            due_at: "2026-11-20T10:00:00Z",
+          },
+        ],
+      },
+      urls,
+      "org",
+    )!;
+    expect(tasks[0]).toMatchObject({
+      app: "hub",
+      title: "An award submission from Pat: pending your approval",
+      detail: 'From the "Awards" workflow',
+      due: "2026-11-20",
+      href: "/approvals/r1",
+    });
+    expect(tasks[0]!.complete).toBeUndefined();
+  });
+});

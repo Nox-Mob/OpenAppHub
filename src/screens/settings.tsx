@@ -1,4 +1,5 @@
 import type { ScreenProps } from "./types";
+import { EmailActionSettingsPanel } from "@shared/ui/ActionLink";
 import { useRouter } from "@tanstack/react-router";
 import { useMemo, useState, type FormEvent } from "react";
 import { APP_NAMES } from "@shared/apps";
@@ -49,6 +50,13 @@ export function SettingsScreen({ hub }: ScreenProps) {
           <Button asChild variant="outline">
             <a href="/automations">Open Automations</a>
           </Button>
+        </Panel>
+        <Panel
+          id="email-actions"
+          title="Actions from email"
+          description="Whether people may approve, decline or finish things straight from an email."
+        >
+          <EmailActionSettingsPanel client={getSupabaseBrowserClient()} orgId={org.id} />
         </Panel>
         {isOwner ? <TransferPanel orgId={org.id} orgName={org.name} /> : null}
         {isOwner ? <DeletePanel orgId={org.id} orgName={org.name} /> : null}

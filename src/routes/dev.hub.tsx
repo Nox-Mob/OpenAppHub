@@ -4,6 +4,7 @@ import type { HubContext } from "@/lib/orgs";
 import type { OrgRole } from "@shared/supabase/org";
 import { AccountScreen } from "@/screens/account";
 import { TemplateGallery, WorkflowEditor } from "@/screens/automations";
+import { ApprovalView, type Approval } from "@/screens/approval";
 import { templateDefinition, type WorkflowTemplate } from "@/lib/templates";
 import { useState } from "react";
 import { WorkflowDesigner, type TraceEntry } from "@/screens/designer";
@@ -21,7 +22,7 @@ import { WELCOME_STEPS, WelcomeScreen, type WelcomeStep } from "@/screens/welcom
 // Development-only preview of the signed-in hub screens with sample data, for
 // review and browser tests (data calls are answered by the test). 404 in
 // production and staging builds.
-//   /dev/hub?screen=dashboard|welcome|billing|members|roles|settings|account|audit|demo|workflow|designer|templates&role=owner|admin|member|viewer
+//   /dev/hub?screen=dashboard|welcome|billing|members|roles|settings|account|audit|demo|workflow|designer|templates|approval&role=owner|admin|member|viewer
 //   &step=organization|region|team|apps (welcome)  &billing=trialing|expired|active|past_due|canceling&configured=1  &orgs=0 (no organization yet)
 const ORG = "11111111-1111-4111-8111-111111111111";
 
@@ -159,6 +160,7 @@ function Preview() {
         </div>
       ) : null}
       {screen === "templates" ? <TemplatesPreview /> : null}
+      {screen === "approval" ? <ApprovalPreview /> : null}
       {screen === "designer" ? (
         <WorkflowDesigner
           overview={FIXTURE_OVERVIEW}
@@ -209,4 +211,43 @@ function TemplatesPreview() {
       />
     );
   return <TemplateGallery o={FIXTURE_OVERVIEW} onUse={setT} />;
+}
+
+/** An approval waiting for an answer (nothing is saved: answering just shows it decided). */
+function ApprovalPreview() {
+  const [a, setA] = useState<Approval>({
+    id: "44444444-4444-4444-8444-444444444444",
+    org_name: "Riverside Community Association",
+    what: "An award submission from Pat Lee",
+    details: "Rank PFC. Requested by the post commander.",
+    mode: "all",
+    outcome: "pending",
+    due_at: "2026-11-20T17:00:00Z",
+    created_at: "2026-11-13T09:00:00Z",
+    decided_at: null,
+    workflow: "Award routing",
+    can_answer: true,
+    responses: [
+      { name: "Mara Rossi", decision: "no answer", comment: "" },
+      { name: "Dev Patel", decision: "approved", comment: "Eligible" },
+    ],
+  });
+  return (
+    <div className="max-w-2xl space-y-6">
+      <ApprovalView
+        a={a}
+        decide={async () => null}
+        onDecided={() =>
+          setA({
+            ...a,
+            outcome: "approved",
+            can_answer: false,
+            responses: a.responses.map((r) =>
+              r.decision === "no answer" ? { ...r, decision: "approved" } : r,
+            ),
+          })
+        }
+      />
+    </div>
+  );
 }

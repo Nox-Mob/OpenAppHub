@@ -42,6 +42,25 @@ export function DashboardScreen({ user, hub }: ScreenProps) {
   const org = hub.orgs.find((o) => o.id === hub.currentOrgId);
   const urls = suiteUrls();
   const [hidden, setHidden] = useState<PanelId[]>([]);
+  // Apps this person has No access to (core 0015) aren't offered.
+  const [blocked, setBlocked] = useState<string[]>([]);
+  useEffect(() => {
+    const client = getSupabaseBrowserClient();
+    if (!client || !hub.currentOrgId) return;
+    let live = true;
+    void Promise.all(
+      APPS.map((a) =>
+        client
+          .rpc("can_open_app", { p_org: hub.currentOrgId, p_app: a.id })
+          .then(({ data, error }) => (error || data !== false ? null : a.id)),
+      ),
+    ).then((ids) => {
+      if (live) setBlocked(ids.filter((x): x is (typeof APPS)[number]["id"] => x !== null));
+    });
+    return () => {
+      live = false;
+    };
+  }, [hub.currentOrgId]);
   const [choosing, setChoosing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   useEffect(() => {
@@ -111,7 +130,9 @@ export function DashboardScreen({ user, hub }: ScreenProps) {
               <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Your apps</h2>
               <ul className="grid gap-4 md:grid-cols-3">
                 {/* A chapter's own organization is for its board; membership stays with the national. */}
-                {APPS.filter((app) => !org.parent || app.id === "board").map((app) => {
+                {APPS.filter(
+                  (app) => (!org.parent || app.id === "board") && !blocked.includes(app.id),
+                ).map((app) => {
                   const url = urls[app.id];
                   const access = accessLabel(hub, app.id);
                   return (

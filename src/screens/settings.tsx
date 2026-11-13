@@ -1,7 +1,7 @@
 import type { ScreenProps } from "./types";
 import { EmailActionSettingsPanel } from "@shared/ui/ActionLink";
 import { useRouter } from "@tanstack/react-router";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { APP_NAMES } from "@shared/apps";
 import { getSupabaseBrowserClient } from "@shared/supabase/client";
 import { SUITE_APPS, suiteUrls } from "@shared/supabase/hosted";
@@ -51,6 +51,7 @@ export function SettingsScreen({ hub }: ScreenProps) {
             <a href="/automations">Open Automations</a>
           </Button>
         </Panel>
+        <AppRolesSettingPanel orgId={org.id} />
         <Panel
           id="email-actions"
           title="Actions from email"
@@ -488,6 +489,71 @@ function DeletePanel({ orgId, orgName }: { orgId: string; orgName: string }) {
           </div>
           {error ? <Alert variant="destructive">{error}</Alert> : null}
         </ConfirmDialog>
+      ) : null}
+    </Panel>
+  );
+}
+
+/**
+ * Whether each app's admins may change people's roles in their own app (core 0015). Off until the
+ * owner or an OpenAppHub admin switches it on; OpenAppHub roles and named roles stay with them.
+ */
+function AppRolesSettingPanel({ orgId }: { orgId: string }) {
+  const [state, setState] = useState<{ on: boolean; canChange: boolean } | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    void supabase.rpc("org_role_settings", { p_org: orgId }).then(({ data, error }) => {
+      const row = (
+        data as Array<{ app_admins_manage_roles: boolean; can_change: boolean }> | null
+      )?.[0];
+      if (!error && row) setState({ on: row.app_admins_manage_roles, canChange: row.can_change });
+    });
+  }, [orgId]);
+  if (!state) return null;
+  async function toggle(on: boolean) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    setState((s) => (s ? { ...s, on } : s));
+    const { error } = await supabase.rpc("set_org_role_settings", {
+      p_org: orgId,
+      p_app_admins_manage_roles: on,
+    });
+    setMsg(error ? { ok: false, text: error.message } : { ok: true, text: "Saved." });
+    if (error) setState((s) => (s ? { ...s, on: !on } : s));
+  }
+  return (
+    <Panel
+      id="app-roles"
+      title="Roles in the apps"
+      description="Who may change people's roles in OpenCharterApp, OpenBoardApp and OpenLedgerApp."
+    >
+      <label className="flex items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-1 size-4 accent-primary"
+          checked={state.on}
+          disabled={!state.canChange}
+          onChange={(e) => void toggle(e.target.checked)}
+        />
+        <span>
+          <span className="font-medium">App admins may change people's roles in their own app</span>
+          <span className="block text-muted-foreground">
+            The owner and OpenAppHub admins can always change roles. With this on, someone who is an
+            admin in an app can also change other people's role in that app, including No access,
+            from that app's own people page or here. They can't change the owner, OpenAppHub roles,
+            named roles, or roles in the other apps.
+          </span>
+        </span>
+      </label>
+      {msg ? (
+        <p
+          role="status"
+          className={`mt-2 text-sm ${msg.ok ? "text-muted-foreground" : "text-destructive"}`}
+        >
+          {msg.text}
+        </p>
       ) : null}
     </Panel>
   );

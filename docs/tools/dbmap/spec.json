@@ -9,6 +9,7 @@
       "public.instance_settings",
       "public.app_role_overrides",
       "public.org_named_roles",
+      "public.org_role_settings",
       "public.app_permission_types",
       "public._core_migration_marks"
     ]

@@ -7,6 +7,10 @@ export const ROLE_LABEL: Record<OrgRole, string> = {
   viewer: "Viewer",
 };
 
+/** A role in one app (core 0015): an OpenAppHub role, or "none" for No access there. */
+export type AppRole = OrgRole | "none";
+export const APP_ROLE_LABEL: Record<AppRole, string> = { ...ROLE_LABEL, none: "No access" };
+
 /** The OpenAppHub role (H-09): what someone can do in OpenAppHub itself, not in the apps. */
 export const ROLE_HELP: Record<Exclude<OrgRole, "owner">, string> = {
   admin:
@@ -16,10 +20,11 @@ export const ROLE_HELP: Record<Exclude<OrgRole, "owner">, string> = {
 };
 
 /** In an app: what each role can do there. */
-export const APP_ROLE_HELP: Record<Exclude<OrgRole, "owner">, string> = {
+export const APP_ROLE_HELP: Record<Exclude<AppRole, "owner">, string> = {
   admin: "Everything in the app, including its settings",
   member: "Uses the app and makes changes",
   viewer: "Can see, but not change",
+  none: "No access: the app doesn't open for them and they see nothing in it. They stay in the organization and keep their roles in the other apps.",
 };
 
 /** Owners and OpenAppHub admins manage people, invitations, roles, billing and settings. */

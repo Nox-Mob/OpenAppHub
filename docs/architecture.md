@@ -324,18 +324,22 @@ Since H-09 (core `0011_core_named_roles.sql`, owner decision 2026-11-12) the Ope
 ```mermaid
 flowchart LR
     Q{Owner?} -->|yes| O[owner]
-    Q -->|no| P{Set for them<br/>in this app?<br/>app_role_overrides}
+    Q -->|no| X{No access set<br/>for them here?}
+    X -->|yes| NA[none: can't open the app]
+    X -->|no| P{Set for them<br/>in this app?<br/>app_role_overrides}
     P -->|yes| PR[that role]
     P -->|no| N{Named role gives<br/>this app a role?<br/>org_named_roles}
+    N -->|"none"| NA
     N -->|yes| NR[that role]
     N -->|no| V[viewer<br/>shown as Not set]
 ```
 
-> **Diagram description:** The owner is the owner in every app. Otherwise a role set for the person in that app wins; otherwise their named role's role for that app; otherwise viewer, which OpenAppHub shows as "Not set: viewer". `public.app_role_source` says which of these applied; `public.org_app_roles(org)` lists everyone's role in every app with its source.
+> **Diagram description:** The owner is the owner in every app. Otherwise No access set for the person (`app_role_overrides.no_access`) keeps them out of that app; otherwise a role set for the person in that app wins; otherwise their named role's role for that app (which may be "none", No access); otherwise viewer, which OpenAppHub shows as "Not set: viewer". `public.app_role_source` says which of these applied; `public.org_app_roles(org)` lists everyone's role in every app with its source.
 
 - **Named roles** (`public.org_named_roles`): a name (e.g. Treasurer), a role per app (`app_roles`: admin, member or viewer) and extra permissions per app (`permissions`), from the permissions each app registers in `public.app_permission_types` (`public.register_app_permission`). One per person (`memberships.named_role_id`). `public.has_app_permission(org, app, key)`: app admins have every permission in their app; otherwise the named role grants it.
 - **Invitations** carry a named role and/or each app's role (`invitations.named_role_id`, `app_roles`; `public.set_invitation_roles` right after `create_invitation`). An invitation made in an app (Board, Ledger) makes the person an OpenAppHub member with the chosen role in that app only.
-- **Who changes roles:** the owner and OpenAppHub admins (`save_named_role`, `delete_named_role`, `set_named_role`, `set_app_role`), on the hub's Members page or an app's members page.
+- **No access** (core 0015): `app_role()` is null and `public.can_open_app(org, app, user)` is false. The app isn't on their dashboard, the app lists no organization for them (`my_app_memberships`), and each app's read gate (`board.readable_org_ids`, `ledger.can_read`/`readable_org_ids`, `charter.has_permission`/`permitted_units`) keeps them out. They stay in the organization and keep their roles in other apps. Invitations can't give No access (a person invited with no app wouldn't be invited). In OpenCharterApp, a person who is also a member keeps their own member page (their membership and renewals) — those come from being a member, not from a staff role.
+- **Who changes roles:** the owner and OpenAppHub admins (`save_named_role`, `delete_named_role`, `set_named_role`, `set_app_role`, `set_app_access`), on the hub's Members page or an app's members page. If the organization turns on **App admins may change people's roles in their own app** (`public.org_role_settings.app_admins_manage_roles`, off by default; Settings → Roles in the apps), an app's admins may also use `set_app_role` and `set_app_access` for that app only (`public._require_app_role_manager`). Never for the owner, never their own access, and never named roles or OpenAppHub roles.
 - **Plan limits** count editors with `public.is_org_editor`: the owner, OpenAppHub admins, and anyone who is a member or admin in at least one app (hub `0006_editors_per_app.sql`). Chapters' own organizations never count.
 - **The day it shipped:** everyone's role in each app was copied from their OpenAppHub role into `app_role_overrides` once, so nobody's access changed.
 

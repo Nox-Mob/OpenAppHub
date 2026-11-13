@@ -8,7 +8,7 @@ export const HELP = {
   gettingStarted: "hub/start/getting-started/",
   members: "hub/accounts/invitations/",
   orgSettings: "hub/accounts/organizations-and-roles/",
-  automations: "hub/accounts/automations/",
+  automations: "hub/automations/",
   ownership: "hub/accounts/organizations-and-roles/#transferring-ownership",
   account: "hub/accounts/account-settings/",
   audit: "hub/accounts/audit-log/",

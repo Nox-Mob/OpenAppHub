@@ -94,6 +94,10 @@ Each person's role in this app, for the hub's People page (`security invoker`: w
 
 A role set for this app alone is in `public.app_role_overrides` (core `0010`); read it with `public.app_role(org, 'ledger', user)` and set it with `public.set_app_role`. This app's permission checks use it.
 
+## OpenCharterApp payments (S-18 / L-17, `0011_charter_income`)
+
+Reads `charter.api_payments` when OpenCharterApp is on the database (guarded by `to_regclass`, so Ledger alone works unchanged). `ledger.charter_import_config(org)` / `save_charter_import_config(org, jsonb)` (owner and Ledger admins), `ledger.charter_drafts(org)` (anyone who reads the books), `ledger.record_charter_import(...)` (writers, after posting or to skip) and `ledger.reopen_charter_import(org, id)`. Tables: `charter_import_settings`, `charter_imports`, `charter_import_payments`. The app side: `src/lib/charter-income.functions.ts`, `src/lib/services/charter-income.ts`, `src/components/CharterDrafts.tsx`, `src/routes/_authenticated/settings/charter.tsx`.
+
 ## Workflow connectors (S-25, `0004_workflows`)
 
 Trigger `ledger.books_locked` (event, when the books are closed through a month). Action `ledger.reports_to_meeting` (needs a meeting): the board package PDF as of the last closed month, today or a date, added to the meeting through `board.add_report_to_meeting`. The hub's cron calls Ledger's signed `POST /automation/run` (`shared/automation/run.ts`), which claims and does Ledger's jobs.

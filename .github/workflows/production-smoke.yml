@@ -1,0 +1,69 @@
+name: Production smoke test
+
+# S-22: signs in to production (openapphub.org) as a dedicated check account and opens the hub
+# and every app as a real organization, reading only: any attempt to change something fails the
+# run (smoke/read-only.ts). Runs after a push to main (once Cloudflare has deployed it), every
+# day, and by hand (for example after an app's own deploy).
+#
+# Needs two repository secrets, made by the owner (never committed): SMOKE_EMAIL and
+# SMOKE_PASSWORD, the check account's sign-in. The account belongs to one organization that uses
+# every app. Without them the run says so and stops without failing.
+# Optional repository variables: SMOKE_BASE_URL (default https://openapphub.org) and
+# SMOKE_APP_URLS (JSON, like VITE_SUITE_URLS), to point it at another deployment.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 13 * * *" # daily 13:17 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Smoke test (production, read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+      SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+      SMOKE_BASE_URL: ${{ vars.SMOKE_BASE_URL }}
+      SMOKE_APP_URLS: ${{ vars.SMOKE_APP_URLS }}
+    steps:
+      - name: Check account set up
+        id: check
+        run: |
+          if [ -z "$SMOKE_EMAIL" ] || [ -z "$SMOKE_PASSWORD" ]; then
+            echo "::notice::No check account yet: add the SMOKE_EMAIL and SMOKE_PASSWORD secrets to run the production smoke test."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      # Cloudflare's Git integration builds and deploys main on its own; give it time first.
+      - name: Wait for the deploy
+        if: steps.check.outputs.ready == 'true' && github.event_name == 'push'
+        run: sleep 300
+      - if: steps.check.outputs.ready == 'true'
+        uses: actions/checkout@v5
+      - if: steps.check.outputs.ready == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - if: steps.check.outputs.ready == 'true'
+        run: npm ci
+      - name: Google Chrome
+        if: steps.check.outputs.ready == 'true'
+        run: command -v google-chrome || npx playwright install --with-deps chrome
+      - name: Run the smoke test
+        if: steps.check.outputs.ready == 'true'
+        run: npm run test:smoke:prod
+        env:
+          CI: "true"
+          E2E_CHROMIUM_PATH: /usr/bin/google-chrome
+      # No traces or screenshots are kept: they would hold the check account's sign-in.

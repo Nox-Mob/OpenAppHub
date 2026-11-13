@@ -567,7 +567,9 @@ flowchart LR
 
 **Done and Skip (S-19).** Rows whose view says `completable` get buttons that call the owning app's RPC as the person: `board.complete_action_item`, `ledger.skip_recurring_due`, and `public.complete_automation_task` for tasks a workflow gave them. The app's own rules decide; anything that needs real work stays a link.
 
-A chapter's own organization shows only OpenBoardApp and says whose chapter it is. A future "dashboard editor" (H-08 in the roadmap) would let people choose and arrange panels.
+A chapter's own organization shows only OpenBoardApp and says whose chapter it is.
+
+**Each person's dashboard (H-03, hub `0008_dashboard_prefs`).** "Choose panels" hides or shows This week, Your tasks, Money this year, Upcoming meetings, Recent decisions, Officers and Your apps; the choice is stored for the person in `hub.user_preferences.dashboard_hidden` (`hub_set_dashboard_panels`, `hub_get_dashboard_prefs`). **This week** (`thisWeek` in `src/lib/dashboard.ts`) groups the next seven days' meetings and due dates by day, in the organization's time zone, with overdue tasks first. A **default organization** (`default_org_id`, `hub_set_default_org`, chosen on the account page) is used when the suite's organization cookie names none of the person's organizations: `getHubContext` passes it to `resolveCurrentOrg`, and the hub then stores it in the cookie so every app opens on it too. A future "dashboard editor" (H-08 in the roadmap) would let people arrange panels and design their own.
 
 ---
 
@@ -702,7 +704,33 @@ flowchart LR
 - The time zone defaults to the person's first organization's, else UTC. Each app's checks run inside `digest_for` (security definer, service role only), since the job has no session.
 - The `digest` template groups items under each organization's name (`EmailContent.sections`); one organization gets a plain list.
 
-### 13.2 Automations and workflows (S-25)
+### 13.2 Notifications (H-02)
+
+Things that happened, told to the people they matter to, **apart from the automation engine** (owner direction 2026-11-13): organizations don't build them, and they work the same everywhere. Core `0013_core_notifications.sql`:
+
+- `public.notification_kinds`: each kind, registered by the core or an app with `register_notification_kind` (who gets it by default, who may turn it on, its email category, whether it shows in the app and goes by email by default).
+- `public.notification_preferences`: each person's choice per kind (in the app, by email). No row means the kind's defaults, for its default audience; anyone else allowed gets it only after turning it on.
+- `public.notifications`: the list behind the bell, one row per person, read only by that person (`my_notifications`, `unread_notification_count`, `mark_notifications_read`). Kept a year (`core.prune_notifications`).
+- `public.notify(org, kind, title, body, link, link_app, users, emails, dedupe, actor)`: writes the list and queues the email (template `notification`, the kind's email category, so the existing email opt-outs still apply). The person who caused it isn't told; each person once per dedupe key.
+
+```mermaid
+flowchart LR
+    T1[memberships, app roles<br/>joined, left, role changed] --> N[notify]
+    T2[automation_tasks<br/>a task for you] --> N
+    T3[automation_runs<br/>a workflow failed] --> N
+    T4[billing.subscriptions<br/>payment failed, plan changed] --> N
+    J[email job, every 6 h<br/>trials ending] --> N
+    N --> P{Each person's choice<br/>or the kind's defaults}
+    P --> L[(notifications)<br/>the bell in every app]
+    P --> E[Email outbox<br/>template notification]
+    N --> B[Billing contact<br/>email only]
+```
+
+> **Diagram description:** Database triggers on memberships and app roles (someone joined, left or changed roles), on workflow tasks (a task given to someone), on workflow runs (a run failed) and on subscriptions (a payment failed, the plan changed), plus a job every six hours for trials ending, all call `notify`. For each person it looks up their choice for that kind, or the kind's defaults, and writes the in-app list behind the bell, queues an email, or both. Billing notifications also go by email to the organization's billing contact.
+
+Who gets what by default (owner decision 2026-11-13): the **owner** gets people and billing notifications and failed workflows; billing ones also go by email to the **billing contact** (`hub.org_settings.billing_email`; hub `0007_billing_notifications`); a task goes to **its person**. Admins may turn the owner's kinds on for themselves. The bell (`NotificationBell`, shared 1.16.0) is in `AppShell`'s top bar of every app (pass `notificationsClient`) and polls the unread count every minute; `NotificationSettings` is on the hub's account page (Notifications) and, self-hosted, on each app's email page.
+
+### 13.3 Automations and workflows (S-25)
 
 **Part 1:** reminders and other things the apps do on their own are **automations** each organization can change (core `0008_core_automations.sql`): an app registers each kind with its defaults and a schema; owners and admins change them in the shared Automations panel; the app's job reads them with `public.automation_settings` and records what it did in `public.automation_log`. Board's reminders are the first.
 
@@ -726,6 +754,8 @@ flowchart LR
 > **Diagram description:** Apps register their triggers, actions and recipients in the catalog. Every 5 minutes `run_workflows` reads new app events, scans and schedules, matches them against each organization's workflows and records each run once per subject. Its steps queue email, create tasks shown on the hub dashboard, or queue jobs for an app; the hub's cron then calls that app's signed endpoint, and the app does the work (for example, Ledger adds its financial reports to a Board meeting).
 
 **The low-code designer (S-28, core `0012_core_designer.sql`):** workflows as nested steps (conditions, switches, "for each", groups, variables, data steps, waits, stop) where every step's output is available to later steps (`{{steps.<id>.<field>}}`, `{{item.<field>}}`), with retries and "run after" per step. Runs record each step's status and output, so they pause (waits, retries, app jobs) and carry on without repeating anything. Apps add lookups and actions with `register_automation_step`; `test_workflow` runs a workflow without doing anything.
+
+**Templates.** The Automations page starts workflows from a gallery (`src/lib/templates.ts`): renewal reminders, a lapsed-membership notice, welcoming new members, nudging overdue action items, the financial reports before each meeting, a warning when a month closes at a loss. Each is an ordinary version 2 definition the designer opens to adjust and save; one shows as ready when the database has the triggers, steps and recipients it uses (`templateMissing`). "Election results into board terms" (S-23) and award routing are listed as coming with elections (C-27) and awards. `src/lib/suite-overview.fixture.json` is what the whole suite registers, for the templates' tests; regenerate it from a local suite database when an app adds triggers or steps.
 
 Design, every function and what comes next: [`automation-engine.md`](automation-engine.md).
 

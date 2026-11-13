@@ -9,6 +9,13 @@ import { NoOrganization, PageHeader, Panel } from "@/components/hub/HubShell";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { describeSteps, isV2, toDesigner, type DefinitionV2 } from "@/lib/designer";
 import { WorkflowDesigner, type TestResult } from "./designer";
+import {
+  TEMPLATES,
+  templateDefinition,
+  templateMissing,
+  type WorkflowTemplate,
+} from "@/lib/templates";
+import { AppLogo } from "@shared/ui/AppLogo";
 import { WORKFLOWS_RUN_AS_ORG } from "@/lib/roles";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -69,6 +76,7 @@ export function AutomationsScreen({ hub }: ScreenProps) {
     w: Workflow | null;
     mode: "form" | "designer";
     initial?: DefinitionV2;
+    template?: WorkflowTemplate;
   } | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
 
@@ -133,7 +141,13 @@ export function AutomationsScreen({ hub }: ScreenProps) {
     return (
       <>
         <PageHeader
-          title={editing.w ? `Edit "${editing.w.name}"` : "New workflow"}
+          title={
+            editing.w
+              ? `Edit "${editing.w.name}"`
+              : editing.template
+                ? `New workflow: ${editing.template.name}`
+                : "New workflow"
+          }
           description={
             editing.mode === "designer"
               ? "Add steps, drag them into order, and use any earlier step's information in later steps. Nothing runs until you save."
@@ -146,6 +160,12 @@ export function AutomationsScreen({ hub }: ScreenProps) {
             overview={overview}
             workflow={editing.w}
             {...(editing.initial ? { initial: editing.initial } : {})}
+            {...(editing.template
+              ? {
+                  initialName: editing.template.name,
+                  initialDescription: editing.template.description,
+                }
+              : {})}
             onCancel={() => setEditing(null)}
             onSave={saveWorkflow}
             onTest={async (d) => {
@@ -243,6 +263,20 @@ export function AutomationsScreen({ hub }: ScreenProps) {
                 </ul>
               )}
             </Panel>
+
+            {o.can_edit && o.may_build ? (
+              <TemplateGallery
+                o={o}
+                onUse={(t) =>
+                  setEditing({
+                    w: null,
+                    mode: "designer",
+                    initial: templateDefinition(t),
+                    template: t,
+                  })
+                }
+              />
+            ) : null}
 
             {o.is_chapter ? (
               <Panel
@@ -1536,5 +1570,62 @@ export function ParamFields({
         );
       })}
     </div>
+  );
+}
+
+/** Ready-made workflows to start from (owner direction 2026-11-13). */
+export function TemplateGallery({
+  o,
+  onUse,
+}: {
+  o: Overview;
+  onUse: (t: WorkflowTemplate) => void;
+}) {
+  return (
+    <Panel
+      title="Start from a template"
+      description="Ready-made workflows to adjust and save as your own. Nothing runs until you save it."
+    >
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {TEMPLATES.map((t) => {
+          const missing = templateMissing(t, o);
+          const ready = missing.length === 0;
+          return (
+            <li
+              key={t.id}
+              data-template={t.id}
+              className="flex flex-col rounded-md border bg-background p-4"
+            >
+              <p className="flex items-center gap-1.5 text-sm font-semibold">
+                {t.apps.map((a) => (
+                  <AppLogo key={a} app={a} size={16} />
+                ))}
+                <span className="ml-1">{t.name}</span>
+              </p>
+              <p className="mt-1 flex-1 text-xs text-muted-foreground">{t.description}</p>
+              {ready ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3 self-start"
+                  aria-label={`Use the template: ${t.name}`}
+                  onClick={() => onUse(t)}
+                >
+                  Use this
+                </Button>
+              ) : (
+                <p className="mt-3 text-xs font-medium text-muted-foreground">
+                  {t.comingWith ??
+                    `Needs ${t.apps
+                      .filter((a) => a !== "hub")
+                      .map((a) => appName(a))
+                      .join(" and ")} on this organization's server.`}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </Panel>
   );
 }

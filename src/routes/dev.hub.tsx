@@ -3,7 +3,9 @@ import { HubShell } from "@/components/hub/HubShell";
 import type { HubContext } from "@/lib/orgs";
 import type { OrgRole } from "@shared/supabase/org";
 import { AccountScreen } from "@/screens/account";
-import { WorkflowEditor } from "@/screens/automations";
+import { TemplateGallery, WorkflowEditor } from "@/screens/automations";
+import { templateDefinition, type WorkflowTemplate } from "@/lib/templates";
+import { useState } from "react";
 import { WorkflowDesigner, type TraceEntry } from "@/screens/designer";
 import { walk } from "@/lib/designer";
 import { FIXTURE_OVERVIEW } from "@/lib/workflow-fixture";
@@ -19,7 +21,7 @@ import { WELCOME_STEPS, WelcomeScreen, type WelcomeStep } from "@/screens/welcom
 // Development-only preview of the signed-in hub screens with sample data, for
 // review and browser tests (data calls are answered by the test). 404 in
 // production and staging builds.
-//   /dev/hub?screen=dashboard|welcome|billing|members|roles|settings|account|audit|demo|workflow|designer&role=owner|admin|member|viewer
+//   /dev/hub?screen=dashboard|welcome|billing|members|roles|settings|account|audit|demo|workflow|designer|templates&role=owner|admin|member|viewer
 //   &step=organization|region|team|apps (welcome)  &billing=trialing|expired|active|past_due|canceling&configured=1  &orgs=0 (no organization yet)
 const ORG = "11111111-1111-4111-8111-111111111111";
 
@@ -51,6 +53,7 @@ function Preview() {
     name: "Mara Rossi",
   };
   const hub: HubContext = {
+    defaultOrgId: null,
     orgs: [
       { id: ORG, name: "Riverside Community Association", slug: "riverside", role },
       {
@@ -155,6 +158,7 @@ function Preview() {
           </div>
         </div>
       ) : null}
+      {screen === "templates" ? <TemplatesPreview /> : null}
       {screen === "designer" ? (
         <WorkflowDesigner
           overview={FIXTURE_OVERVIEW}
@@ -187,4 +191,22 @@ function Preview() {
       ) : null}
     </HubShell>
   );
+}
+
+/** The template gallery, and the designer a template opens in (nothing is saved). */
+function TemplatesPreview() {
+  const [t, setT] = useState<WorkflowTemplate | null>(null);
+  if (t)
+    return (
+      <WorkflowDesigner
+        overview={FIXTURE_OVERVIEW}
+        workflow={null}
+        initial={templateDefinition(t)}
+        initialName={t.name}
+        initialDescription={t.description}
+        onSave={async () => null}
+        onCancel={() => setT(null)}
+      />
+    );
+  return <TemplateGallery o={FIXTURE_OVERVIEW} onUse={setT} />;
 }

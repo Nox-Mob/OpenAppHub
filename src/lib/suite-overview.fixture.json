@@ -1,0 +1,812 @@
+{
+  "actions": [
+    {
+      "app": "board",
+      "kind": "query",
+      "sort": 5,
+      "type": "board.find_meetings",
+      "label": "Find board meetings",
+      "run_fn": "board.wf_find_meetings",
+      "requires": [],
+      "description": "Look up meetings in a window of days (for example the next 30), to use in later steps.",
+      "output_schema": [
+        {
+          "key": "rows",
+          "type": "list",
+          "label": "Meetings",
+          "fields": [
+            {
+              "key": "id",
+              "type": "text",
+              "label": "Meeting"
+            },
+            {
+              "key": "title",
+              "type": "text",
+              "label": "Title"
+            },
+            {
+              "key": "date",
+              "type": "date",
+              "label": "Date"
+            },
+            {
+              "key": "start_time",
+              "type": "text",
+              "label": "Start time"
+            },
+            {
+              "key": "location",
+              "type": "text",
+              "label": "Location"
+            },
+            {
+              "key": "days_away",
+              "type": "number",
+              "label": "Days away"
+            }
+          ]
+        },
+        {
+          "key": "count",
+          "type": "number",
+          "label": "How many"
+        }
+      ],
+      "params_schema": {
+        "limit": {
+          "max": 1000,
+          "min": 1,
+          "type": "int",
+          "label": "At most",
+          "optional": true
+        },
+        "status": {
+          "type": "choice",
+          "label": "Status",
+          "options": ["scheduled", "draft", "completed", "any"]
+        },
+        "to_days": {
+          "max": 3650,
+          "min": -3650,
+          "type": "int",
+          "label": "To (days from today)",
+          "optional": true
+        },
+        "from_days": {
+          "max": 3650,
+          "min": -3650,
+          "type": "int",
+          "label": "From (days from today; negative for the past)",
+          "optional": true
+        }
+      }
+    },
+    {
+      "app": "charter",
+      "kind": "query",
+      "sort": 5,
+      "type": "charter.find_members",
+      "label": "Find members",
+      "run_fn": "charter.wf_find_members",
+      "requires": [],
+      "description": "Look up members, for example everyone whose membership ends in the next 30 days, to use in later steps.",
+      "output_schema": [
+        {
+          "key": "rows",
+          "type": "list",
+          "label": "Members",
+          "fields": [
+            {
+              "key": "name",
+              "type": "text",
+              "label": "Name"
+            },
+            {
+              "key": "email",
+              "type": "text",
+              "label": "Email"
+            },
+            {
+              "key": "level",
+              "type": "text",
+              "label": "Level"
+            },
+            {
+              "key": "term",
+              "type": "text",
+              "label": "Term"
+            },
+            {
+              "key": "paid_through",
+              "type": "date",
+              "label": "Paid through"
+            },
+            {
+              "key": "joined_on",
+              "type": "date",
+              "label": "Joined"
+            },
+            {
+              "key": "chapter",
+              "type": "text",
+              "label": "Chapter"
+            },
+            {
+              "key": "standing",
+              "type": "text",
+              "label": "Standing"
+            },
+            {
+              "key": "user_id",
+              "type": "text",
+              "label": "Account"
+            },
+            {
+              "key": "fields",
+              "type": "object",
+              "label": "Member fields"
+            }
+          ]
+        },
+        {
+          "key": "count",
+          "type": "number",
+          "label": "How many"
+        },
+        {
+          "key": "total",
+          "type": "number",
+          "label": "How many matched (before the limit)"
+        }
+      ],
+      "params_schema": {
+        "level": {
+          "type": "text",
+          "label": "Level (optional)",
+          "optional": true
+        },
+        "limit": {
+          "max": 5000,
+          "min": 1,
+          "type": "int",
+          "label": "At most",
+          "optional": true
+        },
+        "chapter": {
+          "type": "text",
+          "label": "Chapter (optional)",
+          "optional": true
+        },
+        "standing": {
+          "type": "choice",
+          "label": "Standing",
+          "options": ["current", "lapsed", "pending", "any"]
+        },
+        "joined_within_days": {
+          "max": 3650,
+          "min": 0,
+          "type": "int",
+          "label": "Joined in the last (days, optional)",
+          "optional": true
+        },
+        "expires_within_days": {
+          "max": 730,
+          "min": 0,
+          "type": "int",
+          "label": "Membership ends within (days, optional)",
+          "optional": true
+        }
+      }
+    },
+    {
+      "app": "ledger",
+      "kind": "query",
+      "sort": 5,
+      "type": "ledger.month_totals",
+      "label": "Month totals",
+      "run_fn": "ledger.wf_month_totals",
+      "requires": [],
+      "description": "Income, spending and net for a month (the last closed month, this month, or a date's month).",
+      "output_schema": [
+        {
+          "key": "month_name",
+          "type": "text",
+          "label": "Month"
+        },
+        {
+          "key": "income",
+          "type": "number",
+          "label": "Income"
+        },
+        {
+          "key": "spending",
+          "type": "number",
+          "label": "Spending"
+        },
+        {
+          "key": "net",
+          "type": "number",
+          "label": "Net"
+        },
+        {
+          "key": "currency",
+          "type": "text",
+          "label": "Currency"
+        },
+        {
+          "key": "transactions",
+          "type": "number",
+          "label": "Transactions"
+        },
+        {
+          "key": "closed",
+          "type": "boolean",
+          "label": "Books closed for it"
+        }
+      ],
+      "params_schema": {
+        "date": {
+          "type": "date",
+          "label": "Date (for \"date\")",
+          "optional": true
+        },
+        "month": {
+          "type": "choice",
+          "label": "Which month",
+          "options": ["last_closed_month", "this_month", "date"]
+        }
+      }
+    },
+    {
+      "app": "board",
+      "kind": "query",
+      "sort": 6,
+      "type": "board.find_action_items",
+      "label": "Find action items",
+      "run_fn": "board.wf_find_action_items",
+      "requires": [],
+      "description": "Look up action items (open, overdue, done or any) with who they're assigned to.",
+      "output_schema": [
+        {
+          "key": "rows",
+          "type": "list",
+          "label": "Action items",
+          "fields": [
+            {
+              "key": "title",
+              "type": "text",
+              "label": "Title"
+            },
+            {
+              "key": "due_date",
+              "type": "date",
+              "label": "Due"
+            },
+            {
+              "key": "status",
+              "type": "text",
+              "label": "Status"
+            },
+            {
+              "key": "assignee_name",
+              "type": "text",
+              "label": "Assigned to"
+            },
+            {
+              "key": "email",
+              "type": "text",
+              "label": "Their email"
+            },
+            {
+              "key": "user_id",
+              "type": "text",
+              "label": "Their account"
+            },
+            {
+              "key": "days_overdue",
+              "type": "number",
+              "label": "Days overdue"
+            },
+            {
+              "key": "meeting_title",
+              "type": "text",
+              "label": "Meeting"
+            }
+          ]
+        },
+        {
+          "key": "count",
+          "type": "number",
+          "label": "How many"
+        }
+      ],
+      "params_schema": {
+        "limit": {
+          "max": 5000,
+          "min": 1,
+          "type": "int",
+          "label": "At most",
+          "optional": true
+        },
+        "status": {
+          "type": "choice",
+          "label": "Which",
+          "options": ["open", "overdue", "done", "any"]
+        },
+        "due_within_days": {
+          "max": 365,
+          "min": 0,
+          "type": "int",
+          "label": "Due within (days, optional)",
+          "optional": true
+        }
+      }
+    },
+    {
+      "app": "board",
+      "kind": "call",
+      "sort": 7,
+      "type": "board.create_action_item",
+      "label": "Create an action item",
+      "run_fn": "board.wf_create_action_item",
+      "requires": [],
+      "description": "Add an action item, assigned to someone by their account or email.",
+      "output_schema": [
+        {
+          "key": "id",
+          "type": "text",
+          "label": "Action item"
+        },
+        {
+          "key": "assigned",
+          "type": "boolean",
+          "label": "Assigned"
+        }
+      ],
+      "params_schema": {
+        "title": {
+          "type": "text",
+          "label": "Title"
+        },
+        "details": {
+          "type": "text",
+          "label": "Details (optional)",
+          "optional": true
+        },
+        "due_date": {
+          "type": "date",
+          "label": "Due (optional)",
+          "optional": true
+        },
+        "meeting_id": {
+          "type": "text",
+          "label": "Meeting (optional)",
+          "optional": true
+        },
+        "assignee_email": {
+          "type": "text",
+          "label": "Assign to (email, optional)",
+          "optional": true
+        }
+      }
+    },
+    {
+      "app": "ledger",
+      "kind": "job",
+      "sort": 40,
+      "type": "ledger.reports_to_meeting",
+      "label": "Add the financial reports to the meeting",
+      "run_fn": null,
+      "requires": ["meeting"],
+      "description": "Builds the board package (income, balance, budget against actual and, for nonprofits, fund activity) from OpenLedgerApp and adds it to the meeting's documents and packet.",
+      "output_schema": [
+        {
+          "key": "summary",
+          "type": "text",
+          "label": "What it did"
+        },
+        {
+          "key": "document_id",
+          "type": "text",
+          "label": "Document"
+        }
+      ],
+      "params_schema": {
+        "date": {
+          "type": "date",
+          "label": "Date",
+          "optional": true
+        },
+        "as_of": {
+          "help": "The last closed month: the month the books are locked through. Today: the year so far. A date: the year up to that day.",
+          "type": "choice",
+          "label": "As of",
+          "options": ["last_closed_month", "today", "date"]
+        }
+      }
+    }
+  ],
+  "triggers": [
+    {
+      "app": "hub",
+      "kind": "schedule",
+      "sort": 1,
+      "type": "core.schedule",
+      "label": "On a schedule",
+      "fields": [
+        {
+          "key": "today",
+          "type": "date",
+          "label": "Today's date"
+        }
+      ],
+      "provides": [],
+      "description": "Every day, every week on a day, or every month on a date, at an hour.",
+      "extra_fields": [],
+      "params_schema": {
+        "day": {
+          "max": 28,
+          "min": 0,
+          "type": "int",
+          "label": "Day (weekly: 0 Sunday \u2026 6 Saturday; monthly: 1\u201328)"
+        },
+        "hour": {
+          "max": 23,
+          "min": 0,
+          "type": "int",
+          "label": "Hour (0\u201323)"
+        },
+        "frequency": {
+          "type": "choice",
+          "label": "How often",
+          "options": ["daily", "weekly", "monthly"]
+        }
+      }
+    },
+    {
+      "app": "board",
+      "kind": "scan",
+      "sort": 20,
+      "type": "board.meeting_upcoming",
+      "label": "A board meeting is coming up",
+      "fields": [
+        {
+          "key": "meeting.title",
+          "type": "text",
+          "label": "Meeting title"
+        },
+        {
+          "key": "meeting.date",
+          "type": "date",
+          "label": "Meeting date"
+        },
+        {
+          "key": "meeting.start_time",
+          "type": "text",
+          "label": "Start time"
+        },
+        {
+          "key": "meeting.location",
+          "type": "text",
+          "label": "Location"
+        },
+        {
+          "key": "meeting.days_away",
+          "type": "number",
+          "label": "Days away"
+        }
+      ],
+      "provides": ["meeting"],
+      "description": "When a scheduled meeting is this many days away or less. Runs once per meeting (again if it moves to a new date).",
+      "extra_fields": [],
+      "params_schema": {
+        "days_before": {
+          "max": 60,
+          "min": 0,
+          "type": "int",
+          "label": "Days before the meeting"
+        }
+      }
+    },
+    {
+      "app": "board",
+      "kind": "event",
+      "sort": 21,
+      "type": "board.meeting_scheduled",
+      "label": "A board meeting is scheduled",
+      "fields": [
+        {
+          "key": "meeting.title",
+          "type": "text",
+          "label": "Meeting title"
+        },
+        {
+          "key": "meeting.date",
+          "type": "date",
+          "label": "Meeting date"
+        },
+        {
+          "key": "meeting.location",
+          "type": "text",
+          "label": "Location"
+        },
+        {
+          "key": "meeting.days_away",
+          "type": "number",
+          "label": "Days away"
+        }
+      ],
+      "provides": ["meeting"],
+      "description": "As soon as a meeting is scheduled.",
+      "extra_fields": [],
+      "params_schema": {}
+    },
+    {
+      "app": "board",
+      "kind": "scan",
+      "sort": 22,
+      "type": "board.action_item_overdue",
+      "label": "An action item is overdue",
+      "fields": [
+        {
+          "key": "item.title",
+          "type": "text",
+          "label": "Action item"
+        },
+        {
+          "key": "item.due_date",
+          "type": "date",
+          "label": "Due date"
+        },
+        {
+          "key": "item.days_overdue",
+          "type": "number",
+          "label": "Days overdue"
+        },
+        {
+          "key": "item.assignee",
+          "type": "text",
+          "label": "Assigned to"
+        }
+      ],
+      "provides": [],
+      "description": "When an open action item is this many days past its due date. Runs once per item and due date.",
+      "extra_fields": [],
+      "params_schema": {
+        "days_overdue": {
+          "max": 60,
+          "min": 0,
+          "type": "int",
+          "label": "Days past due"
+        }
+      }
+    },
+    {
+      "app": "charter",
+      "kind": "event",
+      "sort": 30,
+      "type": "charter.payment_received",
+      "label": "A payment is received",
+      "fields": [
+        {
+          "key": "member.name",
+          "type": "text",
+          "label": "Member name"
+        },
+        {
+          "key": "member.email",
+          "type": "text",
+          "label": "Member email"
+        },
+        {
+          "key": "member.level",
+          "type": "text",
+          "label": "Membership level"
+        },
+        {
+          "key": "member.term",
+          "type": "text",
+          "label": "Membership term"
+        },
+        {
+          "key": "member.chapter",
+          "type": "text",
+          "label": "Chapter (or unit)"
+        },
+        {
+          "key": "member.chapter_type",
+          "type": "text",
+          "label": "Unit type (chapter, region, national)"
+        },
+        {
+          "key": "member.paid_through",
+          "type": "date",
+          "label": "Paid through"
+        },
+        {
+          "key": "payment.amount",
+          "type": "number",
+          "label": "Amount"
+        },
+        {
+          "key": "payment.method",
+          "type": "text",
+          "label": "Paid by"
+        },
+        {
+          "key": "payment.purpose",
+          "type": "text",
+          "label": "What it was for"
+        }
+      ],
+      "provides": ["member"],
+      "description": "When a dues or other payment is paid, online or recorded by hand.",
+      "extra_fields": [],
+      "params_schema": {}
+    },
+    {
+      "app": "charter",
+      "kind": "event",
+      "sort": 31,
+      "type": "charter.member_joined",
+      "label": "Someone becomes a member",
+      "fields": [
+        {
+          "key": "member.name",
+          "type": "text",
+          "label": "Member name"
+        },
+        {
+          "key": "member.email",
+          "type": "text",
+          "label": "Member email"
+        },
+        {
+          "key": "member.level",
+          "type": "text",
+          "label": "Membership level"
+        },
+        {
+          "key": "member.term",
+          "type": "text",
+          "label": "Membership term"
+        },
+        {
+          "key": "member.chapter",
+          "type": "text",
+          "label": "Chapter (or unit)"
+        },
+        {
+          "key": "member.chapter_type",
+          "type": "text",
+          "label": "Unit type (chapter, region, national)"
+        },
+        {
+          "key": "member.paid_through",
+          "type": "date",
+          "label": "Paid through"
+        }
+      ],
+      "provides": ["member"],
+      "description": "When a membership becomes active for someone new to that chapter or organization.",
+      "extra_fields": [],
+      "params_schema": {}
+    },
+    {
+      "app": "charter",
+      "kind": "scan",
+      "sort": 32,
+      "type": "charter.membership_lapsed",
+      "label": "A membership lapses",
+      "fields": [
+        {
+          "key": "member.name",
+          "type": "text",
+          "label": "Member name"
+        },
+        {
+          "key": "member.email",
+          "type": "text",
+          "label": "Member email"
+        },
+        {
+          "key": "member.level",
+          "type": "text",
+          "label": "Membership level"
+        },
+        {
+          "key": "member.term",
+          "type": "text",
+          "label": "Membership term"
+        },
+        {
+          "key": "member.chapter",
+          "type": "text",
+          "label": "Chapter (or unit)"
+        },
+        {
+          "key": "member.chapter_type",
+          "type": "text",
+          "label": "Unit type (chapter, region, national)"
+        },
+        {
+          "key": "member.paid_through",
+          "type": "date",
+          "label": "Paid through"
+        }
+      ],
+      "provides": ["member"],
+      "description": "When a membership's grace period ends without a renewal.",
+      "extra_fields": [],
+      "params_schema": {}
+    },
+    {
+      "app": "ledger",
+      "kind": "event",
+      "sort": 40,
+      "type": "ledger.books_locked",
+      "label": "The books are closed for a month",
+      "fields": [
+        {
+          "key": "books.locked_through",
+          "type": "date",
+          "label": "Locked through"
+        },
+        {
+          "key": "books.month",
+          "type": "text",
+          "label": "Month (YYYY-MM)"
+        },
+        {
+          "key": "books.month_name",
+          "type": "text",
+          "label": "Month name"
+        }
+      ],
+      "provides": [],
+      "description": "When the books are locked through a later date (closing a month locks them through its last day).",
+      "extra_fields": [],
+      "params_schema": {}
+    }
+  ],
+  "recipients": [
+    {
+      "app": "board",
+      "sort": 10,
+      "type": "board.office",
+      "label": "An officer of the board",
+      "description": "Whoever holds an office in OpenBoardApp: the chair, the secretary or the treasurer.",
+      "param_options": {},
+      "params_schema": {
+        "office": {
+          "type": "choice",
+          "label": "Office",
+          "options": ["chair", "secretary", "treasurer"]
+        }
+      }
+    },
+    {
+      "app": "charter",
+      "sort": 10,
+      "type": "charter.seat",
+      "label": "Whoever holds a board seat",
+      "description": "The current holder of a seat (like President or Commander) in the member's chapter, its region, or the national.",
+      "param_options": {
+        "seat": []
+      },
+      "params_schema": {
+        "seat": {
+          "type": "text",
+          "label": "Seat (its key, e.g. president)",
+          "max_length": 80
+        },
+        "level": {
+          "type": "choice",
+          "label": "Whose seat",
+          "options": ["unit", "parent", "region", "national"]
+        }
+      }
+    }
+  ]
+}

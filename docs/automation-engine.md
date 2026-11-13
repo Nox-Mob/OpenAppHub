@@ -271,3 +271,22 @@ Built so far: **Charter** `charter.find_members` (members by standing, level, ch
 `src/screens/designer.tsx` (model in `src/lib/designer.ts`): the When card, then steps as cards you **drag** (or move with the arrows) between steps and into conditions, cases, loops and groups; "+" between any two steps adds one; each card opens to its settings, where every field has **Insert data** (the data picker: the trigger's data, each earlier step's outputs, the current loop's item fields, variables), and lists are chosen with **Choose a list**. Settings for retries and run after; **In plain words** reads the workflow back; problems are listed before saving; **Test run** shows what each step would do. Dev preview: `/dev/hub?screen=designer`; Playwright tests in `e2e/designer.spec.ts`.
 
 Workflows run as the organization (owner decision 2026-11-12): the designer says so, and so does every place that lets someone build workflows.
+
+## 7. Templates (owner direction 2026-11-13)
+
+The Automations page has **Start from a template** (`src/lib/templates.ts`, `TemplateGallery` in `src/screens/automations.tsx`): ready-made version 2 workflows that open in the designer with their name and description filled in, to adjust and save as the organization's own. Nothing runs until it's saved.
+
+| Template                              | When                                 | What it does                                                              | Apps           |
+| ------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------- | -------------- |
+| Renewal reminders                     | Every Monday at 9                    | Find members whose membership ends in the coming week; email each of them | Charter        |
+| Lapsed membership notice              | A membership lapses                  | Email the member; a task for the chapter's treasurer to follow up         | Charter        |
+| Welcome new members                   | Someone becomes a member             | Email them a welcome                                                      | Charter        |
+| Nudge overdue action items            | An action item is 3 days overdue     | Email the person it's assigned to                                         | Board          |
+| Financial reports before each meeting | A board meeting is 5 days away       | Add the reports, as of the last closed month, to its packet               | Board, Ledger  |
+| Warn the treasurer about a loss       | The books are closed for a month     | Get the month's totals; if net is below zero, email the board's treasurer | Ledger, Board  |
+| Election results into board terms     | _Coming with elections (C-27), S-23_ | Start the winners' terms in Board and tell them                           | Charter, Board |
+| Route award requests for approval     | _Coming with awards (C-29…C-31)_     | Send a request to its approvers in order; tell the member the outcome     | Charter        |
+
+A template is **ready** when the database has its trigger, its app steps and its recipients (`templateMissing`); otherwise the card says which app it needs, or what it's coming with. Every ready template passes the designer's checks against what the whole suite registers (`src/lib/suite-overview.fixture.json`, `src/lib/templates.test.ts`) and was run through `test_workflow` on a local suite database. Templates are kept in the hub's code, not the database, so they change with a release.
+
+**Not the automation engine: notifications.** What the suite tells people about (a payment that didn't go through, someone joined, a task for you) is a separate, fixed part of the core (`0013_core_notifications`, architecture §13.2). Organizations don't build those, and each person chooses what they get.

@@ -2,7 +2,7 @@
 
 Every table in the suite's database, grouped by what it's for, with how the tables connect. Use it to answer questions like "how do we track billing?" or "where does a dues payment end up?": find the domain below, read the diagram, then open the column list.
 
-Generated from the schema built by every repo's migrations (core `0001`–`0012`, hub `0001`–`0006`, Charter `0001`–`0012`, Board `0001`–`0015`, Ledger `0001`–`0009`) on 2026-11-12: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
+Generated from the schema built by every repo's migrations (core `0001`–`0013`, hub `0001`–`0008`, Charter `0001`–`0012`, Board `0001`–`0015`, Ledger `0001`–`0009`) on 2026-11-13: every relationship in a diagram is a real foreign key, and every column list is the real table. Architecture and the reasons behind it: [`architecture.md`](architecture.md). Charter's hand-written table map with write paths: [`charter/tables.md`](charter/tables.md).
 
 **How to read the diagrams** (Mermaid entity-relationship diagrams):
 
@@ -308,6 +308,7 @@ erDiagram
     }
     hub_user_preferences {
         uuid user_id PK,FK
+        uuid default_org_id FK
     }
     hub_legal_acceptances {
         uuid user_id PK,FK
@@ -339,6 +340,7 @@ erDiagram
     hub_org_settings |o--|| public_organizations : "org_id"
     hub_platform_operators |o--|| auth_users : "user_id"
     hub_user_preferences |o--|| auth_users : "user_id"
+    hub_user_preferences }o--o| public_organizations : "default_org_id"
 ```
 
 <details><summary><code>hub.instance</code> (2 columns)</summary>
@@ -363,15 +365,17 @@ erDiagram
 
 </details>
 
-<details><summary><code>hub.user_preferences</code> (5 columns)</summary>
+<details><summary><code>hub.user_preferences</code> (7 columns)</summary>
 
-| Column                | Type                     | Null | Default | Key / reference                       |
-| --------------------- | ------------------------ | ---- | ------- | ------------------------------------- |
-| `user_id`             | uuid                     |      |         | PK → `auth.users` (on delete cascade) |
-| `billing_emails`      | boolean                  |      | `true`  |                                       |
-| `org_activity_emails` | boolean                  |      | `true`  |                                       |
-| `product_news`        | boolean                  |      | `false` |                                       |
-| `updated_at`          | timestamp with time zone |      | `now()` |                                       |
+| Column                | Type                     | Null | Default        | Key / reference                               |
+| --------------------- | ------------------------ | ---- | -------------- | --------------------------------------------- |
+| `user_id`             | uuid                     |      |                | PK → `auth.users` (on delete cascade)         |
+| `billing_emails`      | boolean                  |      | `true`         |                                               |
+| `org_activity_emails` | boolean                  |      | `true`         |                                               |
+| `product_news`        | boolean                  |      | `false`        |                                               |
+| `updated_at`          | timestamp with time zone |      | `now()`        |                                               |
+| `dashboard_hidden`    | text[]                   |      | `'{}'::text[]` |                                               |
+| `default_org_id`      | uuid                     | yes  |                | → `public.organizations` (on delete set null) |
 
 </details>
 
@@ -558,6 +562,8 @@ stateDiagram-v2
 
 > **Diagram description:** An email starts queued (a de-duplication key makes sure the same reminder is only queued once). It may be suppressed (the recipient switched that kind of email off, or it's a demo or test address). The sender claims it (sending), and it ends sent, goes back to queued for a retry with back-off, or fails after a permanent error or five tries. A row stuck in sending for ten minutes is claimed again.
 
+**Notifications (H-02, core `0013_core_notifications.sql`).** `notification_kinds` is the catalog (registered with `register_notification_kind`); `notification_preferences` is each person's choice per kind (in the app, by email; no row = the kind's defaults); `notifications` is the list behind the bell, one row per person, unique per person and dedupe key. `notify()` writes the list and queues the email in `email_outbox` (template `notification`). Billing kinds are raised by hub `0007` from `billing.subscriptions`; each person's dashboard panels and default organization are `hub.user_preferences.dashboard_hidden` and `default_org_id` (hub `0008`).
+
 ```mermaid
 erDiagram
     public_email_outbox {
@@ -579,6 +585,21 @@ erDiagram
         bool id PK
         uuid updated_by FK
     }
+    public_notification_kinds {
+        text kind PK
+    }
+    public_notification_preferences {
+        uuid user_id PK,FK
+        text kind PK,FK
+        bool email
+    }
+    public_notifications {
+        bigint id PK
+        uuid org_id FK
+        uuid user_id FK
+        text kind FK
+        text title
+    }
     auth_users {
         uuid id PK
     }
@@ -589,6 +610,11 @@ erDiagram
     public_email_outbox }o--o| public_organizations : "org_id"
     public_email_preferences |o--|| auth_users : "user_id"
     public_instance_email_settings }o--o| auth_users : "updated_by"
+    public_notification_preferences }o--|| auth_users : "user_id"
+    public_notification_preferences }o--|| public_notification_kinds : "kind"
+    public_notifications }o--o| public_organizations : "org_id"
+    public_notifications }o--|| auth_users : "user_id"
+    public_notifications }o--|| public_notification_kinds : "kind"
 ```
 
 <details><summary><code>public.email_outbox</code> (17 columns)</summary>
@@ -659,6 +685,56 @@ erDiagram
 | `reply_to`          | text                     | yes  |                    |                                     |
 | `updated_by`        | uuid                     | yes  |                    | → `auth.users` (on delete set null) |
 | `updated_at`        | timestamp with time zone |      | `now()`            |                                     |
+
+</details>
+
+<details><summary><code>public.notification_kinds</code> (11 columns)</summary>
+
+| Column           | Type      | Null | Default                       | Key / reference |
+| ---------------- | --------- | ---- | ----------------------------- | --------------- |
+| `kind`           | text      |      |                               | PK              |
+| `app`            | text      |      |                               |                 |
+| `label`          | text      |      |                               |                 |
+| `description`    | text      |      | `''::text`                    |                 |
+| `audience`       | text      |      | `''::text`                    |                 |
+| `default_roles`  | orgrole[] |      | `'{owner}'::org_role[]`       |                 |
+| `eligible_roles` | orgrole[] |      | `'{owner,admin}'::org_role[]` |                 |
+| `email_category` | text      |      | `'org_activity'::text`        |                 |
+| `default_in_app` | boolean   |      | `true`                        |                 |
+| `default_email`  | boolean   |      | `true`                        |                 |
+| `sort`           | integer   |      | `100`                         |                 |
+
+</details>
+
+<details><summary><code>public.notification_preferences</code> (5 columns)</summary>
+
+| Column       | Type                     | Null | Default | Key / reference                                      |
+| ------------ | ------------------------ | ---- | ------- | ---------------------------------------------------- |
+| `user_id`    | uuid                     |      |         | PK → `auth.users` (on delete cascade)                |
+| `kind`       | text                     |      |         | PK → `public.notification_kinds` (on delete cascade) |
+| `in_app`     | boolean                  |      |         |                                                      |
+| `email`      | boolean                  |      |         |                                                      |
+| `updated_at` | timestamp with time zone |      | `now()` |                                                      |
+
+</details>
+
+<details><summary><code>public.notifications</code> (11 columns)</summary>
+
+| Column       | Type                     | Null | Default    | Key / reference                                   |
+| ------------ | ------------------------ | ---- | ---------- | ------------------------------------------------- |
+| `id`         | bigint                   |      |            | PK                                                |
+| `org_id`     | uuid                     | yes  |            | → `public.organizations` (on delete cascade)      |
+| `user_id`    | uuid                     |      |            | → `auth.users` (on delete cascade)                |
+| `kind`       | text                     |      |            | → `public.notification_kinds` (on delete cascade) |
+| `title`      | text                     |      |            |                                                   |
+| `body`       | text                     |      | `''::text` |                                                   |
+| `link`       | text                     | yes  |            |                                                   |
+| `link_app`   | text                     | yes  |            |                                                   |
+| `created_at` | timestamp with time zone |      | `now()`    |                                                   |
+| `read_at`    | timestamp with time zone | yes  |            |                                                   |
+| `dedupe_key` | text                     | yes  |            |                                                   |
+
+Unique together: (user_id, dedupe_key).
 
 </details>
 

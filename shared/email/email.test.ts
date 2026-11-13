@@ -131,6 +131,26 @@ describe("templates", () => {
     expect(r.html).toContain("https://board.openapphub.org/orgs/x");
   });
 
+  it("renders a notification with its organization and link", () => {
+    const r = renderEmail(
+      row({
+        template: "notification",
+        category: "billing",
+        data: {
+          title: "A payment didn't go through",
+          body: "Update your card to keep your plan.",
+          org_name: "Riverside",
+          link: "/billing",
+          link_app: "hub",
+        },
+      }),
+      ctx,
+    );
+    expect(r.subject).toBe("A payment didn't go through · Riverside");
+    expect(r.text).toContain("Update your card to keep your plan.");
+    expect(r.text).toContain("which notifications you get");
+  });
+
   it("shows Board's meeting date and start time as given", () => {
     const r = renderEmail(
       row({

@@ -41,7 +41,10 @@
       "public.email_outbox",
       "public.email_preferences",
       "public.email_jobs",
-      "public.instance_email_settings"
+      "public.instance_email_settings",
+      "public.notification_kinds",
+      "public.notification_preferences",
+      "public.notifications"
     ]
   },
   {

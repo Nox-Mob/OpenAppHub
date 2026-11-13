@@ -49,6 +49,12 @@ describe("resolveCurrentOrg", () => {
     expect(resolveCurrentOrg(orgs, null)?.name).toBe("Alpha Association");
     expect(resolveCurrentOrg([], A)).toBeNull();
   });
+
+  it("uses the person's default organization when nothing is picked (H-03)", () => {
+    expect(resolveCurrentOrg(orgs, null, B)?.id).toBe(B);
+    expect(resolveCurrentOrg(orgs, A, B)?.id).toBe(A);
+    expect(resolveCurrentOrg(orgs, null, "33333333-3333-4333-8333-333333333333")?.id).toBe(A);
+  });
 });
 
 const now = new Date("2026-11-09T12:00:00Z");

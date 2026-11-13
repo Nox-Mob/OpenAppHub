@@ -80,6 +80,8 @@ export function WorkflowDesigner({
   overview: o,
   workflow,
   initial,
+  initialName,
+  initialDescription,
   onSave,
   onCancel,
   onTest,
@@ -87,12 +89,15 @@ export function WorkflowDesigner({
   overview: Overview;
   workflow: Workflow | null;
   initial?: DefinitionV2;
+  /** A template's name and description, for a new workflow started from it. */
+  initialName?: string;
+  initialDescription?: string;
   onSave: (w: SaveArgs) => Promise<string | null>;
   onCancel: () => void;
   onTest?: (d: DefinitionV2) => Promise<TestResult>;
 }) {
-  const [name, setName] = useState(workflow?.name ?? "");
-  const [description, setDescription] = useState(workflow?.description ?? "");
+  const [name, setName] = useState(workflow?.name ?? initialName ?? "");
+  const [description, setDescription] = useState(workflow?.description ?? initialDescription ?? "");
   const [enabled, setEnabled] = useState(workflow?.enabled ?? true);
   const [shared, setShared] = useState(workflow?.shared ?? false);
   const [def, setDef] = useState<DefinitionV2>(

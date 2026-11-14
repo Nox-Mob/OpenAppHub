@@ -205,7 +205,7 @@ A preview of any other branch is `<branch>.<app>.staging.openapphub.org`. The hu
 
 - **Public settings** are Worker `vars` in `wrangler.jsonc` (top level = production, `env.staging`, `env.development`). Anything named `VITE_*` is also compiled into the browser bundle and is public.
 - **Secrets** are Worker secrets set in Cloudflare, never in the repository: `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY` (hub); Charter's gateway encryption key; Ledger's backup signing seed; `SMTP_PASSWORD` (self-hosters). Where each one stands: [`SECRETS.md`](SECRETS.md).
-- **Key settings:** `VITE_HOSTED`, `VITE_APP_ID`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_HUB_URL`, `VITE_COOKIE_DOMAIN` (`.openapphub.org`), `VITE_SUITE_URLS` (JSON of every app's origin), `VITE_DOCS_URL`, `VITE_SIGNUPS_OPEN`, `VITE_DEMO_LOGIN` (staging), `EMAIL_FROM`.
+- **Key settings:** `VITE_HOSTED`, `VITE_APP_ID`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_HUB_URL`, `VITE_COOKIE_DOMAIN` (`.openapphub.org` in production, `.staging.openapphub.org` on staging and previews), `VITE_SUITE_URLS` (JSON of every app's origin), `VITE_DOCS_URL`, `VITE_SIGNUPS_OPEN`, `VITE_DEMO_LOGIN` (staging), `EMAIL_FROM`.
 
 ### 3.5 Inside a Worker request
 
@@ -276,7 +276,7 @@ A self-hosted database can hold more than one app (they share the core); integra
 ## 5. Identity, sign-in and sessions
 
 - **One Supabase Auth** for the suite. A person signs up once, at the hub.
-- **Shared session:** `shared/supabase/client.ts` stores the session in cookies on `.openapphub.org` (hosted), so one sign-in covers every app. Session cookie names include the project ref, so staging and production never collide. Signing out anywhere signs out everywhere.
+- **Shared session:** `shared/supabase/client.ts` stores the session in cookies on `.openapphub.org` (hosted), so one sign-in covers every app. Staging and branch previews use `.staging.openapphub.org` instead, so their cookies (the session, and `oah_org`, `oah_theme`, `oah_consent`, whose names are the same in both) never reach production. Signing out anywhere signs out everywhere.
 - **Current organization:** the `oah_org` cookie on the parent domain, always re-checked against the person's memberships; a link from the hub can set it with `?org=<id>` (`takeOrgFromUrl`).
 - **Legal acceptance:** the hub records Terms and Privacy acceptance (`hub.legal_acceptances`); self-hosted Ledger keeps its own (`ledger.legal_acceptances`).
 

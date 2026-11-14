@@ -138,7 +138,13 @@ export type BillingAction =
   | { kind: "status"; subscription: string; status: BillingStatus }
   | { kind: "ignore"; reason: string };
 
-export type StripeEvent = { id: string; type: string; data: { object: Record<string, unknown> } };
+export type StripeEvent = {
+  id: string;
+  type: string;
+  /** Seconds since 1970: when Stripe created the event (events can arrive out of order). */
+  created?: number;
+  data: { object: Record<string, unknown> };
+};
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

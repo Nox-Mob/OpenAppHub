@@ -92,6 +92,7 @@ Workers & Pages → the Worker → **Settings → Build**:
   **`openapphub-staging`** for staging. If yours is named differently, tell me and I'll change the
   config (or rename the Worker).
 - Node version comes from `.nvmrc` (24).
+- **Previews of the hub** (pull-request builds) use the `previews` block in its `wrangler.jsonc` (staging values). Any secret a preview needs is set in Cloudflare under Workers Builds → Previews, with **staging** values, never production ones.
 - The apps (Charter, Board, Ledger) have no separate staging Worker: staging is each production Worker's **preview** of branch `staging`, on `<branch>.<app>.staging.openapphub.org` (previews build with `build:hosted:staging` and deploy with `wrangler preview`).
 - `npm run build` alone builds **production**: the top level of `wrangler.jsonc` is production.
   `build:staging` selects the staging settings.
@@ -125,15 +126,15 @@ Later, when the other apps go live, add their callback URLs too (for example
 
 In `wrangler.jsonc` per environment. Shipped to the browser; not secret.
 
-| Name                            | Contains                                                                                      |
-| ------------------------------- | --------------------------------------------------------------------------------------------- |
-| `VITE_HOSTED`                   | `true` on openapphub.org and staging (part of the suite); `false` for self-hosted copies      |
-| `VITE_APP_ID`                   | `hub`                                                                                         |
-| `VITE_SUPABASE_URL`             | The project URL (`https://<ref>.supabase.co`)                                                 |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | The project's **publishable** key (`sb_publishable_…`). Public by design; safe in the browser |
-| `VITE_HUB_URL`                  | The hub's own address                                                                         |
-| `VITE_COOKIE_DOMAIN`            | `.openapphub.org`: shares the sign-in and the theme choice across the suite                   |
-| `VITE_SUITE_URLS`               | JSON of app addresses: `{"hub":…,"charter":…,"board":…,"ledger":…}`                           |
-| `VITE_DOCS_URL`                 | `https://docs.openapphub.org`                                                                 |
-| `VITE_SIGNUPS_OPEN`             | `false` on production until launch (shows "Sign-ups are closed")                              |
-| `VITE_DEMO_LOGIN`               | `true` on staging only: sign-in buttons for the suite demo accounts. Never on production      |
+| Name                            | Contains                                                                                                                                                                         |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_HOSTED`                   | `true` on openapphub.org and staging (part of the suite); `false` for self-hosted copies                                                                                         |
+| `VITE_APP_ID`                   | `hub`                                                                                                                                                                            |
+| `VITE_SUPABASE_URL`             | The project URL (`https://<ref>.supabase.co`)                                                                                                                                    |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | The project's **publishable** key (`sb_publishable_…`). Public by design; safe in the browser                                                                                    |
+| `VITE_HUB_URL`                  | The hub's own address                                                                                                                                                            |
+| `VITE_COOKIE_DOMAIN`            | `.openapphub.org` (production), `.staging.openapphub.org` (staging and previews): shares the sign-in and the theme choice across the suite, never between staging and production |
+| `VITE_SUITE_URLS`               | JSON of app addresses: `{"hub":…,"charter":…,"board":…,"ledger":…}`                                                                                                              |
+| `VITE_DOCS_URL`                 | `https://docs.openapphub.org`                                                                                                                                                    |
+| `VITE_SIGNUPS_OPEN`             | `false` on production until launch (shows "Sign-ups are closed")                                                                                                                 |
+| `VITE_DEMO_LOGIN`               | `true` on staging only: sign-in buttons for the suite demo accounts. Never on production                                                                                         |

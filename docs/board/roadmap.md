@@ -2,6 +2,10 @@
 
 # Roadmap
 
+## In short
+
+This is OpenBoardApp's old checklist. It's kept so you can see how the app got here. **Don't add to it.** All new plans go in the suite's one roadmap, [`docs/ROADMAP.md`](../ROADMAP.md), where Board's items start with **B-**.
+
 The to-do list, with what's left for the OpenAppHub suite migration, is now [`docs/epic.md`](epic.md). This file keeps the original checklist.
 
 - [x] Plan approved

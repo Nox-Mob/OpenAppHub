@@ -1,5 +1,6 @@
 import type { ScreenProps } from "./types";
 import { EmailActionSettingsPanel } from "@shared/ui/ActionLink";
+import { OrgTwoStepPanel } from "@shared/ui/TwoStep";
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { APP_NAMES } from "@shared/apps";
@@ -52,6 +53,13 @@ export function SettingsScreen({ hub }: ScreenProps) {
           </Button>
         </Panel>
         <AppRolesSettingPanel orgId={org.id} />
+        <Panel
+          id="security"
+          title="Security"
+          description="How the people who can change everything must sign in."
+        >
+          <OrgTwoStepPanel client={getSupabaseBrowserClient()} orgId={org.id} />
+        </Panel>
         <Panel
           id="email-actions"
           title="Actions from email"

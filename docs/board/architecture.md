@@ -1,5 +1,14 @@
 # OpenBoard architecture
 
+## In short
+
+OpenBoardApp is one web app. It talks to one database (Supabase). There are no extra servers, queues or offline copies.
+
+- **Screens** never talk to the database directly. They go through one doorway, `src/data`. A test fails if a screen skips it.
+- **The database is the real guard.** Its rules decide who can see each organization's records, lock approved minutes, and count votes in one step. Checks in the browser just make the screens friendlier.
+- **Documents are made in the browser.** PDFs and zip files are built on your own computer, not on the server.
+- The table below says, for each part of the app, whether it's built and how well it's tested.
+
 One board-management application backed by Supabase (the OpenAppHub suite's shared project when hosted, your own when self-hosted): PostgreSQL, authentication and private file storage. No microservices, queues, offline database or synchronization engine.
 
 ```text

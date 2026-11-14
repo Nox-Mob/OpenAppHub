@@ -1,5 +1,13 @@
 # Data Domains (input to database design)
 
+## In short
+
+This is a list of the kinds of things OpenCharterApp needed to store, like people, memberships, chapters and payments, grouped by area. It was written **before** the database was designed, to plan it.
+
+- It's **not** the real list of tables. For that, see [`tables.md`](tables.md).
+- Every table that belongs to one organization has an `org_id`, so database rules can keep organizations apart.
+- It's kept because it explains _why_ the data is shaped the way it is.
+
 An inventory of what we will need to store, grouped by domain. This is **not a schema**: for the tables actually in use and how they connect, see [`tables.md`](tables.md). It lists the main entities, key relationships, and the design questions to settle before writing tables. Domains are ordered roughly by the order we will design them.
 
 Conventions to assume at schema time: every tenant-owned table carries `org_id`; timestamps and soft-delete or status columns where history matters; audit events for meaningful changes; IDs are opaque (UUID or similar).

@@ -2,6 +2,10 @@
 
 # OpenLedgerApp — Roadmap
 
+## In short
+
+This is OpenLedgerApp's old roadmap and version history. It's kept so you can see how the app got here. **Don't add to it.** All new plans go in the suite's one roadmap, [`docs/ROADMAP.md`](../ROADMAP.md), where Ledger's items start with **L-**.
+
 The to-do list, with what's left for the OpenAppHub suite migration, is [`docs/epic.md`](epic.md). This file keeps the version history.
 
 ## Road to v1.0 (plan approved 2026-10-08, updated 2026-10-10)

@@ -1,5 +1,14 @@
 # Architecture Map
 
+## In short
+
+OpenCharterApp is one app with one database. It's split into modules (like membership, chapters and payments) by folder, so each part stays tidy without needing separate servers.
+
+- **Built with:** TanStack Start (React) running on Cloudflare, with Supabase for the database, sign-in and file storage. The first plan named other tools. The note just below explains what changed and why.
+- **Organizations nest.** A national organization can have regions and chapters under it. Database rules keep each one's records apart and let a national see only what's under it.
+- **Shared engines** do the jobs many modules need: guided setup, rules, payments and notifications.
+- The sections below go from the big picture down to the details.
+
 High-level only. This describes the shape of the system and the shared engines. Schemas, APIs, and screens come later.
 
 > **Current stack (D-100..D-104, D-111).** The original plan named Next.js, pg-boss, Better Auth and Caddy. They were replaced. The app is **TanStack Start (React 19, Vite) running on edge workers**, with **Supabase** for Postgres (with row-level security), Auth (email/password and Google) and Storage. Background work is planned as a **Postgres jobs table plus scheduled server routes** (E-08, deferred). Bun is the package manager. Per-org web addresses and the reverse proxy (E-07, E-22, F-11) are deferred. The structure below (modules, engines, tenancy, RLS) still applies; where a section names the old tools, read it with this substitution.

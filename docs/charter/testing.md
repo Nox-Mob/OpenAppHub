@@ -1,5 +1,14 @@
 # Testing and CI
 
+## In short
+
+Every change has to pass all of OpenCharterApp's checks before it's merged.
+
+- **`ci.yml` runs on every push.** It checks code style, types, unit tests, the database rules, speed, known security problems in libraries, the build, and that the docs were updated.
+- **`migrate.yml` is run by hand** by the owner. It applies database changes to staging or production. It always starts with a dry run.
+- **`live.yml` checks the live demo** every day, using the demo accounts.
+- The table lists each check and the command to run it on your own computer. Database rule tests are explained at the end.
+
 Every change must keep all of these green (instructions.md §3). GitHub runs them in two workflows (D-197):
 
 - **`ci.yml`, no live backend needed:** on every push to any branch, every pull request, every Monday (so new dependency advisories surface without a push) and on demand. Jobs: lint, formatting, types, unit tests and migration conventions; database rules; performance; dependency audit; build; and the docs check on pull requests.

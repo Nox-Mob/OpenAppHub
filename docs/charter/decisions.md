@@ -1,5 +1,13 @@
 # Decisions Log
 
+## In short
+
+This is the list of every choice made while building OpenCharterApp. Each choice has an ID, like **D-100**, so tickets and code comments can point to it.
+
+- Choices are never deleted. When a later choice changes an earlier one, the new row says "refines" or "supersedes", and the old row points to it.
+- **Decided** means final for now. **Default** means "we'll go with this unless someone objects." **Deferred** means "on purpose, later." **Direction** means "we agree on the approach; details come when the work starts."
+- Looking for one topic? Search this page for a word like "Stripe" or "chapter". Rows are grouped by area.
+
 Status key: **Decided** (final for now), **Default** (working assumption, confirm when relevant), **Deferred** (intentionally postponed), **Direction** (agreed approach, details decided when the work starts). A later decision that changes an earlier one says so ("refines", "supersedes"), and the earlier row points to it; nothing is deleted.
 
 ## Technology and delivery

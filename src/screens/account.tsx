@@ -12,6 +12,7 @@ import {
 } from "@shared/ui/DigestSettings";
 import { HelpLink } from "@shared/ui/HelpLink";
 import { NotificationSettings } from "@shared/ui/Notifications";
+import { TwoStepSettings } from "@shared/ui/TwoStep";
 import { ThemeToggle } from "@shared/ui/ThemeToggle";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageHeader, Panel } from "@/components/hub/HubShell";
@@ -102,6 +103,13 @@ export function AccountScreen({ user, hub }: ScreenProps) {
         </Panel>
         <EmailPanel email={user.email} />
         <PasswordPanel email={user.email} />
+        <Panel
+          id="two-step"
+          title="Two-step sign-in"
+          description="A code from your phone, as well as your password, every time you sign in. It works in every app."
+        >
+          <TwoStepSettings client={getSupabaseBrowserClient()} />
+        </Panel>
         <Panel
           id="notifications"
           title="Notifications"

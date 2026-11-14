@@ -1,5 +1,13 @@
 # Risks and Open Questions
 
+## In short
+
+This page lists the questions we haven't answered yet and the risks that could cause trouble.
+
+- **Questions** have IDs like **Q-01**. Once a question is answered, it's crossed out here and the answer moves to [`decisions.md`](decisions.md).
+- **P1** means "answer before designing the database." **P2** means "answer before that part of the work starts." **P3** means "it can wait."
+- **Risks** have IDs like **R-01**. Each one says what could go wrong and what we're doing about it.
+
 Review at each sprint review. Move resolved items into `decisions.md`.
 
 ## 1. Open questions

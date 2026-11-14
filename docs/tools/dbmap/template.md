@@ -103,6 +103,14 @@ Key functions: `create_organization`, `rename_organization`, `delete_organizatio
 
 <!--GEN:core-->
 
+### Account security (core 0019)
+
+Each person's security: `account_security_events` (what happened, which they can read themselves), the one-time passes for **Confirm it's you** (`reauth_codes` for emailed codes, `reauth_grants` for passes), backup codes (`mfa_recovery_codes`, fingerprints only), the recovery email (`account_recovery`) and a recovery waiting for the server (`mfa_recovery_grants`). Only definer functions touch them. The organization's two-step level is `org_role_settings.mfa_required`.
+
+Key functions: `begin_reauth`, `send_reauth_code`, `use_reauth`, `set_org_mfa_level`, `create_recovery_codes`, `use_recovery_code`, `set_recovery_email`, `verify_recovery_email`, `send_recovery_link`, `use_recovery_link`, `finish_two_step_recovery`, `account_security_status`.
+
+<!--GEN:account-security-->
+
 ---
 
 ## 4. Hub

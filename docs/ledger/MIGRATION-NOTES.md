@@ -254,14 +254,14 @@ Kept in Ledger: `require_mfa` lives in `ledger.org_settings`, and `ledger.mfa_ok
 
 ### 4.7 Service role
 
-| Use today                                        | v2                                                                                                |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| Invite claim (`members.functions.ts`)            | gone: `accept_invitation` runs as the caller                                                      |
-| Org delete (`delete_organization_atomic`)        | gone: `public.delete_organization` as the caller                                                  |
-| Account delete (`auth.admin.deleteUser`)         | self-hosted only, server checks `VITE_HOSTED`                                                     |
-| History writes (`audit.ts` → `audit_log` insert) | `ledger.audited_write` / event-only history RPC as the caller                                     |
-| Restore (`restore.server.ts`)                    | `public.create_organization()` as the caller; cleanup on failure via `public.delete_organization` |
-| AI usage meter (`import.functions.ts`)           | off (step 3b); when it returns, a `ledger` RPC as the caller                                      |
+| Use today                                        | v2                                                                                                                   |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| Invite claim (`members.functions.ts`)            | gone: `accept_invitation` runs as the caller                                                                         |
+| Org delete (`delete_organization_atomic`)        | gone: `public.delete_organization` as the caller                                                                     |
+| Account delete (`auth.admin.deleteUser`)         | self-hosted only, server checks `VITE_HOSTED`                                                                        |
+| History writes (`audit.ts` → `audit_log` insert) | `ledger.audited_write` / event-only history RPC as the caller                                                        |
+| Restore (`restore.server.ts`)                    | Superseded (0017): `ledger.restore_into` fills the current, empty organization in one transaction; no cleanup needed |
+| AI usage meter (`import.functions.ts`)           | off (step 3b); when it returns, a `ledger` RPC as the caller                                                         |
 
 Hosted Ledger ends up with **no** service-role key (spec §7.2). The only Ledger Worker secret is `BACKUP_SIGNING_SEED`.
 

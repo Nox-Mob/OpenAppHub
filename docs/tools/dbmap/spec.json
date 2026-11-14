@@ -15,6 +15,17 @@
     ]
   },
   {
+    "id": "account-security",
+    "tables": [
+      "public.account_security_events",
+      "public.reauth_codes",
+      "public.reauth_grants",
+      "public.mfa_recovery_codes",
+      "public.mfa_recovery_grants",
+      "public.account_recovery"
+    ]
+  },
+  {
     "id": "hub",
     "tables": [
       "hub.instance",
@@ -50,7 +61,11 @@
   },
   {
     "id": "automations",
-    "tables": ["public.automation_kinds", "public.automations", "public.automation_log"]
+    "tables": [
+      "public.automation_kinds",
+      "public.automations",
+      "public.automation_log"
+    ]
   },
   {
     "id": "workflows",
@@ -107,7 +122,9 @@
       "charter.member_segments",
       "charter.attribute_definitions",
       "charter.attribute_options",
-      "charter.attribute_values"
+      "charter.attribute_values",
+      "charter.field_key_versions",
+      "charter.field_keys"
     ]
   },
   {

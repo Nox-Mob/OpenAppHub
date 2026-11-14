@@ -1,0 +1,69 @@
+{
+  "login": {
+    "url": "https://staging.charter.staging.openapphub.org/auth",
+    "email": "demo@demo.openapphub.org",
+    "password": "OpenAppHubDemo2026"
+  },
+  "pages": [
+    {
+      "name": "ch-dashboard",
+      "url": "https://staging.charter.staging.openapphub.org/dashboard"
+    },
+    {
+      "name": "ch-orgs",
+      "url": "https://staging.charter.staging.openapphub.org/orgs"
+    },
+    {
+      "name": "ch-account",
+      "url": "https://staging.charter.staging.openapphub.org/account"
+    },
+    {
+      "name": "ch-overview",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1"
+    },
+    {
+      "name": "ch-members",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1?tab=members"
+    },
+    {
+      "name": "ch-directory",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1?tab=directory"
+    },
+    {
+      "name": "ch-levels",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1?tab=levels"
+    },
+    {
+      "name": "ch-payments",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1?tab=payments"
+    },
+    {
+      "name": "ch-fields",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1?tab=fields"
+    },
+    {
+      "name": "ch-roles",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1?tab=roles"
+    },
+    {
+      "name": "ch-board",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1?tab=board"
+    },
+    {
+      "name": "ch-reports",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1?tab=reports"
+    },
+    {
+      "name": "ch-settings",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1?tab=settings"
+    },
+    {
+      "name": "ch-audit",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1?tab=audit"
+    },
+    {
+      "name": "ch-board-settings",
+      "url": "https://staging.charter.staging.openapphub.org/orgs/de000000-0000-4000-8000-0000000000a1?tab=board-settings"
+    }
+  ]
+}

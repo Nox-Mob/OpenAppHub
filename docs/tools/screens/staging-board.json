@@ -1,0 +1,57 @@
+{
+  "login": {
+    "url": "https://staging.charter.staging.openapphub.org/auth",
+    "email": "demo@demo.openapphub.org",
+    "password": "OpenAppHubDemo2026"
+  },
+  "pages": [
+    {
+      "name": "bd-home",
+      "url": "https://staging.board.staging.openapphub.org/board"
+    },
+    {
+      "name": "bd-meetings",
+      "url": "https://staging.board.staging.openapphub.org/board/meetings"
+    },
+    {
+      "name": "bd-templates",
+      "url": "https://staging.board.staging.openapphub.org/board/templates"
+    },
+    {
+      "name": "bd-tasks",
+      "url": "https://staging.board.staging.openapphub.org/board/tasks"
+    },
+    {
+      "name": "bd-documents",
+      "url": "https://staging.board.staging.openapphub.org/board/documents"
+    },
+    {
+      "name": "bd-members",
+      "url": "https://staging.board.staging.openapphub.org/board/members"
+    },
+    {
+      "name": "bd-committees",
+      "url": "https://staging.board.staging.openapphub.org/board/committees"
+    },
+    {
+      "name": "bd-audit",
+      "url": "https://staging.board.staging.openapphub.org/board/audit"
+    },
+    {
+      "name": "bd-settings",
+      "url": "https://staging.board.staging.openapphub.org/board/settings"
+    },
+    {
+      "name": "bd-email",
+      "url": "https://staging.board.staging.openapphub.org/board/email"
+    },
+    {
+      "name": "bd-security",
+      "url": "https://staging.board.staging.openapphub.org/board/security"
+    },
+    {
+      "name": "bd-meetings/8c439d1e-23ae-4fb6-91b9-a9d48087d38a",
+      "url": "https://staging.board.staging.openapphub.org/board/meetings/8c439d1e-23ae-4fb6-91b9-a9d48087d38a"
+    }
+  ]
+}

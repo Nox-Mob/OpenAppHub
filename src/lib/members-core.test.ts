@@ -105,6 +105,8 @@ function accountClient(
   } as never;
 }
 
+const TOKEN = "a".repeat(64);
+
 describe("deleteAccount", () => {
   it("is blocked while the user owns an organization, naming it", async () => {
     const ac = adminClient();
@@ -112,6 +114,7 @@ describe("deleteAccount", () => {
       deleteAccount({
         userClient: accountClient([{ organizations: { name: "Riverside" } }]),
         adminClient: ac,
+        reauthToken: TOKEN,
       }),
     ).rejects.toThrow(
       "You own Riverside. Transfer ownership or delete it before deleting your account.",
@@ -122,17 +125,18 @@ describe("deleteAccount", () => {
     ).not.toHaveBeenCalled();
   });
 
-  it("needs a recent sign-in", async () => {
+  it("needs the one-time pass from Confirm it's you", async () => {
     const ac = adminClient();
     await expect(
       deleteAccount({
         userClient: accountClient([], {
           code: "42501",
-          message: "For your safety, sign out and sign in again, then try this within 15 minutes.",
+          message: "For your safety, confirm it's you first.",
         }),
         adminClient: ac,
+        reauthToken: TOKEN,
       }),
-    ).rejects.toThrow(/sign in again/);
+    ).rejects.toThrow(/confirm it's you/);
     expect(
       (ac as unknown as { auth: { admin: { deleteUser: ReturnType<typeof vi.fn> } } }).auth.admin
         .deleteUser,
@@ -141,7 +145,7 @@ describe("deleteAccount", () => {
 
   it("deletes the account with the service role otherwise", async () => {
     const ac = adminClient();
-    await deleteAccount({ userClient: accountClient([]), adminClient: ac });
+    await deleteAccount({ userClient: accountClient([]), adminClient: ac, reauthToken: TOKEN });
     expect(
       (ac as unknown as { auth: { admin: { deleteUser: ReturnType<typeof vi.fn> } } }).auth.admin
         .deleteUser,

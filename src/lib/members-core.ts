@@ -77,6 +77,7 @@ export async function inviteMember(opts: {
 export async function deleteAccount(opts: {
   userClient: SupabaseClient;
   adminClient: SupabaseClient | null;
+  reauthToken: string;
 }): Promise<void> {
   const { data: auth } = await opts.userClient.auth.getUser();
   const user = auth.user;
@@ -96,11 +97,13 @@ export async function deleteAccount(opts: {
       `You own ${names || "an organization"}. Transfer ownership or delete it before deleting your account.`,
     );
   }
-  // A sign-in in the last 15 minutes (core 0018), so a computer left signed in can't be used
-  // to delete the account. A database without core 0018 skips this.
-  const { error: recent } = await opts.userClient.rpc("assert_recent_sign_in", { p_minutes: 15 });
-  if (recent && recent.code !== "PGRST202" && recent.code !== "42883")
-    throw new FriendlyError(recent.message);
+  // The one-time pass from "Confirm it's you" (core 0019), used as the person themselves, so a
+  // computer left signed in can't be used to delete the account.
+  const { error: reauth } = await opts.userClient.rpc("use_reauth", {
+    p_action: "delete_account",
+    p_token: opts.reauthToken,
+  });
+  if (reauth) throw new FriendlyError(reauth.message);
   if (!opts.adminClient)
     throw new FriendlyError("Account deletion isn't available on this server.");
   const { error: delError } = await opts.adminClient.auth.admin.deleteUser(user.id);

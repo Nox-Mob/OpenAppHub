@@ -87,6 +87,7 @@ mindmap
   - An `appointments` row puts a member record (`org_member_profiles`) into a seat (`seat_templates`).
   - The appointment creates a `role_assignments` row when the seat carries a role (`seat_templates.role_id` → `roles`).
 - **Member fields belong to people.** An `attribute_values` row holds one field's value for one member record, or for one organization in the case of chapter fields (`entity_id`).
+- **Sensitive fields are encrypted (0019).** When `attribute_definitions.sensitive` is on, `attribute_values.value` is null and `value_enc` holds the value encrypted with pgcrypto (AES-256, salted). Apps read the computed column `shown_value`, which decrypts only for member managers and the member. Keys: `field_key_versions` (and `field_keys` without Vault); rotate with `charter.rotate_field_key()`.
 - **Home chapters** (home-chapter model, D-174):
   - The national's `memberships.home_org_id` names the chapter.
   - In that chapter, an `org_member_profiles` row points back at the national membership through `home_of`.

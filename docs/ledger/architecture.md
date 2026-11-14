@@ -49,7 +49,7 @@ Status labels used below: **Implemented and tested**, **Implemented, partly veri
 | Two-step sign-in (org can require it)                                                                  | Implemented and tested (database checks, rule tests)                                                                     |
 | Delete my account; organization delete in one step                                                     | Implemented and tested                                                                                                   |
 | Architecture boundaries (no direct table writes, admin client allowlist)                               | Enforced by src/lib/architecture.test.ts in CI                                                                           |
-| Signed backups and restore into a new organization                                                     | Implemented and tested (memory adapter roundtrip, tamper rejection)                                                      |
+| Signed backups and restore into an empty organization (one database step, 0017)                        | Implemented and tested (memory adapter roundtrip, tamper rejection)                                                      |
 | Budgets, templates, funds, pledges, categories, tags, projects (with archive)                          | Implemented and tested on cloud and desktop (memory and SQLite contract tests)                                           |
 | Exports, history viewer, backups, bank import on desktop                                               | Cloud only for now (desktop says so and records nothing)                                                                 |
 | SQLite adapter                                                                                         | Implemented, partly verified (sql.js only, not a native desktop driver)                                                  |
@@ -82,7 +82,7 @@ Every data change and its history entry are written in one database transaction;
 
 ## Backups
 
-- Format v3: signed Ed25519 manifest over chained per-row SHA-256 hashes, app version recorded. Restore always creates a new organization with new IDs, re-runs domain checks, and deletes the partial organization if anything fails. CSV and Excel exports are read-only copies, not backups. See `src/lib/domain/backup.ts`.
+- Format v3: signed Ed25519 manifest over chained per-row SHA-256 hashes, app version recorded. Restore fills the current organization while its books are empty (`ledger.restore_into`, 0017): the server gives every row a new ID and re-runs the domain checks, then the database writes everything in one transaction as the signed-in owner or admin, so a failure keeps nothing. No service-role key (hosted Ledger has none). CSV and Excel exports are read-only copies, not backups. See `src/lib/domain/backup.ts`.
 
 ## Sign-in and sessions
 

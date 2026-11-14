@@ -278,13 +278,13 @@ Unique together: (id, org_id).
 
 <details><summary><code>public.org_role_settings</code> (5 columns)</summary>
 
-| Column                    | Type                     | Null | Default      | Key / reference                                 |
-| ------------------------- | ------------------------ | ---- | ------------ | ----------------------------------------------- |
-| `org_id`                  | uuid                     |      |              | PK → `public.organizations` (on delete cascade) |
-| `app_admins_manage_roles` | boolean                  |      | `false`      |                                                 |
-| `set_by`                  | uuid                     | yes  | `auth.uid()` |                                                 |
-| `set_at`                  | timestamp with time zone |      | `now()`      |                                                 |
-| `require_mfa_admins`      | boolean                  |      | `false`      |                                                 |
+| Column                    | Type                     | Null | Default       | Key / reference                                 |
+| ------------------------- | ------------------------ | ---- | ------------- | ----------------------------------------------- |
+| `org_id`                  | uuid                     |      |               | PK → `public.organizations` (on delete cascade) |
+| `app_admins_manage_roles` | boolean                  |      | `false`       |                                                 |
+| `set_by`                  | uuid                     | yes  | `auth.uid()`  |                                                 |
+| `set_at`                  | timestamp with time zone |      | `now()`       |                                                 |
+| `mfa_required`            | text                     |      | `'off'::text` |                                                 |
 
 </details>
 
@@ -306,6 +306,121 @@ Unique together: (id, org_id).
 | --------- | ------------------------ | ---- | ------- | --------------- |
 | `mark`    | text                     |      |         | PK              |
 | `done_at` | timestamp with time zone |      | `now()` |                 |
+
+</details>
+
+### Account security (core 0019)
+
+Each person's security: `account_security_events` (what happened, which they can read themselves), the one-time passes for **Confirm it's you** (`reauth_codes` for emailed codes, `reauth_grants` for passes), backup codes (`mfa_recovery_codes`, fingerprints only), the recovery email (`account_recovery`) and a recovery waiting for the server (`mfa_recovery_grants`). Only definer functions touch them. The organization's two-step level is `org_role_settings.mfa_required`.
+
+Key functions: `begin_reauth`, `send_reauth_code`, `use_reauth`, `set_org_mfa_level`, `create_recovery_codes`, `use_recovery_code`, `set_recovery_email`, `verify_recovery_email`, `send_recovery_link`, `use_recovery_link`, `finish_two_step_recovery`, `account_security_status`.
+
+```mermaid
+erDiagram
+    public_account_security_events {
+        uuid id PK
+        uuid user_id FK
+        text kind
+    }
+    public_reauth_codes {
+        uuid user_id PK,FK
+    }
+    public_reauth_grants {
+        text token_hash PK
+        uuid user_id FK
+    }
+    public_mfa_recovery_codes {
+        uuid user_id PK,FK
+        text code_hash PK
+    }
+    public_mfa_recovery_grants {
+        uuid user_id PK,FK
+    }
+    public_account_recovery {
+        uuid user_id PK,FK
+        text email
+    }
+    auth_users {
+        uuid id PK
+    }
+    public_account_recovery |o--|| auth_users : "user_id"
+    public_account_security_events }o--|| auth_users : "user_id"
+    public_mfa_recovery_codes }o--|| auth_users : "user_id"
+    public_mfa_recovery_grants |o--|| auth_users : "user_id"
+    public_reauth_codes |o--|| auth_users : "user_id"
+    public_reauth_grants }o--|| auth_users : "user_id"
+```
+
+<details><summary><code>public.account_security_events</code> (5 columns)</summary>
+
+| Column       | Type                     | Null | Default             | Key / reference                    |
+| ------------ | ------------------------ | ---- | ------------------- | ---------------------------------- |
+| `id`         | uuid                     |      | `gen_random_uuid()` | PK                                 |
+| `user_id`    | uuid                     |      |                     | → `auth.users` (on delete cascade) |
+| `kind`       | text                     |      |                     |                                    |
+| `detail`     | jsonb                    |      | `'{}'::jsonb`       |                                    |
+| `created_at` | timestamp with time zone |      | `now()`             |                                    |
+
+</details>
+
+<details><summary><code>public.reauth_codes</code> (6 columns)</summary>
+
+| Column       | Type                     | Null | Default | Key / reference                       |
+| ------------ | ------------------------ | ---- | ------- | ------------------------------------- |
+| `user_id`    | uuid                     |      |         | PK → `auth.users` (on delete cascade) |
+| `action`     | text                     |      |         |                                       |
+| `code_hash`  | text                     |      |         |                                       |
+| `attempts`   | integer                  |      | `0`     |                                       |
+| `created_at` | timestamp with time zone |      | `now()` |                                       |
+| `expires_at` | timestamp with time zone |      |         |                                       |
+
+</details>
+
+<details><summary><code>public.reauth_grants</code> (5 columns)</summary>
+
+| Column       | Type                     | Null | Default | Key / reference                    |
+| ------------ | ------------------------ | ---- | ------- | ---------------------------------- |
+| `token_hash` | text                     |      |         | PK                                 |
+| `user_id`    | uuid                     |      |         | → `auth.users` (on delete cascade) |
+| `action`     | text                     |      |         |                                    |
+| `created_at` | timestamp with time zone |      | `now()` |                                    |
+| `expires_at` | timestamp with time zone |      |         |                                    |
+
+</details>
+
+<details><summary><code>public.mfa_recovery_codes</code> (4 columns)</summary>
+
+| Column       | Type                     | Null | Default | Key / reference                       |
+| ------------ | ------------------------ | ---- | ------- | ------------------------------------- |
+| `user_id`    | uuid                     |      |         | PK → `auth.users` (on delete cascade) |
+| `code_hash`  | text                     |      |         | PK                                    |
+| `created_at` | timestamp with time zone |      | `now()` |                                       |
+| `used_at`    | timestamp with time zone | yes  |         |                                       |
+
+</details>
+
+<details><summary><code>public.mfa_recovery_grants</code> (3 columns)</summary>
+
+| Column       | Type                     | Null | Default | Key / reference                       |
+| ------------ | ------------------------ | ---- | ------- | ------------------------------------- |
+| `user_id`    | uuid                     |      |         | PK → `auth.users` (on delete cascade) |
+| `method`     | text                     |      |         |                                       |
+| `expires_at` | timestamp with time zone |      |         |                                       |
+
+</details>
+
+<details><summary><code>public.account_recovery</code> (8 columns)</summary>
+
+| Column           | Type                     | Null | Default | Key / reference                       |
+| ---------------- | ------------------------ | ---- | ------- | ------------------------------------- |
+| `user_id`        | uuid                     |      |         | PK → `auth.users` (on delete cascade) |
+| `email`          | text                     |      |         |                                       |
+| `verified_at`    | timestamp with time zone | yes  |         |                                       |
+| `verify_hash`    | text                     | yes  |         |                                       |
+| `verify_expires` | timestamp with time zone | yes  |         |                                       |
+| `link_hash`      | text                     | yes  |         |                                       |
+| `link_expires`   | timestamp with time zone | yes  |         |                                       |
+| `updated_at`     | timestamp with time zone |      | `now()` |                                       |
 
 </details>
 
@@ -1561,6 +1676,13 @@ erDiagram
         uuid definition_id FK
         uuid org_id FK
     }
+    charter_field_key_versions {
+        int version PK
+    }
+    charter_field_keys {
+        int version PK,FK
+        text key
+    }
     charter_payments {
         uuid id PK
     }
@@ -1583,6 +1705,7 @@ erDiagram
     charter_attribute_values }o--o| public_organizations : "org_id"
     charter_attribute_values }o--|| charter_attribute_definitions : "definition_id"
     charter_attribute_values }o--|| charter_units : "unit_id"
+    charter_field_keys |o--|| charter_field_key_versions : "version"
     charter_member_profiles }o--o| charter_memberships : "home_of"
     charter_member_profiles }o--o| public_organizations : "org_id"
     charter_member_profiles }o--|| charter_units : "unit_id"
@@ -1772,7 +1895,7 @@ Unique together: (unit_id, name).
 
 </details>
 
-<details><summary><code>charter.attribute_definitions</code> (16 columns)</summary>
+<details><summary><code>charter.attribute_definitions</code> (17 columns)</summary>
 
 | Column              | Type                     | Null | Default                                  | Key / reference                              |
 | ------------------- | ------------------------ | ---- | ---------------------------------------- | -------------------------------------------- |
@@ -1792,6 +1915,7 @@ Unique together: (unit_id, name).
 | `created_at`        | timestamp with time zone |      | `now()`                                  |                                              |
 | `locked`            | boolean                  |      | `false`                                  |                                              |
 | `org_id`            | uuid                     | yes  |                                          | → `public.organizations` (on delete cascade) |
+| `sensitive`         | boolean                  |      | `false`                                  |                                              |
 
 Unique together: (unit_id, applies_to, key).
 
@@ -1814,7 +1938,7 @@ Unique together: (definition_id, value).
 
 </details>
 
-<details><summary><code>charter.attribute_values</code> (8 columns)</summary>
+<details><summary><code>charter.attribute_values</code> (9 columns)</summary>
 
 | Column          | Type                     | Null | Default             | Key / reference                                       |
 | --------------- | ------------------------ | ---- | ------------------- | ----------------------------------------------------- |
@@ -1822,12 +1946,32 @@ Unique together: (definition_id, value).
 | `unit_id`       | uuid                     |      |                     | → `charter.units` (on delete cascade)                 |
 | `definition_id` | uuid                     |      |                     | → `charter.attribute_definitions` (on delete cascade) |
 | `entity_id`     | uuid                     |      |                     |                                                       |
-| `value`         | jsonb                    |      |                     |                                                       |
+| `value`         | jsonb                    | yes  |                     |                                                       |
 | `updated_by`    | uuid                     | yes  |                     |                                                       |
 | `updated_at`    | timestamp with time zone |      | `now()`             |                                                       |
 | `org_id`        | uuid                     | yes  |                     | → `public.organizations` (on delete cascade)          |
+| `value_enc`     | bytea                    | yes  |                     |                                                       |
 
 Unique together: (definition_id, entity_id).
+
+</details>
+
+<details><summary><code>charter.field_key_versions</code> (3 columns)</summary>
+
+| Column         | Type                     | Null | Default | Key / reference |
+| -------------- | ------------------------ | ---- | ------- | --------------- |
+| `version`      | integer                  |      |         | PK              |
+| `created_at`   | timestamp with time zone |      | `now()` |                 |
+| `forgotten_at` | timestamp with time zone | yes  |         |                 |
+
+</details>
+
+<details><summary><code>charter.field_keys</code> (2 columns)</summary>
+
+| Column    | Type    | Null | Default | Key / reference                                       |
+| --------- | ------- | ---- | ------- | ----------------------------------------------------- |
+| `version` | integer |      |         | PK → `charter.field_key_versions` (on delete cascade) |
+| `key`     | text    |      |         |                                                       |
 
 </details>
 

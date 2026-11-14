@@ -45,7 +45,7 @@ begin
 
   -- Right name (case and spaces don't matter) transfers.
   perform tests.as_user(owner);
-  perform public.transfer_ownership(org, bob, '  bob tremblay ');
+  perform public.transfer_ownership(org, bob, '  bob tremblay ', tests.reauth(owner, 'transfer_ownership'));
   perform tests.as_super();
   perform tests.ok((select role from public.memberships where org_id = org and user_id = bob) = 'owner', 'bob is owner');
   perform tests.ok((select role from public.memberships where org_id = org and user_id = owner) = 'admin', 'old owner is admin');

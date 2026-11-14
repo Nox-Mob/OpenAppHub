@@ -17,7 +17,7 @@ follow for the record.
 | ![](screenshots/suite-dialog-desktop-light.png)    | ![](screenshots/suite-dialog-desktop-dark.png)    | ![](screenshots/suite-dialog-phone-light.png)    |
 
 Dark tokens: [suite-tokens-dark.png](screenshots/suite-tokens-dark.png). Contrast: all pass
-([contrast.md](contrast.md)).
+([contrast.md](contrast.md)). Phones, tablets and monitors: [devices.md](devices.md).
 
 ---
 

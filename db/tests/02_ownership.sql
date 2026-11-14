@@ -46,7 +46,7 @@ begin
   perform tests.throws(format('select public.transfer_ownership(%L, %L)', org, eve), 'new owner must be a member', 'already be a member');
   perform tests.throws(format('select public.transfer_ownership(%L, %L)', org, alice), 'cannot transfer to self', 'another member');
 
-  perform public.transfer_ownership(org, carol);
+  perform public.transfer_ownership(org, carol, null, tests.reauth(alice, 'transfer_ownership'));
   perform tests.as_super();
   perform tests.ok((select role from public.memberships where org_id = org and user_id = carol) = 'owner', 'carol is owner');
   perform tests.ok((select role from public.memberships where org_id = org and user_id = alice) = 'admin', 'alice is admin');

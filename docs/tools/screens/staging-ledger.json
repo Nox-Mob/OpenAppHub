@@ -1,0 +1,85 @@
+{
+  "login": {
+    "url": "https://staging.charter.staging.openapphub.org/auth",
+    "email": "demo@demo.openapphub.org",
+    "password": "OpenAppHubDemo2026"
+  },
+  "pages": [
+    {
+      "name": "lg-ledger",
+      "url": "https://staging.ledger.staging.openapphub.org/ledger"
+    },
+    {
+      "name": "lg-transactions",
+      "url": "https://staging.ledger.staging.openapphub.org/transactions"
+    },
+    {
+      "name": "lg-transactions-new",
+      "url": "https://staging.ledger.staging.openapphub.org/transactions/new"
+    },
+    {
+      "name": "lg-templates",
+      "url": "https://staging.ledger.staging.openapphub.org/templates"
+    },
+    {
+      "name": "lg-accounts",
+      "url": "https://staging.ledger.staging.openapphub.org/accounts"
+    },
+    {
+      "name": "lg-import",
+      "url": "https://staging.ledger.staging.openapphub.org/import"
+    },
+    {
+      "name": "lg-reconcile",
+      "url": "https://staging.ledger.staging.openapphub.org/reconcile"
+    },
+    {
+      "name": "lg-projects",
+      "url": "https://staging.ledger.staging.openapphub.org/projects"
+    },
+    {
+      "name": "lg-budgets",
+      "url": "https://staging.ledger.staging.openapphub.org/budgets"
+    },
+    {
+      "name": "lg-funds",
+      "url": "https://staging.ledger.staging.openapphub.org/funds"
+    },
+    {
+      "name": "lg-pledges",
+      "url": "https://staging.ledger.staging.openapphub.org/pledges"
+    },
+    {
+      "name": "lg-reports",
+      "url": "https://staging.ledger.staging.openapphub.org/reports"
+    },
+    {
+      "name": "lg-settings",
+      "url": "https://staging.ledger.staging.openapphub.org/settings"
+    },
+    {
+      "name": "lg-settings-members",
+      "url": "https://staging.ledger.staging.openapphub.org/settings/members"
+    },
+    {
+      "name": "lg-settings-security",
+      "url": "https://staging.ledger.staging.openapphub.org/settings/security"
+    },
+    {
+      "name": "lg-settings-exports",
+      "url": "https://staging.ledger.staging.openapphub.org/settings/exports"
+    },
+    {
+      "name": "lg-settings-close",
+      "url": "https://staging.ledger.staging.openapphub.org/settings/close"
+    },
+    {
+      "name": "lg-settings-history",
+      "url": "https://staging.ledger.staging.openapphub.org/settings/history"
+    },
+    {
+      "name": "lg-settings-preferences",
+      "url": "https://staging.ledger.staging.openapphub.org/settings/preferences"
+    }
+  ]
+}

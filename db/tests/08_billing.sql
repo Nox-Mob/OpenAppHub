@@ -179,7 +179,7 @@ begin
 
   -- Deleting an organization removes its subscription.
   perform tests.as_user(alice);
-  perform public.delete_organization(org, 'Riverside');
+  perform public.delete_organization(org, 'Riverside', tests.reauth(alice, 'delete_organization'));
   perform tests.as_super();
   perform tests.ok(not exists (select 1 from billing.subscriptions where org_id = org), 'subscription deleted with the org');
   perform tests.ok(exists (select 1 from billing.trial_grants where user_id = alice), 'trial grant kept: no new trial by deleting');

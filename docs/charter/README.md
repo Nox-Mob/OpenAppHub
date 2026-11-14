@@ -1,5 +1,14 @@
 # Membership Platform — Planning Docs
 
+## In short
+
+OpenCharterApp is free, open-source software that runs membership for nonprofit associations: members, dues, chapters, board seats, elections, documents and awards. It works for one organization, or for a national one with chapters under it.
+
+- **New to the code?** Read [`instructions.md`](instructions.md) first. It has the working rules and the checklist for every pull request.
+- **Want the "why"?** [`decisions.md`](decisions.md) lists every choice, with an ID you can cite.
+- **Want the big picture?** [`architecture.md`](architecture.md) shows how the parts fit.
+- The table below lists every document in this folder and what question it answers.
+
 > Name: **OpenCharterApp**. An open-source (AGPL), multi-tenant membership management platform for non-profit associations with national organizations and local chapters. Feature set modeled on Tendenci, plus governance, elections, documents, and awards.
 
 ## Purpose of these docs

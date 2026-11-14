@@ -1,5 +1,14 @@
 # Setup Engine
 
+## In short
+
+The setup engine is the guided "answer a few questions" setup in OpenCharterApp. It turns plain answers into the right settings, so an admin doesn't have to find each setting by hand.
+
+- Questions depend on earlier answers, so people only see what applies to them.
+- You can stop and come back, or run it again later. It never deletes anything without asking.
+- Before anything changes, it shows a plain-language summary of your answers.
+- A national organization can set things once for all its chapters.
+
 ## 1. Purpose
 
 Organizations differ a lot: term lengths, tiers, ranks, board structures, award chains. Rather than expose a wall of settings, the **setup engine** asks the important questions in plain language, in the right order, and turns the answers into configuration. It is also how national pre-configures chapters.

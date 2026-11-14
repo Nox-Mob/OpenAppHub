@@ -1,5 +1,15 @@
 # OpenLedgerApp architecture
 
+## In short
+
+OpenLedgerApp is one accounting app. It stores its data in Postgres (in the cloud or self-hosted), and in the future in SQLite (on a desktop). There are no extra servers or queues.
+
+- **Screens** never touch storage. They call server functions.
+- **Server functions** check that you're signed in and allowed to do the action. Then they hand the work to a service.
+- **Domain rules** (like "debits must equal credits") are plain code with no storage, so they're easy to test.
+- **Ports and adapters** let the same rules work with Supabase, SQLite or a test copy in memory.
+- **The database checks again** as a second line of defense.
+
 Current as of v0.1.1. One accounting application, several storage deployments. Keep it boring: a single app plus Postgres (cloud, self-hosted) or SQLite (desktop, future). No microservices, queues, caches or extra infrastructure.
 
 ```text

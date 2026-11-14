@@ -2,6 +2,10 @@
 
 # OpenCharterApp roadmap
 
+## In short
+
+This is OpenCharterApp's old roadmap. It's kept so you can see how the app got here. **Don't add to it.** All new plans go in the suite's one roadmap, [`docs/ROADMAP.md`](../ROADMAP.md), where Charter's items start with **C-**.
+
 Where things stand and what's next. Plans: `docs/plans/` (MVP: `wave-a-mvp.md`; Phases 1–3 and later waves: `phases-1-3-review.md`). Epics: `docs/epic.md`. Decisions: `docs/decisions.md`. Testing by hand: `docs/user-testing.md`.
 
 ## Pending migrations

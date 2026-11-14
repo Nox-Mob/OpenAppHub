@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { ORG_COOKIE, setCurrentOrg } from "@shared/supabase/org";
 import { docsUrl } from "@shared/docs";
 import { AppShell, type NavItem } from "@shared/ui/AppShell";
+import { TwoStepGate, TwoStepNotice } from "@shared/ui/TwoStep";
 import type { SessionUser } from "@/lib/session";
 import type { HubContext } from "@/lib/orgs";
 import { signOut } from "@/lib/auth-client";
@@ -93,7 +94,14 @@ export function HubShell({
       onSignOut={() => void signOut()}
       LinkComponent={RouterLink}
     >
-      {children}
+      {/* Security review round 2: the code prompt for accounts with two-step sign-in, and a
+          notice for organizations that require it of owners and admins. */}
+      <TwoStepGate client={getSupabaseBrowserClient()} onSignOut={() => void signOut()}>
+        <div className="mb-4 empty:hidden">
+          <TwoStepNotice client={getSupabaseBrowserClient()} accountHref="/account#two-step" />
+        </div>
+        {children}
+      </TwoStepGate>
     </AppShell>
   );
 }

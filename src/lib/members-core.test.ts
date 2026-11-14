@@ -89,7 +89,10 @@ describe("inviteMember", () => {
   });
 });
 
-function accountClient(owned: { organizations: { name: string } }[]) {
+function accountClient(
+  owned: { organizations: { name: string } }[],
+  recent: { message: string; code: string } | null = null,
+) {
   const query = {
     select: () => query,
     eq: () => query,
@@ -98,6 +101,7 @@ function accountClient(owned: { organizations: { name: string } }[]) {
   return {
     auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) },
     from: () => query,
+    rpc: async () => ({ data: null, error: recent }),
   } as never;
 }
 
@@ -112,6 +116,23 @@ describe("deleteAccount", () => {
     ).rejects.toThrow(
       "You own Riverside. Transfer ownership or delete it before deleting your account.",
     );
+    expect(
+      (ac as unknown as { auth: { admin: { deleteUser: ReturnType<typeof vi.fn> } } }).auth.admin
+        .deleteUser,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("needs a recent sign-in", async () => {
+    const ac = adminClient();
+    await expect(
+      deleteAccount({
+        userClient: accountClient([], {
+          code: "42501",
+          message: "For your safety, sign out and sign in again, then try this within 15 minutes.",
+        }),
+        adminClient: ac,
+      }),
+    ).rejects.toThrow(/sign in again/);
     expect(
       (ac as unknown as { auth: { admin: { deleteUser: ReturnType<typeof vi.fn> } } }).auth.admin
         .deleteUser,

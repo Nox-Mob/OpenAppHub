@@ -276,7 +276,7 @@ Unique together: (id, org_id).
 
 </details>
 
-<details><summary><code>public.org_role_settings</code> (4 columns)</summary>
+<details><summary><code>public.org_role_settings</code> (5 columns)</summary>
 
 | Column                    | Type                     | Null | Default      | Key / reference                                 |
 | ------------------------- | ------------------------ | ---- | ------------ | ----------------------------------------------- |
@@ -284,6 +284,7 @@ Unique together: (id, org_id).
 | `app_admins_manage_roles` | boolean                  |      | `false`      |                                                 |
 | `set_by`                  | uuid                     | yes  | `auth.uid()` |                                                 |
 | `set_at`                  | timestamp with time zone |      | `now()`      |                                                 |
+| `require_mfa_admins`      | boolean                  |      | `false`      |                                                 |
 
 </details>
 

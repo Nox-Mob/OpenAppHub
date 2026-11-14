@@ -15,6 +15,8 @@ Every internal document for the suite lives here: the hub, OpenCharterApp, OpenB
 | Follow the rules every repo shares           | [`SHARED-SPEC.md`](SHARED-SPEC.md): the suite contract (schemas, modes, auth, billing, secrets, shared code, deploys, demo, definition of done)   |
 | Set up or check secrets                      | [`SECRETS.md`](SECRETS.md): every Worker and GitHub secret and where it stands                                                                    |
 | Run migrations or see the migration history  | [`MIGRATION-NOTES.md`](MIGRATION-NOTES.md): the hub's notes and the order on a fresh database                                                     |
+| Know how the suite is kept safe              | [`security-review.md`](security-review.md): what we checked (OWASP Top 10 and round 2), what we fixed, and the owner's to-do list in plain words  |
+| See choices made without an owner answer     | [`review-notes.md`](review-notes.md): each choice, why, and whether it needs your answer                                                          |
 | Start as the owner                           | [`START-HERE.md`](START-HERE.md): the original setup pack (what only the owner can do)                                                            |
 | Work on the design system                    | [`design/README.md`](design/README.md), `shared/design/DESIGN.md` in the hub repo, [`design/contrast.md`](design/contrast.md)                     |
 | See what the hub publishes to apps           | [`INTEGRATION.md`](INTEGRATION.md)                                                                                                                |

@@ -300,6 +300,8 @@ sequenceDiagram
 
 > **Diagram description:** A person opens a signed-in page of an app without a session. The app sends them to the hub's login with a `next` address. The hub signs them in through Supabase Auth, sets the session cookie on the parent domain (asking for the Terms first if needed) and sends them back, but only to a suite address. The app now sees the session, checks the current-organization cookie against their memberships and shows the page.
 
+**Two-step sign-in (core `0018`, shared 1.21.0).** Supabase Auth gives each session an assurance level: `aal1` after a password or Google, `aal2` after an authenticator code. Once a person has a verified authenticator, the core checks (`is_member`, `has_role`, `is_member_of_child`, `app_role`) treat an `aal1` session as "not a member", so no app can show that person's organizations until they enter the code. Each app wraps its signed-in pages in `TwoStepGate`, which asks for the code. An organization can also require the owner and admins to set one up (`org_role_settings.require_mfa_admins`); until they do, they're blocked in that organization and `TwoStepNotice` tells them why. Deleting an organization, transferring ownership and deleting an account also need a sign-in from the last 15 minutes (`assert_recent_sign_in`, read from the session's `amr` claim).
+
 **Invitations** are one implementation (`public.invitations` and core functions): only the SHA-256 hash of the token is stored, default expiry 14 days. Hosted, the hub sends the invitation email; an invitation can carry an `app` and `app_payload`, finished by that app's `/invite/<token>` page and its `<app>.on_invitation_accepted` function (Charter links a roster record, Board sets an office, Ledger sets the treasurer role).
 
 **Charter members who pay dues are not core members** (they'd count toward plan limits): they sign up at the hub, and Charter gives them portal access through its own tables (`charter.member_profiles.user_id`, `charter.is_portal_member`).
@@ -928,15 +930,23 @@ flowchart TB
 
 > **Diagram description:** Five layers of defence. The browser only ever gets public settings. The Worker adds security headers, CSRF protection, a strict check on return addresses and signed unsubscribe links. Server functions act as the signed-in user, with the service role reserved for an allowlist. The database applies row-level security on every table, combines role and billing in `can_write`, and makes definer functions re-check the caller. Every app keeps an append-only audit log.
 
-| Topic                        | How                                                                                                                                  |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Tenant isolation             | `org_id` on every row; policies via `is_member` / `has_role`; DB tests in every repo                                                 |
-| Service role                 | Allowlist (SHARED-SPEC §7.2): hub (Stripe webhook, invitations, account deletion, demo tools, email sender), Charter (dues webhooks) |
-| Secrets                      | Worker secrets only; GitHub secret scanning and push protection; `.env*` ignored except `.env.example`                               |
-| Encrypted at rest by the app | Charter's gateway keys; self-hosted SMTP password                                                                                    |
-| Tokens                       | Invitation tokens stored as SHA-256; unsubscribe links HMAC-signed                                                                   |
-| Email safety                 | Demo/test addresses never sent; GET on unsubscribe never changes anything                                                            |
-| Payments                     | Card data never touches the suite (Stripe Checkout)                                                                                  |
+| Topic                        | How                                                                                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Tenant isolation             | `org_id` on every row; policies via `is_member` / `has_role`; DB tests in every repo                                                      |
+| Service role                 | Allowlist (SHARED-SPEC §7.2): hub (Stripe webhook, invitations, account deletion, demo tools, email sender), Charter (dues webhooks)      |
+| Secrets                      | Worker secrets only; GitHub secret scanning and push protection; `.env*` ignored except `.env.example`                                    |
+| Encrypted at rest by the app | Charter's gateway keys; self-hosted SMTP password                                                                                         |
+| Tokens                       | Invitation tokens stored as SHA-256; unsubscribe links HMAC-signed                                                                        |
+| Email safety                 | Demo/test addresses never sent; GET on unsubscribe never changes anything                                                                 |
+| Payments                     | Card data never touches the suite (Stripe Checkout)                                                                                       |
+| Two-step sign-in             | Enforced by the database once a person has an authenticator (`aal2`); organizations can require it for the owner and admins (core `0018`) |
+| Recent sign-in               | Deleting an organization or account and transferring ownership need a sign-in from the last 15 minutes                                    |
+| Function access              | Every database function is closed to visitors who aren't signed in, except an allow-list (`_anon_allowed_functions`); tests in every repo |
+| Links from data              | `safePath()` in the browser and a database check: stored links must be paths inside the suite (core `0017`)                               |
+| Abuse limits                 | Invitations: 100 an hour, 500 a day per organization; waitlist: 30 per 10 minutes                                                         |
+| Headers                      | CSP, HSTS (2 years, subdomains), `Permissions-Policy`, `Cross-Origin-Opener-Policy`, no framing                                           |
+| Supply chain                 | GitHub Actions pinned to commit SHAs; Dependabot (npm and Actions); CodeQL on every pull request and weekly                               |
+| Reporting                    | `/.well-known/security.txt` on every site; the full review is [`security-review.md`](security-review.md)                                  |
 
 ---
 

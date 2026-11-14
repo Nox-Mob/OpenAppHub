@@ -68,6 +68,10 @@ pages, signed in as the demo owner on staging.
 
 - **Radix drop-downs** keep a 1 × 1 hidden native `<select>` for forms. It is hidden from screen readers
   and never tapped, so the tap-size check lists it but it isn't a problem.
+- **Axe on the OpenBoardApp agenda (1080p)** reports the **Vote item** tick boxes as too close to a
+  neighbour. The "neighbour" is the agenda tab panel that holds them: Radix makes a tab panel
+  focusable so keyboard users can reach it, and axe counts it as a target. It isn't something you tap.
+  The boxes are 18px in 28px rows, and 24px on touch screens.
 - **Links inside a sentence** keep their text size. WCAG 2.5.8 doesn't cover them.
 - **Skip to content** is 1 × 1 until it gets keyboard focus, then full size.
 - **The hub designer canvas** needs a mouse or touch to drag steps; every step can also be moved with
@@ -75,6 +79,10 @@ pages, signed in as the demo owner on staging.
 - The automatic checks can't judge everything. Reading order, sensible focus order in dialogs, and
   screen-reader wording were checked by hand on the pages changed in security round 3 (Confirm it's
   you, two-step sign-in, backup codes, recovery email), not on every page.
+
+## Checked again on staging
+
+After the fixes were deployed (2026-11-14), the same run over all 46 app pages at all nine sizes found no page wider than the screen, no small tap targets, and one axe item, the false positive above.
 
 ## Run it again
 

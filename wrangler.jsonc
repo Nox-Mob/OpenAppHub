@@ -17,6 +17,26 @@
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Branch builds (pull requests) upload a preview version with `wrangler versions upload`, which
+  // doesn't use env.staging: without this block a preview would get the production settings
+  // above (the production database). Same values as env.staging; preview secrets are set in
+  // Cloudflare (Workers Builds → Previews), never here. Previews don't run the cron.
+  "previews": {
+    "vars": {
+      "VITE_HOSTED": "true",
+      "VITE_APP_ID": "hub",
+      "VITE_SUPABASE_URL": "https://mbloxixlykmbuuoaprnx.supabase.co",
+      "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_XsbfqXRDX-L_TwmtYGvjDg_qiLKka2X",
+      "VITE_HUB_URL": "https://staging.openapphub.org",
+      "VITE_COOKIE_DOMAIN": ".staging.openapphub.org",
+      "VITE_SUITE_URLS": "{\"hub\":\"https://staging.openapphub.org\",\"charter\":\"https://staging.charter.staging.openapphub.org\",\"board\":\"https://staging.board.staging.openapphub.org\",\"ledger\":\"https://staging.ledger.staging.openapphub.org\"}",
+      "VITE_PREVIEW_DOMAINS": "charter.staging.openapphub.org,board.staging.openapphub.org,ledger.staging.openapphub.org",
+      "VITE_DOCS_URL": "https://docs.openapphub.org",
+      "VITE_SIGNUPS_OPEN": "true",
+      "VITE_DEMO_LOGIN": "true",
+      "EMAIL_FROM": "OpenAppHub staging <notifications@openapphub.org>",
+    },
+  },
   "routes": [{ "pattern": "openapphub.org", "custom_domain": true }],
   // The suite's email sender (S-16, src/lib/email.server.ts): every 5 minutes.
   // It sends nothing until RESEND_API_KEY and SUPABASE_SERVICE_ROLE_KEY are set.
@@ -50,7 +70,7 @@
         "VITE_SUPABASE_URL": "https://mbloxixlykmbuuoaprnx.supabase.co",
         "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_XsbfqXRDX-L_TwmtYGvjDg_qiLKka2X",
         "VITE_HUB_URL": "https://staging.openapphub.org",
-        "VITE_COOKIE_DOMAIN": ".openapphub.org",
+        "VITE_COOKIE_DOMAIN": ".staging.openapphub.org",
         // The apps' staging sites are their Workers' previews of branch `staging`.
         "VITE_SUITE_URLS": "{\"hub\":\"https://staging.openapphub.org\",\"charter\":\"https://staging.charter.staging.openapphub.org\",\"board\":\"https://staging.board.staging.openapphub.org\",\"ledger\":\"https://staging.ledger.staging.openapphub.org\"}",
         // Sign-in may also return to any branch preview: <branch>.<one of these>.

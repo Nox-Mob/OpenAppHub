@@ -65,3 +65,53 @@ Your answer was "Wait for C-27". Nothing is built. The roadmap now records the p
 ---
 
 Merged to staging this round: OpenAppHub, OpenCharterApp, OpenBoardApp and OpenLedgerApp (No access + setting), then S-18 (Charter `0015`, Ledger `0011`) and the docs. Staging migrations ran with a dry run first. Nothing went to `main`.
+
+---
+
+# Pre-production review: 2026-11-14
+
+A review of staging as if it were about to become production. It covers Supabase's security and performance advisors on the staging database, a comparison of staging and production (configuration, database, extensions, storage), and the code paths where a mistake costs money or data. Everything fixed here is in one pull request per repo, merged to staging first.
+
+## 6. Fixed
+
+| #   | Problem                                                                                                                                                                                                                                                            | Fix                                                                                                                                                                                                                              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6.1 | **Staging and production shared the cookie domain `.openapphub.org`**. Cookies have the same names in both (`oah_org`, `oah_theme`, `oah_consent`), so staging overwrote production's choices (the current organization) for anyone who uses both.                 | Staging and branch previews use `.staging.openapphub.org`; every staging and preview host is under it. Production is unchanged. Testers may need to sign in to staging once more.                                                |
+| 6.2 | **The hub's pull-request previews ran with production settings** (the production database): the hub had no `previews` block, so Cloudflare's preview builds used the top-level (production) values.                                                                | A `previews` block with the staging values, like the apps.                                                                                                                                                                       |
+| 6.3 | **`migrate.yml` could migrate staging when asked for production.** `production && PROD_DATABASE_URL \|\| STAGING_DATABASE_URL` falls back to staging if the production secret is missing, and reported success. Production could also be migrated from any branch. | No fallback: a missing address stops the run. Production runs only from `main`. All four repos.                                                                                                                                  |
+| 6.4 | **Out-of-order Stripe events** could undo newer ones: a late "subscription updated: active" after "subscription deleted" brought a cancelled plan back.                                                                                                            | Each subscription keeps the time of the newest event applied (`billing.subscriptions.stripe_event_at`); older events change nothing (hub `0009`). Charter's refunds already took the larger total.                               |
+| 6.5 | **40 row-level security policies called `auth.uid()` once per row** (advisor `auth_rls_initplan`).                                                                                                                                                                 | `public._tune_schema(schema)` (core `0016`) rewrites them to `(select auth.uid())`: same meaning, evaluated once per query. Each repo runs it for its schemas, and a test per repo keeps it that way (`public.tuning_problems`). |
+| 6.6 | **64 foreign keys without an index** (advisor `unindexed_foreign_keys`), so deleting an organization or person scanned whole tables.                                                                                                                               | The same helper indexes each one (partial indexes on nullable columns, so mostly-empty columns stay small).                                                                                                                      |
+| 6.7 | **The public waitlist had no rate limit**: anyone (anon) could fill it with junk.                                                                                                                                                                                  | At most 30 new sign-ups in 10 minutes across everyone, then a polite "try again in a few minutes" (hub `0009`).                                                                                                                  |
+| 6.8 | **Tables that grew forever**: sent emails (addresses and message data), used or expired action links, and Stripe event IDs.                                                                                                                                        | Daily prunes, like the automation log: emails after 180 days, finished action links after 30, Stripe event IDs after 90.                                                                                                         |
+| 6.9 | **Board's file bucket had no size limit.**                                                                                                                                                                                                                         | 50 MB per file (Supabase's default upload limit), with a plain-English message in the app.                                                                                                                                       |
+
+## 7. Checked and fine
+
+- **Production configuration:** every Worker's top-level settings point to the production Supabase project and production domains; staging's point to staging.
+- **Production database:** empty (no users or organizations), migrated up to core `0004`, hub `0003` and each app's baseline. Those ten files are unchanged since, so migrating production from `main` will apply cleanly from where it is. Extensions match staging. Both storage buckets are created by migrations.
+- **Functions callable without signing in:** only invitation lookup by token and the waitlist (both intended), plus Supabase's own `rls_auto_enable`. No internal `_` helper is callable by users.
+- **Tables with RLS on and no policy** (23): all service-role only by design (billing, Stripe events, the email outbox, platform settings), reached through definer functions that check the caller.
+- **Stripe:** webhook signatures verified, duplicate events skipped, a failed apply is retried by Stripe; checkout refuses a second subscription.
+- **Email and automation cron:** emails are claimed with `skip locked` and reclaimed after 10 minutes, so overlapping runs don't double-send.
+- **Charter's test payments:** only for demo organizations (or a platform flag that production doesn't set).
+- **Logging:** operational only, no personal data.
+
+## 8. Left as is (worth knowing)
+
+| #   | Note                                                                                                                                                                                | Why it's left                                                                                                                               |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 8.1 | **Leaked-password protection** is off in Supabase Auth (advisor `auth_leaked_password_protection`).                                                                                 | A project setting, not code: Supabase dashboard → Authentication → Passwords (on paid plans). Turn it on for production.                    |
+| 8.2 | **Content Security Policy allows inline scripts** (`security-headers.ts`, TODO: nonces).                                                                                            | TanStack Start streams inline hydration scripts; moving to nonces is a framework change. The other headers are strict.                      |
+| 8.3 | **Five tables have two permissive read policies** (advisor `multiple_permissive_policies`), e.g. Charter memberships (members and managers; chapters reading national memberships). | Each policy reads clearly on its own. Merging them saves little at this size and risks changing who sees what.                              |
+| 8.4 | **16 "unused" indexes** on staging.                                                                                                                                                 | Staging has too little traffic to judge. Look again after a month of production.                                                            |
+| 8.5 | **Old staging cookies on `.openapphub.org`** stay in testers' browsers until they expire.                                                                                           | Harmless (production ignores staging's session cookies, which carry staging's project name). Clearing the site's cookies once removes them. |
+
+## 9. Before the first production deploy
+
+1. Merge `staging` into `main` in each repo (the owner).
+2. Run `migrate.yml` with target **production** from `main`: a dry run first, then for real. Core and the hub first, then Charter, Board and Ledger.
+3. Set the production secrets listed in `docs/SECRETS.md` (Workers and the `production` GitHub environment), including `PROD_DATABASE_URL`.
+4. Turn on leaked-password protection (8.1). Check Auth's SMTP and redirect URLs for `openapphub.org` and the app domains.
+5. Stripe live mode: prices with lookup keys starter, suite and plus (month and year), the customer portal, and the webhook endpoint with its secret (waits on the legal entity and EIN).
+6. Run the production smoke test (S-22) once its check account and `SMOKE_EMAIL` / `SMOKE_PASSWORD` exist.

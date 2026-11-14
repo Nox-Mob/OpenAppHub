@@ -267,6 +267,9 @@ export async function handleWebhook(opts: {
   if (isNew === false) return { status: 200, body: "duplicate" };
 
   const action = eventToAction(event);
+  // Stripe can deliver events out of order; the database ignores one older than the last applied.
+  const eventAt =
+    typeof event.created === "number" ? new Date(event.created * 1000).toISOString() : null;
   try {
     if (action.kind === "subscription") {
       const { error } = await opts.service.rpc("billing_apply_subscription", {
@@ -278,12 +281,14 @@ export async function handleWebhook(opts: {
         p_apps: action.apps,
         p_period_end: action.periodEnd,
         p_cancel_at_period_end: action.cancelAtPeriodEnd,
+        p_event_at: eventAt,
       });
       if (error) throw new Error(error.message);
     } else if (action.kind === "status") {
       const { error } = await opts.service.rpc("billing_set_status", {
         p_subscription: action.subscription,
         p_status: action.status,
+        p_event_at: eventAt,
       });
       if (error) throw new Error(error.message);
     }

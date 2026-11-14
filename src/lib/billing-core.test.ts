@@ -314,6 +314,24 @@ describe("handleWebhook", () => {
       1,
     );
   });
+  it("passes Stripe's event time, so an older event can't undo a newer one", async () => {
+    const withTime = JSON.stringify({ ...subUpdated, id: "evt_timed", created: 1_799_999_000 });
+    const service = client((name) =>
+      name === "billing_record_event" ? { data: true, error: null } : { data: ORG, error: null },
+    );
+    const res = await handleWebhook({
+      payload: withTime,
+      signature: await signStripePayload(withTime, CONFIG.webhookSecret, now),
+      service,
+      config: CONFIG,
+      now,
+    });
+    expect(res.status).toBe(200);
+    expect(service.rpc).toHaveBeenCalledWith(
+      "billing_apply_subscription",
+      expect.objectContaining({ p_event_at: new Date(1_799_999_000 * 1000).toISOString() }),
+    );
+  });
   it("refuses a bad signature and needs configuration", async () => {
     const service = client(() => ({ data: true, error: null }));
     expect(

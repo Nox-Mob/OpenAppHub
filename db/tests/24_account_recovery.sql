@@ -128,10 +128,19 @@ begin
   perform public.set_recovery_email(null, public.begin_reauth('recovery_settings'));
   perform tests.ok(public.account_security_status() ->> 'recovery_email' is null, 'removed');
 
+  -- A self-hosted app sends its own security emails, with links to its own pages.
+  perform pg_temp.sess(ann, 'aal1');
+  perform public.send_reauth_code('delete_account', 'ledger');
+  perform tests.as_super();
+  perform tests.ok((select app from public.email_outbox where template = 'account.reauth_code' and to_user_id = ann
+    order by created_at desc, id desc limit 1) = 'ledger', 'the app that asked sends it');
+  perform public._use_security_app(null);
+  perform tests.ok(public._security_app() = 'hub', 'otherwise OpenAppHub');
+
   -- Visitors can't touch any of it.
   perform tests.as_super();
   perform tests.ok(not has_function_privilege('anon', 'public.use_recovery_code(text)', 'EXECUTE')
-    and not has_function_privilege('anon', 'public.send_recovery_link()', 'EXECUTE'), 'visitors can''t');
+    and not has_function_privilege('anon', 'public.send_recovery_link(text)', 'EXECUTE'), 'visitors can''t');
   perform tests.ok(not has_table_privilege('authenticated', 'public.mfa_recovery_codes', 'SELECT')
     and not has_table_privilege('authenticated', 'public.account_recovery', 'SELECT'), 'nobody reads the tables directly');
 end $$;

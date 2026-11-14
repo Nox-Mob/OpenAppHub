@@ -171,7 +171,7 @@ function AppBlock({ app, flip }: { app: AppInfo; flip: boolean }) {
       data-app={app.id}
       className="grid scroll-mt-20 items-center gap-10 border-t py-14 first:border-t-0 first:pt-0 lg:grid-cols-2 lg:gap-16"
     >
-      <div className={cn(flip && "lg:order-2")}>
+      <div className={cn("min-w-0", flip && "lg:order-2")}>
         <p className="inline-flex items-center gap-2 text-sm font-semibold">
           <AppLogo app={app.id} size={24} />
           {app.name}
@@ -207,7 +207,7 @@ function AppBlock({ app, flip }: { app: AppInfo; flip: boolean }) {
           </a>
         </div>
       </div>
-      <div className={cn("mx-auto w-full max-w-lg", flip && "lg:order-1")}>
+      <div className={cn("mx-auto w-full min-w-0 max-w-lg", flip && "lg:order-1")}>
         <Preview />
       </div>
     </article>

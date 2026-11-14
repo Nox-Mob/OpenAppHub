@@ -6,20 +6,20 @@ Every internal document for the suite lives here: the hub, OpenCharterApp, OpenB
 
 ## Start here
 
-| If you want to…                              | Read                                                                                                                                              |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Understand how the whole suite fits together | [`architecture.md`](architecture.md): hosting, modes, sign-in, the database, data between apps, billing, email, chapters, deploys (with diagrams) |
-| See every table and how they connect         | [`database-map.md`](database-map.md): one diagram per domain (billing, email, members, meetings, books…), every column, and "follow a question"   |
-| Understand the automation engine             | [`automation-engine.md`](automation-engine.md): kinds, each organization's choices, the panel, Board's reminders, and the later parts             |
-| Know what's done and what's next             | [`ROADMAP.md`](ROADMAP.md): every epic for every app (S suite, H hub, C Charter, B Board, L Ledger) with what each needs first                    |
-| Follow the rules every repo shares           | [`SHARED-SPEC.md`](SHARED-SPEC.md): the suite contract (schemas, modes, auth, billing, secrets, shared code, deploys, demo, definition of done)   |
-| Set up or check secrets                      | [`SECRETS.md`](SECRETS.md): every Worker and GitHub secret and where it stands                                                                    |
-| Run migrations or see the migration history  | [`MIGRATION-NOTES.md`](MIGRATION-NOTES.md): the hub's notes and the order on a fresh database                                                     |
-| Know how the suite is kept safe              | [`security-review.md`](security-review.md): what we checked (OWASP Top 10 and round 2), what we fixed, and the owner's to-do list in plain words  |
-| See choices made without an owner answer     | [`review-notes.md`](review-notes.md): each choice, why, and whether it needs your answer                                                          |
-| Start as the owner                           | [`START-HERE.md`](START-HERE.md): the original setup pack (what only the owner can do)                                                            |
-| Work on the design system                    | [`design/README.md`](design/README.md), `shared/design/DESIGN.md` in the hub repo, [`design/contrast.md`](design/contrast.md)                     |
-| See what the hub publishes to apps           | [`INTEGRATION.md`](INTEGRATION.md)                                                                                                                |
+| If you want to…                              | Read                                                                                                                                                                    |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Understand how the whole suite fits together | [`architecture.md`](architecture.md): hosting, modes, sign-in, the database, data between apps, billing, email, chapters, deploys (with diagrams)                       |
+| See every table and how they connect         | [`database-map.md`](database-map.md): one diagram per domain (billing, email, members, meetings, books…), every column, and "follow a question"                         |
+| Understand the automation engine             | [`automation-engine.md`](automation-engine.md): kinds, each organization's choices, the panel, Board's reminders, and the later parts                                   |
+| Know what's done and what's next             | [`ROADMAP.md`](ROADMAP.md): every epic for every app (S suite, H hub, C Charter, B Board, L Ledger) with what each needs first                                          |
+| Follow the rules every repo shares           | [`SHARED-SPEC.md`](SHARED-SPEC.md): the suite contract (schemas, modes, auth, billing, secrets, shared code, deploys, demo, definition of done)                         |
+| Set up or check secrets                      | [`SECRETS.md`](SECRETS.md): every Worker and GitHub secret and where it stands                                                                                          |
+| Run migrations or see the migration history  | [`MIGRATION-NOTES.md`](MIGRATION-NOTES.md): the hub's notes and the order on a fresh database                                                                           |
+| Know how the suite is kept safe              | [`security-review.md`](security-review.md): what we checked (OWASP Top 10 and round 2), what we fixed, and the owner's to-do list in plain words                        |
+| See choices made without an owner answer     | [`review-notes.md`](review-notes.md): each choice, why, and whether it needs your answer                                                                                |
+| Start as the owner                           | [`START-HERE.md`](START-HERE.md): the original setup pack (what only the owner can do)                                                                                  |
+| Work on the design system                    | [`design/README.md`](design/README.md), `shared/design/DESIGN.md` in the hub repo, [`design/contrast.md`](design/contrast.md), [`design/devices.md`](design/devices.md) |
+| See what the hub publishes to apps           | [`INTEGRATION.md`](INTEGRATION.md)                                                                                                                                      |
 
 ## By app
 
@@ -27,15 +27,15 @@ Paths inside an app's documents (`src/…`, `db/…`, `scripts/…`) refer to th
 
 ### OpenAppHub (this repository)
 
-| Document                                   | What                                                                    |
-| ------------------------------------------ | ----------------------------------------------------------------------- |
-| [`architecture.md`](architecture.md) §15.1 | The hub's routes, screens and server pieces                             |
-| [`INTEGRATION.md`](INTEGRATION.md)         | What the hub offers and reads                                           |
-| [`MIGRATION-NOTES.md`](MIGRATION-NOTES.md) | The hub's migration notes and the suite's status table                  |
-| [`SECRETS.md`](SECRETS.md)                 | Secrets                                                                 |
-| [`design/`](design/)                       | Design system research, prototypes, screenshots, contrast checks, audit |
-| `shared/README.md` (repo root)             | Shared code: what's in it and every version                             |
-| [`tools/dbmap/`](tools/dbmap/)             | The generator behind `database-map.md`                                  |
+| Document                                   | What                                                                                                |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| [`architecture.md`](architecture.md) §15.1 | The hub's routes, screens and server pieces                                                         |
+| [`INTEGRATION.md`](INTEGRATION.md)         | What the hub offers and reads                                                                       |
+| [`MIGRATION-NOTES.md`](MIGRATION-NOTES.md) | The hub's migration notes and the suite's status table                                              |
+| [`SECRETS.md`](SECRETS.md)                 | Secrets                                                                                             |
+| [`design/`](design/)                       | Design system research, prototypes, screenshots, contrast checks, audit, screens and devices review |
+| `shared/README.md` (repo root)             | Shared code: what's in it and every version                                                         |
+| [`tools/dbmap/`](tools/dbmap/)             | The generator behind `database-map.md`                                                              |
 
 ### OpenCharterApp → [`charter/`](charter/)
 

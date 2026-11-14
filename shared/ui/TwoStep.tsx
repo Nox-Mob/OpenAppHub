@@ -238,20 +238,20 @@ export function TwoStepSettings({
     });
     await load();
     // Backup codes straight away, so nobody is one lost phone away from being locked out.
-    const { data: codes } = await client.schema("public").rpc("create_recovery_codes");
-    if (Array.isArray(codes)) setFreshCodes(codes as string[]);
+    if (saveRecoveryEmail) {
+      const { data: codes } = await client.schema("public").rpc("create_recovery_codes");
+      if (Array.isArray(codes)) setFreshCodes(codes as string[]);
+    }
     setStatusKey((k) => k + 1);
   }
 
+  // Turning it off asks for a fresh code first, so a computer left signed in can't be used to
+  // remove it quietly.
+  const [removing, setRemoving] = useState<string | null>(null);
+
   async function remove(id: string) {
     if (!client) return;
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(
-        "Turn off two-step sign-in? Your account will be protected by your password only.",
-      )
-    )
-      return;
+    setRemoving(null);
     const { error } = await client.auth.mfa.unenroll({ factorId: id });
     if (error)
       return setMessage({
@@ -284,12 +284,28 @@ export function TwoStepSettings({
                 <strong>On</strong>: an authenticator app
                 {f.created_at ? `, added ${formatDate(f.created_at)}` : ""}
               </span>
-              <button type="button" className={outline} onClick={() => void remove(f.id)}>
+              <button type="button" className={outline} onClick={() => setRemoving(f.id)}>
                 Turn off
               </button>
             </li>
           ))}
         </ul>
+      ) : null}
+      {removing ? (
+        <div className="space-y-2 rounded-md border p-4">
+          <p>
+            Turning it off means your password alone opens your account. To confirm, type a code
+            from your authenticator app.
+          </p>
+          <TwoStepCodeForm
+            client={client}
+            label="6-digit code"
+            onDone={() => void remove(removing)}
+          />
+          <button type="button" className="text-sm underline" onClick={() => setRemoving(null)}>
+            Keep it on
+          </button>
+        </div>
       ) : null}
       {!verified.length && !enroll && factors !== null ? (
         <button type="button" className={primary} disabled={busy} onClick={() => void start()}>
@@ -340,7 +356,9 @@ export function TwoStepSettings({
           {message.text}
         </p>
       ) : null}
-      {verified.length ? (
+      {/* Backup codes and the recovery email need OpenAppHub's recovery page, so they show
+          where it exists (saveRecoveryEmail is given there). */}
+      {verified.length && saveRecoveryEmail ? (
         <BackupCodes
           client={client}
           fresh={freshCodes}
@@ -404,7 +422,20 @@ function BackupCodes({
   const status = useSecurityStatus(client, refreshKey);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Making new codes needs a code typed in the last five minutes (core 0019).
+  const [askCode, setAskCode] = useState(false);
   if (!status) return null;
+
+  async function create() {
+    setError(null);
+    const { data, error: e } = await client.schema("public").rpc("create_recovery_codes");
+    if (e) {
+      if (e.hint === "mfa") return setAskCode(true);
+      return setError(e.message);
+    }
+    setAskCode(false);
+    onFresh(data as string[]);
+  }
 
   async function make() {
     if (
@@ -414,10 +445,7 @@ function BackupCodes({
       !window.confirm("Make new backup codes? Your old codes will stop working.")
     )
       return;
-    setError(null);
-    const { data, error: e } = await client.schema("public").rpc("create_recovery_codes");
-    if (e) return setError(e.message);
-    onFresh(data as string[]);
+    await create();
   }
 
   function download() {
@@ -490,6 +518,15 @@ function BackupCodes({
           </button>
         </div>
       )}
+      {askCode ? (
+        <div className="rounded-md border p-3">
+          <TwoStepCodeForm
+            client={client}
+            label="To make new codes, type the 6-digit code from your authenticator app"
+            onDone={() => void create()}
+          />
+        </div>
+      ) : null}
       {error ? (
         <p role="alert" className="text-destructive">
           {error}

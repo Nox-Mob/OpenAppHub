@@ -473,7 +473,8 @@ returns jsonb language sql stable security definer set search_path = '' as $$
 $$;
 
 -- Ten new backup codes (the old ones stop working). Needs a session signed in with the
--- authenticator. The codes are shown once; only fingerprints are kept.
+-- authenticator, with a code typed in the last five minutes. The codes are shown once; only
+-- fingerprints are kept.
 create or replace function public.create_recovery_codes()
 returns text[] language plpgsql volatile security definer set search_path = '' as $$
 declare
@@ -485,6 +486,10 @@ declare
 begin
   if not public._has_verified_factor() or coalesce(public._jwt() ->> 'aal', 'aal1') <> 'aal2' then
     raise exception 'Set up two-step sign-in and sign in with your code first.' using errcode = '42501';
+  end if;
+  -- A code typed in the last five minutes, so a session left signed in can't make new codes.
+  if not public._amr_fresh('{totp,mfa/totp,mfa/phone,mfa/webauthn}', 300) then
+    raise exception 'Type a code from your authenticator app first.' using errcode = '42501', hint = 'mfa';
   end if;
   delete from public.mfa_recovery_codes where user_id = v_uid;
   for i in 1..10 loop

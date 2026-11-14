@@ -123,6 +123,12 @@ export const recoverTwoStep = createServerFn({ method: "POST" })
     }
     const { error: finishError } = await userClient.rpc("finish_two_step_recovery");
     if (finishError) return { error: friendly(finishError.message) };
+    // End every other session on the account: if someone else was signed in, they're out.
+    const { data: session } = await userClient.auth.getSession();
+    if (session.session?.access_token)
+      await adminClient.auth.admin
+        .signOut(session.session.access_token, "others")
+        .catch(() => undefined);
     await sendNow();
     return { ok: true };
   });

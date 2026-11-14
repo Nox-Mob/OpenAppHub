@@ -25,7 +25,9 @@ begin
   insert into auth.mfa_factors (user_id, status) values (ann, 'verified');
   perform pg_temp.sess(ann, 'aal1');
   perform tests.throws('select public.create_recovery_codes()', 'no codes from a password-only session', 'Set up two-step');
-  perform pg_temp.sess(ann, 'aal2');
+  perform pg_temp.sess(ann, 'aal2', '[["totp", 3600]]');
+  perform tests.throws('select public.create_recovery_codes()', 'not with an old code: a session left signed in can''t', 'authenticator app first');
+  perform pg_temp.sess(ann, 'aal2', '[["totp", 10]]');
   codes := public.create_recovery_codes();
   perform tests.ok(array_length(codes, 1) = 10, 'ten codes');
   perform tests.ok((select count(distinct c) from unnest(codes) c) = 10, 'all different');

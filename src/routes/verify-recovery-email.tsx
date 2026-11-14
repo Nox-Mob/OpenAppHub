@@ -37,7 +37,10 @@ function VerifyRecoveryEmailPage() {
           Sign in to the account that added this recovery email, then you'll come back here.
         </p>
         <Button asChild className="mt-4 w-full">
-          <Link to="/login" search={{ next: `/verify-recovery-email?token=${token}` }}>
+          <Link
+            to="/login"
+            search={{ next: `/verify-recovery-email?token=${encodeURIComponent(token)}` }}
+          >
             Sign in
           </Link>
         </Button>

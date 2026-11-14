@@ -254,6 +254,53 @@ Self-hosted OpenCharterApp, OpenBoardApp and OpenLedgerApp each have two-step se
 
 ---
 
+## Round 4: table rights, sign-out, the docs site (2026-11-14)
+
+Asked for: "Perform another security and docs review." What we checked, and what we found.
+
+### Checked and fine
+
+- **Dependencies:** `npm audit` / `bun audit` in all five repositories: no known vulnerabilities.
+- **Secrets in the code:** none (a scan for Stripe, Supabase, Resend, AWS, Slack and private keys).
+  `.env.production.local` files are ignored by git, never committed.
+- **CI:** no `pull_request_target` or `workflow_run` triggers, no untrusted text (pull request
+  titles, branch names, comments) inside shell commands, every workflow sets its permissions, and
+  every third-party action is pinned to a commit.
+- **Database (staging):** row security on every table in every schema the API reaches; no public
+  storage bucket; only three functions run for visitors who aren't signed in. Two are ours, as
+  intended (`get_invitation` masks the email address, `hub_join_waitlist` is rate-limited); the
+  third, `rls_auto_enable`, is Supabase's own event trigger and can't be called.
+- **Recovery (core 0019):** the server removes an authenticator only after the database, running as
+  the signed-in person, accepted a backup code or link; the person is read from a token Supabase
+  verifies, and every other session is signed out.
+- **Redirects after sign-in:** `safeNext` (hub) and `safeRedirect` (apps) follow only our own sites.
+- **Security headers** on the staging sites: all present (HSTS, CSP, COOP, frame and type options).
+
+### Found and fixed
+
+| Finding                                                                                                                                                                                                                                                            | Fix                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The API roles held TRUNCATE, REFERENCES, TRIGGER and MAINTAIN on 25 tables in `public`, from Supabase's default privileges. Row security doesn't cover these (TRUNCATE empties a table whatever its policies). The API can't send them, so nothing could use them. | Core `0020_core_table_privileges.sql` takes them away from every table in `public`, `hub` and `billing`, and from tables created later. Test: `db/tests/25_table_privileges.sql`. |
+| A stale sign-in cookie on `.openapphub.org` (staging's old cookie domain) kept someone signed in after signing out (owner report).                                                                                                                                 | Shared 1.23.1 and 1.23.2: `dropStaleSession` removes this project's sign-in cookies on any other domain, in the hub and in each app's own client.                                 |
+| The docs site (docs.openapphub.org) sent no HSTS, Content Security Policy, COOP or Permissions-Policy.                                                                                                                                                             | `public/_headers` in the docs repository adds all four. The CSP was tested against the built site, search included.                                                               |
+| The hub's recovery and recovery-email pages put the token into the sign-in link without encoding it. Not exploitable (the link stays on our site), but sloppy.                                                                                                     | Encoded.                                                                                                                                                                          |
+
+### For the owner
+
+- **Production is behind staging.** `openapphub.org` doesn't send HSTS, COOP or Permissions-Policy yet,
+  and production has none of rounds 2 to 4. They arrive when staging is merged into `main` (your
+  approval).
+- **Cloudflare Web Analytics** is switched on for the staging sites: Cloudflare adds its script to every
+  page, and our Content Security Policy blocks it, so it collects nothing and only fills the browser
+  console with warnings. Switch it off in Cloudflare (Analytics & Logs → Web Analytics), or tell us to
+  allow it and mention it in the privacy policy.
+- **The Privacy Policy page is a placeholder.** It needs the final text before launch.
+- **Staging previews get the staging session.** Every branch preview of an app is served under the
+  staging domain (for example `<branch>.charter.staging.openapphub.org`), with staging settings, so it
+  can read a staging session cookie. Only people with write access to the repositories (and
+  Dependabot) can create a branch, and previews never receive the production cookie or reach
+  production data, so we accept it.
+
 ## What the owner needs to do
 
 These are settings in dashboards. We can't change them from the code. They're in order of importance.
@@ -308,6 +355,7 @@ Under **Database**:
 
 - Turn on the **WAF managed rules** (a firewall that blocks common attacks).
 - Send **alerts** for Worker errors to an operations email address.
+- Switch off **Web Analytics** for the sites (round 4): our Content Security Policy blocks its script anyway.
 
 ### 6. A security email address
 

@@ -189,7 +189,7 @@ In When → If → Then workflows: retries for app jobs only, and no loops, vari
 
 ## 6. The low-code designer (S-28, built; owner approval 2026-11-12)
 
-A drag-and-drop designer like Power Automate, over the same engine (core `0012_core_designer.sql`, shared 1.15.0). The When → If → Then form stays for simple workflows; any of them can be opened in the designer (it becomes a designer workflow when saved).
+A drag-and-drop designer, over the same engine (core `0012_core_designer.sql`, shared 1.15.0). The When → If → Then form stays for simple workflows; any of them can be opened in the designer (it becomes a designer workflow when saved).
 
 ### A designer workflow (version 2)
 
@@ -225,7 +225,7 @@ A drag-and-drop designer like Power Automate, over the same engine (core `0012_c
 }
 ```
 
-**Every step's output can be used by any later step** (the owner's requirement, as in Power Automate's dynamic content). A parameter is a value or a reference:
+**Every step's output can be used by any later step** (the owner's requirement: "dynamic content"). A parameter is a value or a reference:
 
 | Reference                                         | Is                                                             |
 | ------------------------------------------------- | -------------------------------------------------------------- |

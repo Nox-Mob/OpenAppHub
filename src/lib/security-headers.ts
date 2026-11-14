@@ -33,6 +33,15 @@ export function withSecurityHeaders(
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set("X-Frame-Options", "DENY");
+  // HTTPS only, for two years, on every subdomain (security review 2026-11-14; browsers ignore it
+  // on plain-HTTP development servers).
+  res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
+  // No camera, microphone, location, payment request or the like: the suite uses none of them.
+  res.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
+  );
+  res.headers.set("Cross-Origin-Opener-Policy", "same-origin");
   if (opts.csp) res.headers.set("Content-Security-Policy", contentSecurityPolicy(opts.supabaseUrl));
   return res;
 }

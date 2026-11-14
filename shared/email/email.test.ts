@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { emailConfigFromEnv, isBlockedAddress, runEmailCycle } from "./deliver";
 import { resendTransport } from "./resend";
 import { decryptSecret, encryptSecret, signUnsubscribe, verifyUnsubscribe } from "./secret";
-import { buildMime, smtpTransport, type SmtpConnect, type SmtpSocket } from "./smtp";
+import { addressOf, buildMime, smtpTransport, type SmtpConnect, type SmtpSocket } from "./smtp";
 import { renderEmail } from "./templates";
 import { EmailSendError, type OutboxRow } from "./types";
 import { handleUnsubscribe } from "./unsubscribe";
@@ -532,5 +532,22 @@ describe("unsubscribe", () => {
     expect(rpc).toHaveBeenCalledWith("email_unsubscribe", { p_user: user, p_category: "digest" });
     const bad = await handleUnsubscribe(new Request(url.replace("c=digest", "c=reminders")), opts);
     expect(bad.status).toBe(400);
+  });
+});
+
+describe("SMTP addresses (security review)", () => {
+  it("takes one plain address", () => {
+    expect(addressOf("ann@example.org")).toBe("ann@example.org");
+    expect(addressOf("Ann Lee <ann@example.org>")).toBe("ann@example.org");
+  });
+  it("refuses anything that could add a command or a recipient", () => {
+    for (const bad of [
+      "ann@example.org\r\nRCPT TO:<x@evil.example>",
+      "ann@example.org, x@evil.example",
+      "ann example@org",
+      "no-at-sign",
+      "<>",
+    ])
+      expect(() => addressOf(bad)).toThrow(/valid email/);
   });
 });

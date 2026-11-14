@@ -1,6 +1,7 @@
 // The hub's dashboard data (S-03, S-15): key information from every app, read through each app's
 // read-only api_* views with the reader's own permissions (docs/INTEGRATION.md in each app). Each
 // source is feature-detected: null means that app (or its view) isn't on this database yet.
+import { safePath } from "@shared/safe-path";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isMissing } from "@shared/integrations/detect";
 
@@ -99,6 +100,8 @@ export async function completeTask(client: SupabaseClient, t: DashboardTask): Pr
 /** A link into an app for this organization (Charter's links already name the unit). */
 export function appHref(base: string | undefined, link: string, orgId: string): string {
   const root = (base ?? "").replace(/\/+$/, "");
+  // Only a path in the app: anything else (another site, a script) goes to the app's home.
+  link = safePath(link) ?? "/";
   if (link.startsWith("/orgs/")) return root + link;
   return `${root}${link}${link.includes("?") ? "&" : "?"}org=${orgId}`;
 }
@@ -129,7 +132,7 @@ export function mergeTasks(
       title: String(r["title"]),
       detail: (r["note"] as string | null) || "From a workflow",
       due: (r["due_on"] as string | null) ?? null,
-      href: r["link"] ? String(r["link"]) : "/automations",
+      href: safePath(r["link"]) ?? "/automations",
       complete: {
         label: "Done" as const,
         schema: "public" as const,

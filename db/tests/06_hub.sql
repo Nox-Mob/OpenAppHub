@@ -50,7 +50,7 @@ begin
 
   -- The record survives deleting the org.
   perform tests.as_user(alice);
-  perform public.delete_organization(org, 'Audited Org 2');
+  perform public.delete_organization(org, 'Audited Org 2', tests.reauth(alice, 'delete_organization'));
   perform tests.as_super();
   perform tests.ok((select count(*) from hub.audit_log where org_id = org and table_name = 'organizations' and action = 'delete') = 1, 'deletion logged and kept');
 

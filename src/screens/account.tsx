@@ -12,9 +12,9 @@ import {
 } from "@shared/ui/DigestSettings";
 import { HelpLink } from "@shared/ui/HelpLink";
 import { NotificationSettings } from "@shared/ui/Notifications";
+import { ReauthDialog } from "@shared/ui/Reauth";
 import { TwoStepSettings } from "@shared/ui/TwoStep";
 import { ThemeToggle } from "@shared/ui/ThemeToggle";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageHeader, Panel } from "@/components/hub/HubShell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HELP } from "@/config/help";
 import { deleteMyAccount } from "@/lib/members";
+import { hubSaveRecoveryEmail, hubSendCode } from "@/lib/reauth";
 import { looksLikeEmail } from "@/lib/org-settings";
 import { ROLE_LABEL } from "@/lib/roles";
 import { must, useAsync } from "@/lib/use-async";
@@ -42,8 +43,6 @@ export function AccountScreen({ user, hub }: ScreenProps) {
   const [name, setName] = useState(user.name ?? "");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
   const owned = hub.orgs.filter((o) => o.role === "owner");
 
   async function saveName(e: FormEvent) {
@@ -63,11 +62,10 @@ export function AccountScreen({ user, hub }: ScreenProps) {
     if (!error) void router.invalidate();
   }
 
-  async function removeAccount() {
-    setBusy(true);
-    const res = await deleteMyAccount();
-    setBusy(false);
-    if ("error" in res) return setDeleteError(res.error);
+  // Runs right after "Confirm it's you", with its one-time pass.
+  async function removeAccount(token: string) {
+    const res = await deleteMyAccount({ data: { token } });
+    if ("error" in res) throw new Error(res.error);
     await getSupabaseBrowserClient()?.auth.signOut();
     window.location.assign("/");
   }
@@ -108,7 +106,11 @@ export function AccountScreen({ user, hub }: ScreenProps) {
           title="Two-step sign-in"
           description="A code from your phone, as well as your password, every time you sign in. It works in every app."
         >
-          <TwoStepSettings client={getSupabaseBrowserClient()} />
+          <TwoStepSettings
+            client={getSupabaseBrowserClient()}
+            sendCode={hubSendCode}
+            saveRecoveryEmail={hubSaveRecoveryEmail}
+          />
         </Panel>
         <Panel
           id="notifications"
@@ -153,19 +155,17 @@ export function AccountScreen({ user, hub }: ScreenProps) {
           )}
         </Panel>
       </div>
-      {deleting ? (
-        <ConfirmDialog
-          title="Delete your account?"
-          confirmLabel="Delete my account"
-          destructive
-          busy={busy}
-          onConfirm={() => void removeAccount()}
-          onCancel={() => setDeleting(false)}
-        >
-          <p>You'll be signed out and removed from every organization. This can't be undone.</p>
-          {deleteError ? <Alert variant="destructive">{deleteError}</Alert> : null}
-        </ConfirmDialog>
-      ) : null}
+      <ReauthDialog
+        client={getSupabaseBrowserClient()}
+        action="delete_account"
+        open={deleting}
+        title="Delete your account?"
+        description="You'll be signed out and removed from every organization. This can't be undone."
+        confirmLabel="Delete my account"
+        sendCode={hubSendCode}
+        onConfirmed={removeAccount}
+        onClose={() => setDeleting(false)}
+      />
     </>
   );
 }

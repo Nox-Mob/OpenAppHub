@@ -47,8 +47,9 @@ export const sendInvitation = createServerFn({ method: "POST" })
     }
   });
 
-export const deleteMyAccount = createServerFn({ method: "POST" }).handler(
-  async (): Promise<{ ok: true } | { error: string }> => {
+export const deleteMyAccount = createServerFn({ method: "POST" })
+  .validator(z.object({ token: z.string().regex(/^[0-9a-f]{64}$/) }))
+  .handler(async ({ data }): Promise<{ ok: true } | { error: string }> => {
     const [{ getSupabaseServerClient }, { getServiceClient }, core] = await Promise.all([
       import("./supabase.server"),
       import("./admin.server"),
@@ -57,12 +58,15 @@ export const deleteMyAccount = createServerFn({ method: "POST" }).handler(
     const userClient = getSupabaseServerClient();
     if (!userClient) return { error: "This site isn't connected to its database." };
     try {
-      await core.deleteAccount({ userClient, adminClient: getServiceClient() });
+      await core.deleteAccount({
+        userClient,
+        adminClient: getServiceClient(),
+        reauthToken: data.token,
+      });
       await userClient.auth.signOut();
       return { ok: true };
     } catch (e) {
       if (e instanceof core.FriendlyError) return { error: e.message };
       throw e;
     }
-  },
-);
+  });

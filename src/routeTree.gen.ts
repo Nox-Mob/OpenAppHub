@@ -15,9 +15,11 @@ import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RecoverRouteImport } from './routes/recover'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as VerifyRecoveryEmailRouteImport } from './routes/verify-recovery-email'
 import { Route as AppAccountRouteImport } from './routes/_app.account'
 import { Route as AppAuditRouteImport } from './routes/_app.audit'
 import { Route as AppAutomationsRouteImport } from './routes/_app.automations'
@@ -64,6 +66,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RecoverRoute = RecoverRouteImport.update({
+  id: '/recover',
+  path: '/recover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -77,6 +84,11 @@ const SignupRoute = SignupRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyRecoveryEmailRoute = VerifyRecoveryEmailRouteImport.update({
+  id: '/verify-recovery-email',
+  path: '/verify-recovery-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppAccountRoute = AppAccountRouteImport.update({
@@ -166,9 +178,11 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
+  '/recover': typeof RecoverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/verify-recovery-email': typeof VerifyRecoveryEmailRoute
   '/account': typeof AppAccountRoute
   '/audit': typeof AppAuditRoute
   '/automations': typeof AppAutomationsRoute
@@ -192,9 +206,11 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
+  '/recover': typeof RecoverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/verify-recovery-email': typeof VerifyRecoveryEmailRoute
   '/account': typeof AppAccountRoute
   '/audit': typeof AppAuditRoute
   '/automations': typeof AppAutomationsRoute
@@ -220,9 +236,11 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
+  '/recover': typeof RecoverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/verify-recovery-email': typeof VerifyRecoveryEmailRoute
   '/_app/account': typeof AppAccountRoute
   '/_app/audit': typeof AppAuditRoute
   '/_app/automations': typeof AppAutomationsRoute
@@ -248,9 +266,11 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/privacy'
+    | '/recover'
     | '/reset-password'
     | '/signup'
     | '/terms'
+    | '/verify-recovery-email'
     | '/account'
     | '/audit'
     | '/automations'
@@ -274,9 +294,11 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/privacy'
+    | '/recover'
     | '/reset-password'
     | '/signup'
     | '/terms'
+    | '/verify-recovery-email'
     | '/account'
     | '/audit'
     | '/automations'
@@ -301,9 +323,11 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/privacy'
+    | '/recover'
     | '/reset-password'
     | '/signup'
     | '/terms'
+    | '/verify-recovery-email'
     | '/_app/account'
     | '/_app/audit'
     | '/_app/automations'
@@ -329,9 +353,11 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
+  RecoverRoute: typeof RecoverRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
+  VerifyRecoveryEmailRoute: typeof VerifyRecoveryEmailRoute
   ActTokenRoute: typeof ActTokenRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   DevHubRoute: typeof DevHubRoute
@@ -384,6 +410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recover': {
+      id: '/recover'
+      path: '/recover'
+      fullPath: '/recover'
+      preLoaderRoute: typeof RecoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -403,6 +436,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-recovery-email': {
+      id: '/verify-recovery-email'
+      path: '/verify-recovery-email'
+      fullPath: '/verify-recovery-email'
+      preLoaderRoute: typeof VerifyRecoveryEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/account': {
@@ -555,9 +595,11 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
+  RecoverRoute: RecoverRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
+  VerifyRecoveryEmailRoute: VerifyRecoveryEmailRoute,
   ActTokenRoute: ActTokenRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   DevHubRoute: DevHubRoute,

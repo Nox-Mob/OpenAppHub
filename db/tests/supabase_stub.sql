@@ -54,6 +54,17 @@ create table if not exists auth.identities (
   updated_at timestamptz,
   unique (provider_id, provider)
 );
+-- Authenticator apps (two-step sign-in), as on Supabase. Tests add rows to act as someone who
+-- set one up.
+create table if not exists auth.mfa_factors (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  friendly_name text,
+  factor_type text not null default 'totp',
+  status text not null default 'unverified',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 -- pgcrypto in schema extensions, as on Supabase (the seed hashes the demo password).
 create schema if not exists extensions;
 create extension if not exists pgcrypto with schema extensions;

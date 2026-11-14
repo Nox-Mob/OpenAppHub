@@ -32,7 +32,7 @@ begin
   perform tests.throws(format('select public.delete_organization(%L, null)', org), 'name required', 'exactly');
   other := public.create_organization('Other');
   perform public.create_invitation(org, 'x@example.org', 'member');
-  perform public.delete_organization(org, 'Alpha Association');
+  perform public.delete_organization(org, 'Alpha Association', tests.reauth(alice, 'delete_organization'));
 
   perform tests.as_super();
   perform tests.ok(not exists (select 1 from public.organizations where id = org), 'org deleted');

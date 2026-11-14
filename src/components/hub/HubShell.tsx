@@ -96,7 +96,11 @@ export function HubShell({
     >
       {/* Security review round 2: the code prompt for accounts with two-step sign-in, and a
           notice for organizations that require it of owners and admins. */}
-      <TwoStepGate client={getSupabaseBrowserClient()} onSignOut={() => void signOut()}>
+      <TwoStepGate
+        client={getSupabaseBrowserClient()}
+        onSignOut={() => void signOut()}
+        recoverHref="/recover"
+      >
         <div className="mb-4 empty:hidden">
           <TwoStepNotice client={getSupabaseBrowserClient()} accountHref="/account#two-step" />
         </div>

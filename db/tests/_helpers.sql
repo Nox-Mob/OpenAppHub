@@ -77,3 +77,18 @@ begin
 end $$;
 
 grant execute on all functions in schema tests to anon, authenticated, service_role;
+
+-- A one-time pass to confirm it's you (core 0019), made the way the confirm box makes it: a
+-- session that typed its password just now. Leaves the plain session for p_uid in place.
+create or replace function tests.reauth(p_uid uuid, p_action text) returns text language plpgsql as $$
+declare
+  v_token text;
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub', p_uid, 'role', 'authenticated',
+    'amr', json_build_array(json_build_object('method', 'password', 'timestamp', extract(epoch from now())::bigint)))::text, true);
+  perform set_config('request.jwt.claim.sub', p_uid::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_token := public.begin_reauth(p_action);
+  perform tests.as_user(p_uid);
+  return v_token;
+end $$;

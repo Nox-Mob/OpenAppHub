@@ -1,5 +1,6 @@
 import type { ScreenProps } from "./types";
 import { EmailActionSettingsPanel } from "@shared/ui/ActionLink";
+import { ReauthDialog } from "@shared/ui/Reauth";
 import { OrgTwoStepPanel } from "@shared/ui/TwoStep";
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -25,6 +26,7 @@ import {
   timeZones,
   type TransferCandidate,
 } from "@/lib/org-settings";
+import { hubSendCode } from "@/lib/reauth";
 import { ROLE_LABEL, canManage } from "@/lib/roles";
 import { must, useAsync } from "@/lib/use-async";
 
@@ -56,7 +58,7 @@ export function SettingsScreen({ hub }: ScreenProps) {
         <Panel
           id="security"
           title="Security"
-          description="How the people who can change everything must sign in."
+          description="Who must use two-step sign-in in this organization."
         >
           <OrgTwoStepPanel client={getSupabaseBrowserClient()} orgId={org.id} />
         </Panel>
@@ -341,18 +343,28 @@ function TransferPanel({ orgId, orgName }: { orgId: string; orgName: string }) {
   const expected = person ? confirmTextFor(person) : "";
   const ok = !!person && confirmationMatches(typed, expected);
 
-  async function transfer(e: FormEvent) {
+  const [confirming, setConfirming] = useState(false);
+
+  function transfer(e: FormEvent) {
     e.preventDefault();
     if (!supabase || !person || !ok) return;
-    setBusy(true);
     setError("");
+    setConfirming(true);
+  }
+
+  // Runs right after "Confirm it's you", with its one-time pass (core 0019).
+  async function doTransfer(token: string) {
+    if (!supabase || !person) return;
+    setBusy(true);
     const { error } = await supabase.rpc("transfer_ownership", {
       p_org: orgId,
       p_new_owner: person.user_id,
       p_confirm: typed,
+      p_reauth: token,
     });
     setBusy(false);
-    if (error) return setError(error.message);
+    if (error) throw new Error(error.message);
+    setConfirming(false);
     setDone(`${expected} is now the owner of ${orgName}. You're an admin.`);
     await router.invalidate();
   }
@@ -425,6 +437,17 @@ function TransferPanel({ orgId, orgName }: { orgId: string; orgName: string }) {
           {error}
         </Alert>
       ) : null}
+      <ReauthDialog
+        client={supabase}
+        action="transfer_ownership"
+        open={confirming}
+        title="Transfer ownership?"
+        description={`${expected} will become the owner of ${orgName}, and you'll become an admin.`}
+        confirmLabel="Transfer ownership"
+        sendCode={hubSendCode}
+        onConfirmed={doTransfer}
+        onClose={() => setConfirming(false)}
+      />
     </Panel>
   );
 }
@@ -438,17 +461,21 @@ function DeletePanel({ orgId, orgName }: { orgId: string; orgName: string }) {
   const urls = suiteUrls();
   const apps = SUITE_APPS.filter((a) => urls[a]).map((a) => APP_NAMES[a]);
 
-  async function remove() {
+  const [confirming, setConfirming] = useState(false);
+
+  // Runs right after "Confirm it's you", with its one-time pass (core 0019).
+  async function remove(token: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
     setBusy(true);
     const { error } = await supabase.rpc("delete_organization", {
       p_org: orgId,
       p_confirm_name: typed,
+      p_reauth: token,
     });
     setBusy(false);
-    if (error) return setError(error.message);
-    setOpen(false);
+    if (error) throw new Error(error.message);
+    setConfirming(false);
     await router.invalidate();
     await router.navigate({ to: "/" });
   }
@@ -473,7 +500,11 @@ function DeletePanel({ orgId, orgName }: { orgId: string; orgName: string }) {
           destructive
           busy={busy}
           confirmDisabled={typed !== orgName}
-          onConfirm={() => void remove()}
+          onConfirm={() => {
+            setError("");
+            setOpen(false);
+            setConfirming(true);
+          }}
           onCancel={() => setOpen(false)}
         >
           <p>This deletes the organization and all of its data in every app. It can't be undone.</p>
@@ -498,6 +529,17 @@ function DeletePanel({ orgId, orgName }: { orgId: string; orgName: string }) {
           {error ? <Alert variant="destructive">{error}</Alert> : null}
         </ConfirmDialog>
       ) : null}
+      <ReauthDialog
+        client={getSupabaseBrowserClient()}
+        action="delete_organization"
+        open={confirming}
+        title={`Delete ${orgName}?`}
+        description="This deletes the organization and all of its data in every app. It can't be undone."
+        confirmLabel="Delete forever"
+        sendCode={hubSendCode}
+        onConfirmed={remove}
+        onClose={() => setConfirming(false)}
+      />
     </Panel>
   );
 }

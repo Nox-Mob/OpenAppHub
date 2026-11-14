@@ -29,7 +29,7 @@ function RecoverPage() {
   const [done, setDone] = useState(false);
 
   if (!user) {
-    const next = token ? `/recover?token=${token}` : "/recover";
+    const next = token ? `/recover?token=${encodeURIComponent(token)}` : "/recover";
     return (
       <AuthCard title="Sign in first">
         <p className="text-sm text-muted-foreground">

@@ -1,5 +1,5 @@
 // The low-code designer's model (S-28): version 2 workflows, the step catalog, the data each step
-// can use (Power Automate's "dynamic content"), tree editing, plain-language summaries, and
+// can use ("dynamic content"), tree editing, plain-language summaries, and
 // opening a When → If → Then workflow in the designer. The database checks every workflow again
 // (public._validate_workflow_v2) and runs it (core 0012).
 import type { Definition, Field, Overview, ParamSpec, TriggerType } from "./workflows";

@@ -1,5 +1,5 @@
 // The low-code workflow designer (S-28): steps on a canvas you drag to arrange, with every
-// earlier step's data available to later ones (Power Automate's "dynamic content"), loops,
+// earlier step's data available to later ones ("dynamic content"), loops,
 // variables, data steps, waits, retries, "run after", and a test run that does nothing.
 import { useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { Alert } from "@/components/ui/alert";
@@ -1534,7 +1534,7 @@ function DataInput({
   );
 }
 
-/** Data from earlier steps, by step: Power Automate's dynamic content. */
+/** Data from earlier steps, by step ("dynamic content"). */
 function DataPicker({
   id,
   data,

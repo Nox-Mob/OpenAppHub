@@ -61,11 +61,7 @@
   },
   {
     "id": "automations",
-    "tables": [
-      "public.automation_kinds",
-      "public.automations",
-      "public.automation_log"
-    ]
+    "tables": ["public.automation_kinds", "public.automations", "public.automation_log"]
   },
   {
     "id": "workflows",

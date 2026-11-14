@@ -330,9 +330,11 @@ function StepList({
 }) {
   return (
     <div className="space-y-0">
-      {/* The first drop place sits before the list: a list may hold only its items. */}
-      <Slot ctx={ctx} path={path} index={0} empty={steps.length === 0} />
       <div role="list" aria-label={label ?? "Steps"}>
+        {/* The first drop place, as an item of its own: a list may hold only items. */}
+        <div role="listitem">
+          <Slot ctx={ctx} path={path} index={0} empty={steps.length === 0} />
+        </div>
         {steps.map((s, i) => (
           <div key={s.id} role="listitem">
             <StepCard ctx={ctx} step={s} path={path} index={i} count={steps.length} />

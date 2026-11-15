@@ -1,3 +1,4 @@
+import { analyticsScripts } from "@shared/analytics";
 import {
   HeadContent,
   Link,
@@ -34,6 +35,8 @@ export const Route = createRootRoute({
       { rel: "icon", href: "/brand/hub-logo-32.png", type: "image/png", sizes: "32x32" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
+    // Cloudflare Web Analytics, production builds only (shared/analytics.ts).
+    scripts: analyticsScripts(),
   }),
   shellComponent: RootShell,
   component: RootComponent,

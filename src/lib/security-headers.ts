@@ -1,7 +1,14 @@
 // Security headers set by the Worker's server entry (SHARED-SPEC §10.1).
+import { ANALYTICS_CSP } from "@shared/analytics";
 
-export function contentSecurityPolicy(supabaseUrl: string | undefined): string {
+export function contentSecurityPolicy(supabaseUrl: string | undefined, analytics = false): string {
   const connect = ["'self'"];
+  const script = ["'self'", "'unsafe-inline'"];
+  // Cloudflare Web Analytics, production only (shared/analytics.ts).
+  if (analytics) {
+    script.push(ANALYTICS_CSP.script);
+    connect.push(ANALYTICS_CSP.connect);
+  }
   if (supabaseUrl) {
     try {
       const { origin, host } = new URL(supabaseUrl);
@@ -13,7 +20,7 @@ export function contentSecurityPolicy(supabaseUrl: string | undefined): string {
   return [
     "default-src 'self'",
     // TanStack Start streams inline hydration scripts. TODO: switch to nonces.
-    "script-src 'self' 'unsafe-inline'",
+    `script-src ${script.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
@@ -27,7 +34,7 @@ export function contentSecurityPolicy(supabaseUrl: string | undefined): string {
 
 export function withSecurityHeaders(
   response: Response,
-  opts: { supabaseUrl: string | undefined; csp: boolean },
+  opts: { supabaseUrl: string | undefined; csp: boolean; analytics?: boolean },
 ): Response {
   const res = new Response(response.body, response);
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -42,6 +49,10 @@ export function withSecurityHeaders(
     "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
   );
   res.headers.set("Cross-Origin-Opener-Policy", "same-origin");
-  if (opts.csp) res.headers.set("Content-Security-Policy", contentSecurityPolicy(opts.supabaseUrl));
+  if (opts.csp)
+    res.headers.set(
+      "Content-Security-Policy",
+      contentSecurityPolicy(opts.supabaseUrl, opts.analytics),
+    );
   return res;
 }

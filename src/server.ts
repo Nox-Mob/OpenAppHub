@@ -1,4 +1,5 @@
 // Worker entry: TanStack Start's handler plus security headers (SHARED-SPEC §10.1).
+import { analyticsToken } from "@shared/analytics";
 import handler from "@tanstack/react-start/server-entry";
 import { hubUnsubscribe, runHubAutomation, runHubEmail, type HubEnv } from "./lib/email.server";
 import { withSecurityHeaders } from "./lib/security-headers";
@@ -28,6 +29,7 @@ export default {
       supabaseUrl: env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL,
       // Vite's dev server injects inline module scripts and websockets.
       csp: !import.meta.env.DEV,
+      analytics: analyticsToken() !== null,
     });
   },
 

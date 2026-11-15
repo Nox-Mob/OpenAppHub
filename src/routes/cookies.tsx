@@ -7,7 +7,7 @@ import { SiteFooter, SiteHeader } from "@/components/site";
 
 // Cookie policy: every cookie the suite sets, from shared/consent.ts, so the
 // list on this page is the same list the banner and the code use.
-const UPDATED = "2026-11-09";
+const UPDATED = "2026-11-15";
 
 export const Route = createFileRoute("/cookies")({
   head: () => ({
@@ -36,6 +36,12 @@ function CookiesPage() {
             (OpenCharterApp, OpenBoardApp and OpenLedgerApp) use a few, all set by us on
             openapphub.org and its subdomains. We don't use advertising or tracking cookies, and we
             don't share cookie data with anyone.
+          </p>
+          <p>
+            <strong className="text-foreground">Visit counts.</strong> On openapphub.org and its
+            apps we count visits with Cloudflare Web Analytics, to see which pages are used and how
+            fast they load. It sets no cookies, doesn't follow you to other sites, and doesn't tell
+            us who you are.
           </p>
           <p>
             <strong className="text-foreground">Required cookies</strong> are always on, because the

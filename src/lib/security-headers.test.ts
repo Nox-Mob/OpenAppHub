@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { contentSecurityPolicy, withSecurityHeaders } from "./security-headers";
 
 describe("security headers", () => {
@@ -20,5 +20,20 @@ describe("security headers", () => {
     );
     expect(res.headers.get("Permissions-Policy")).toContain("camera=()");
     expect(res.headers.get("Cross-Origin-Opener-Policy")).toBe("same-origin");
+  });
+});
+
+describe("Cloudflare Web Analytics in the CSP (production only)", () => {
+  it("isn't allowed without the production token", () => {
+    vi.stubEnv("VITE_CF_ANALYTICS_TOKEN", "");
+    expect(contentSecurityPolicy("https://abc.supabase.co")).not.toContain("cloudflareinsights");
+    vi.unstubAllEnvs();
+  });
+  it("allows only the beacon script and its reporting endpoint with the token", () => {
+    vi.stubEnv("VITE_CF_ANALYTICS_TOKEN", "054d7738b858425f863060e1c3b9dbb3");
+    const csp = contentSecurityPolicy("https://abc.supabase.co", true);
+    expect(csp).toMatch(/script-src [^;]*https:\/\/static\.cloudflareinsights\.com/);
+    expect(csp).toMatch(/connect-src [^;]*https:\/\/cloudflareinsights\.com/);
+    vi.unstubAllEnvs();
   });
 });

@@ -160,3 +160,10 @@ The plain-language write-up is [`security-review.md`](security-review.md) (Round
 - **Docs site headers:** HSTS, CSP, COOP and Permissions-Policy (`public/_headers` in the docs repository).
 - **Members page (owner request):** "Roles in each app" was a wide table beside the People list that had to be scrolled sideways. Each person's row in **People** now holds their named role, their role in each app and "Can build workflows", as fields that wrap to the screen. Named roles and invitations sit below, side by side. `AppRolesPanel` stays for the dev preview (`/dev/hub?screen=roles`).
 - **Docs:** button and field names in the customer docs were checked against the code; three were out of date (Board's custom decision rule, the designer's "Run this step after", the data picker's trigger group) and are fixed. Power Automate is no longer named in code comments or the internal docs.
+
+## 13. Round 5 (2026-11-15): email limits, analytics on production only
+
+- **Web Analytics on production only** (owner request). Cloudflare's automatic injection for openapphub.org is off (it can't be limited to some hosts on this plan: one rule only). Production builds add the beacon from `VITE_CF_ANALYTICS_TOKEN` (production `vars` only; shared 1.24.0 `analytics.ts`); the docs add it only on `main` builds. Checked: a production build of the hub has the token, a staging build doesn't; a `main` docs build has it on every page, a local build on none.
+- **Email limits** (core `0021`): 200 emailed invitations a day per person, 5 recovery email changes a day per person.
+- **Hosted Ledger members page:** **Remove** and **Leave** hidden on hosted (they need the service role); OpenAppHub's Members page does both.
+- **Open question for the owner:** Charter's card payments on hosted need the service role (see [`security-review.md`](security-review.md#round-5-email-limits-analytics-on-production-only-2026-11-15)).

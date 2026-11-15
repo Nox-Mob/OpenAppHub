@@ -301,6 +301,38 @@ Asked for: "Perform another security and docs review." What we checked, and what
   Dependabot) can create a branch, and previews never receive the production cookie or reach
   production data, so we accept it.
 
+## Round 5: email limits, analytics on production only (2026-11-15)
+
+Asked for: "Perform another security review. Only want web analytics on the production branch."
+
+### Found and fixed
+
+| Finding                                                                                                                                                                                                                              | Fix                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core 0017 limits invitations per organization (100 an hour, 500 a day), but anyone can sign up and create several organizations, and each invitation emails any address. A script could send a lot of mail from our domain that way. | Core `0021_core_send_limits.sql`: at most 200 emailed invitations a day per person, across all their organizations. Link-only invitations send nothing and don't count.                                                                                                                                                                                                                                                                                  |
+| Changing the recovery email sends a confirmation link to the new address, with only a password check each time.                                                                                                                      | Core `0021`: at most 5 recovery email changes a day per person. Test: `db/tests/26_send_limits.sql`.                                                                                                                                                                                                                                                                                                                                                     |
+| Hosted OpenLedgerApp showed **Remove** and **Leave** on its members page. Both need the service role, which hosted Charter, Board and Ledger never have, so they could only fail.                                                    | Hidden on hosted; the page points to OpenAppHub's Members page instead, where removing and leaving work for every app.                                                                                                                                                                                                                                                                                                                                   |
+| Cloudflare Web Analytics was injected into every page on openapphub.org, staging included (the CSP blocked it, so it collected nothing anywhere).                                                                                    | Cloudflare's automatic injection is off. Production builds add the script themselves: `VITE_CF_ANALYTICS_TOKEN` is set only in each wrangler.jsonc's production `vars` (shared 1.24.0, `shared/analytics.ts`), and the docs site adds it only when Workers Builds builds `main` (`WORKERS_CI_BRANCH`). Production's CSP allows exactly the script and its reporting endpoint; staging's doesn't change. Cookie policy and the docs' Cookies page say so. |
+
+### Checked and fine
+
+- Every server use of the service role: the hub's invitations, account deletion, recovery and billing
+  webhook check the person and their rights first; the apps use it only for self-hosted email,
+  self-hosted recovery and Ledger's self-hosted member removal.
+- Every database function that queues email: none can be called directly by a person.
+- The existing limits: confirm-it's-you codes (5 an hour), recovery links (3 an hour), backup codes
+  and links (10 wrong tries an hour), invitations per organization, the waitlist.
+- Only the hub's Workers hold secrets (Cloudflare lists none for Charter, Board or Ledger).
+
+### For the owner
+
+- **Charter's online payments on hosted.** Members paying dues by card (each organization's own
+  Stripe) needs the service role and `GATEWAY_ENCRYPTION_KEY` on the Charter Worker, which hosted
+  Charter doesn't have, by design. Either give the Charter Worker those two secrets (simple; it then
+  holds the service role, like the hub), or we move those steps into database functions so it
+  doesn't need them (more work, keeps the rule "only the hub holds the service role"). Recommended:
+  the second, before Stripe goes live (it already waits on the legal entity and EIN).
+
 ## What the owner needs to do
 
 These are settings in dashboards. We can't change them from the code. They're in order of importance.

@@ -167,3 +167,7 @@ The plain-language write-up is [`security-review.md`](security-review.md) (Round
 - **Email limits** (core `0021`): 200 emailed invitations a day per person, 5 recovery email changes a day per person.
 - **Hosted Ledger members page:** **Remove** and **Leave** hidden on hosted (they need the service role); OpenAppHub's Members page does both.
 - **Open question for the owner:** Charter's card payments on hosted need the service role (see [`security-review.md`](security-review.md#round-5-email-limits-analytics-on-production-only-2026-11-15)).
+
+## 14. OWASP Top 10:2025 review (2026-11-15)
+
+Every 2025 category checked against its "How to prevent" list; the table is in [`security-review.md`](security-review.md#owasp-top-102025-review-2026-11-15). Fixed: TLS 1.2 minimum and HTTPS redirect on Cloudflare; `Cache-Control: private, no-store` on everything a Worker renders; `npm audit` in the hub's and docs' CI; core `0022` (20 new organizations a day per person); core `0023` (an email when recovery locks). For the owner: GitHub Dependency graph (SBOM and Dependabot alerts), Supabase leaked password protection and a 12-character minimum, alerts.

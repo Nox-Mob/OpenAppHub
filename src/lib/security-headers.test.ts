@@ -37,3 +37,18 @@ describe("Cloudflare Web Analytics in the CSP (production only)", () => {
     vi.unstubAllEnvs();
   });
 });
+
+describe("no caching of rendered pages (OWASP A04:2025)", () => {
+  it("adds private, no-store unless the response sets its own Cache-Control", () => {
+    const fresh = withSecurityHeaders(new Response("hi"), {
+      supabaseUrl: "https://abc.supabase.co",
+      csp: true,
+    });
+    expect(fresh.headers.get("Cache-Control")).toBe("private, no-store");
+    const own = withSecurityHeaders(
+      new Response("hi", { headers: { "Cache-Control": "public, max-age=60" } }),
+      { supabaseUrl: "https://abc.supabase.co", csp: true },
+    );
+    expect(own.headers.get("Cache-Control")).toBe("public, max-age=60");
+  });
+});

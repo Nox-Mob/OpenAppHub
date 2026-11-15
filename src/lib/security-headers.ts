@@ -49,6 +49,10 @@ export function withSecurityHeaders(
     "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
   );
   res.headers.set("Cross-Origin-Opener-Policy", "same-origin");
+  // OWASP A04:2025 (sensitive data in caches): everything the Worker renders can hold a
+  // person's data, so nothing keeps a copy unless a response says otherwise. Static files are
+  // served before the Worker runs and keep their own caching.
+  if (!res.headers.has("Cache-Control")) res.headers.set("Cache-Control", "private, no-store");
   if (opts.csp)
     res.headers.set(
       "Content-Security-Policy",

@@ -2,6 +2,7 @@
 import { analyticsToken } from "@shared/analytics";
 import handler from "@tanstack/react-start/server-entry";
 import { hubUnsubscribe, runHubAutomation, runHubEmail, type HubEnv } from "./lib/email.server";
+import { crossSiteWrite } from "./lib/cross-site";
 import { withSecurityHeaders } from "./lib/security-headers";
 
 type Env = HubEnv & { VITE_SUPABASE_URL?: string };
@@ -11,8 +12,15 @@ export default {
   async fetch(request: Request, env: Env, ctx: unknown): Promise<Response> {
     let response: Response;
     try {
-      // Email unsubscribe links (S-16): plain HTML, outside the app's router.
-      if (new URL(request.url).pathname === "/email/unsubscribe") {
+      // The hub's server functions act through the session cookie. SameSite=Lax already keeps
+      // other sites' forms from sending it; this also turns away any change a browser marks as
+      // sent from another site. Stripe and mail servers send no Sec-Fetch-Site header.
+      if (crossSiteWrite(request)) {
+        response = new Response("Cross-site request refused", {
+          status: 403,
+          headers: { "content-type": "text/plain; charset=utf-8" },
+        });
+      } else if (new URL(request.url).pathname === "/email/unsubscribe") {
         response = await hubUnsubscribe(request, env);
       } else {
         const fetchApp = handler.fetch as (r: Request, e: unknown, c: unknown) => Promise<Response>;

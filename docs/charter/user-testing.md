@@ -106,7 +106,7 @@ Still for a person: anything about looks, wording, phones, printing and screen r
 
 4. **Wording in the separate model** (Demo National): the dues rules read "Do chapters sell their own memberships?" (No: chapters use your levels and dues / Each chapter may choose / Yes: every chapter sells its own) and "Chapter members also need a membership with you". Board rules (renaming seats, extra seats, officers in good standing) are no longer here; they're on Settings → Board settings.
 
-**Also try:** a large image; an SVG.
+**Also try:** a large image; an SVG (it should be refused).
 
 ## 4. Roles
 

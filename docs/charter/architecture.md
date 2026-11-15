@@ -124,7 +124,7 @@ flowchart TD
 - **National sets the default.** A chapter may **override** with its own logo. Resolution falls back chapter → region → national → platform default, per asset, so a chapter can override only the logo and keep national's colors.
 - National can set whether chapters may override branding (inherit / override allowed / locked), like any other setting.
 - Resolved branding is used on the org's public site, the portal, **emails, receipts, certificates, and award documents**, always for the **issuing org** (a chapter receipt carries the chapter logo if it has one).
-- Logos are stored in object storage with size and type limits, SVG sanitization, and generated size variants. Receipts store a reference to the branding version used so reissued documents stay faithful.
+- Logos are stored in object storage with size and type limits (2 MB; PNG, JPG or WebP. SVG isn't accepted because it can carry scripts, migration 0020). Receipts store a reference to the branding version used so reissued documents stay faithful.
 
 ## 6. Shared engines
 

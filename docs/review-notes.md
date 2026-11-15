@@ -171,3 +171,11 @@ The plain-language write-up is [`security-review.md`](security-review.md) (Round
 ## 14. OWASP Top 10:2025 review (2026-11-15)
 
 Every 2025 category checked against its "How to prevent" list; the table is in [`security-review.md`](security-review.md#owasp-top-102025-review-2026-11-15). Fixed: TLS 1.2 minimum and HTTPS redirect on Cloudflare; `Cache-Control: private, no-store` on everything a Worker renders; `npm audit` in the hub's and docs' CI; core `0022` (20 new organizations a day per person); core `0023` (an email when recovery locks). For the owner: GitHub Dependency graph (SBOM and Dependabot alerts), Supabase leaked password protection and a 12-character minimum, alerts.
+
+## 15. Round 7 (2026-11-15): last sweep
+
+Fixed: Board settings readable by other organizations (Board 0022), SVG logos in Charter (Charter
+0020), size limits on a few Charter and Ledger inputs, Stripe webhooks turn away junk first, and the
+hub refuses cross-site changes. Everything else checked is listed in
+[`security-review.md`](security-review.md#round-7-last-sweep-2026-11-15). Every step that needs the
+owner is now in one place: [`manual-steps.md`](manual-steps.md).

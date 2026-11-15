@@ -174,9 +174,9 @@ Same idea as a core helper but a different name and signature: `is_org_member(_u
 
 ### 1.8 Storage
 
-| Bucket                               | Public?              | Path                                     | Policies on `storage.objects`                                                                                                                            |
-| ------------------------------------ | -------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `branding` (2 MB; PNG/JPEG/SVG/WebP) | private, signed URLs | `<org_id>/…` (already the spec's layout) | `branding public read` (narrowed by 0042 to `can_see_org_tree`), `branding managers insert` / `update` / `delete` (`has_permission(…, 'org.manage', …)`) |
+| Bucket                                                | Public?              | Path                                     | Policies on `storage.objects`                                                                                                                            |
+| ----------------------------------------------------- | -------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `branding` (2 MB; PNG/JPEG/WebP; SVG removed in 0020) | private, signed URLs | `<org_id>/…` (already the spec's layout) | `branding public read` (narrowed by 0042 to `can_see_org_tree`), `branding managers insert` / `update` / `delete` (`has_permission(…, 'org.manage', …)`) |
 
 The policies call `public.can_see_org_tree` and `public.has_permission`. Postgres stores the function OID, so after step 4 they keep pointing at the parked copies in `charter_legacy`. Step 6 replaces them with policies using `public.is_member` / `public.can_write`.
 

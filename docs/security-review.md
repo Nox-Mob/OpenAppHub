@@ -337,80 +337,64 @@ Asked for: "Perform another security review. Only want web analytics on the prod
 
 Asked for: review the suite against the [OWASP Top 10 2025](https://github.com/OWASP/Top10/tree/master/2025) (A01–A10), using each category's "How to prevent" list.
 
-| 2025 category                                  | Where we stand                                                                                                                                                                                                                                                                                                                                                                                            | Fixed in this review                                                                                                                                                                                                                                                  |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A01 Broken Access Control**                  | Deny by default (row security on every table, core 0017/0020); one access model (`has_role`, `app_role`) reused everywhere; record ownership in policies; access tests in every repo's `db/tests`; no CORS headers anywhere; no `.git`, `.env`, config or source maps served (checked on every staging site); short-lived Supabase JWTs with refresh tokens; global sign-out on logout.                   | —                                                                                                                                                                                                                                                                     |
-| **A02 Security Misconfiguration**              | Same setup for staging and production from one wrangler.jsonc each; security headers everywhere (CSP, HSTS, COOP, frame and type options, Permissions-Policy); private storage buckets; generic error pages; no secrets in code.                                                                                                                                                                          | —                                                                                                                                                                                                                                                                     |
-| **A03 Software Supply Chain Failures**         | Lockfiles; Dependabot version updates; every CI action pinned to a commit; dependency audits in the apps' CI; staging before production.                                                                                                                                                                                                                                                                  | `npm audit` (high or critical, shipped packages) added to the hub's and the docs' CI. **Owner:** turn on GitHub's **Dependency graph** for each repo: it gives an SBOM export (Insights → Dependency graph → Export SBOM) and Dependabot security alerts.             |
-| **A04 Cryptographic Failures**                 | Sensitive member fields encrypted (AES-256, key in Vault, rotation); codes and tokens stored as SHA-256 of random values; passwords hashed by Supabase (bcrypt); HSTS.                                                                                                                                                                                                                                    | Cloudflare now refuses TLS older than 1.2 and always redirects to HTTPS (zone openapphub.org). Every page a Worker renders now says `Cache-Control: private, no-store`, so no browser or proxy keeps a copy of personal pages.                                        |
-| **A05 Injection**                              | Parameterised queries through PostgREST; no dynamic SQL from user input (round 1); React escapes output; email templates escape.                                                                                                                                                                                                                                                                          | —                                                                                                                                                                                                                                                                     |
-| **A06 Insecure Design**                        | Tenants separated in every table and test; misuse cases tested (lockouts, limits, cross-organization access).                                                                                                                                                                                                                                                                                             | —                                                                                                                                                                                                                                                                     |
-| **A07 Authentication Failures**                | Supabase Auth (premade, well-tested); two-step sign-in with org-level requirements; confirm-it's-you before dangerous actions; generic sign-in errors; sign-up and password reset don't reveal whether an account exists (email confirmation on). **Owner:** turn on **leaked password protection** in Supabase (checks new passwords against Have I Been Pwned) and set a minimum length of at least 12. | —                                                                                                                                                                                                                                                                     |
-| **A08 Software or Data Integrity Failures**    | Signed email action links (HMAC); Stripe webhooks verified; changes through pull requests and CI. **Owner:** branch protection (section 2 below).                                                                                                                                                                                                                                                         | —                                                                                                                                                                                                                                                                     |
-| **A09 Security Logging and Alerting Failures** | Append-only audit logs in every app; account security activity; failed recovery tries recorded.                                                                                                                                                                                                                                                                                                           | Core `0023`: when recovery locks (10 wrong backup codes or links in an hour, which needs the person's password), the person is emailed at once (`recovery_locked`) and it's recorded. **Owner:** Cloudflare and Supabase alerts to an operations address (section 5). |
-| **A10 Mishandling of Exceptional Conditions**  | A global error handler in every Worker returns a generic message; database work is all-or-nothing (functions and `audited_write` roll back on any error); limits on codes, links, invitations and recovery emails.                                                                                                                                                                                        | Core `0022`: at most 20 new organizations a day per person ("nothing should be limitless"). Chapters, seeds and server tasks aren't limited.                                                                                                                          |
+| 2025 category                                  | Where we stand                                                                                                                                                                                                                                                                                                                                                                                            | Fixed in this review                                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A01 Broken Access Control**                  | Deny by default (row security on every table, core 0017/0020); one access model (`has_role`, `app_role`) reused everywhere; record ownership in policies; access tests in every repo's `db/tests`; no CORS headers anywhere; no `.git`, `.env`, config or source maps served (checked on every staging site); short-lived Supabase JWTs with refresh tokens; global sign-out on logout.                   | —                                                                                                                                                                                                                                                                                                        |
+| **A02 Security Misconfiguration**              | Same setup for staging and production from one wrangler.jsonc each; security headers everywhere (CSP, HSTS, COOP, frame and type options, Permissions-Policy); private storage buckets; generic error pages; no secrets in code.                                                                                                                                                                          | —                                                                                                                                                                                                                                                                                                        |
+| **A03 Software Supply Chain Failures**         | Lockfiles; Dependabot version updates; every CI action pinned to a commit; dependency audits in the apps' CI; staging before production.                                                                                                                                                                                                                                                                  | `npm audit` (high or critical, shipped packages) added to the hub's and the docs' CI. **Owner:** turn on GitHub's **Dependency graph** for each repo: it gives an SBOM export (Insights → Dependency graph → Export SBOM) and Dependabot security alerts.                                                |
+| **A04 Cryptographic Failures**                 | Sensitive member fields encrypted (AES-256, key in Vault, rotation); codes and tokens stored as SHA-256 of random values; passwords hashed by Supabase (bcrypt); HSTS.                                                                                                                                                                                                                                    | Cloudflare now refuses TLS older than 1.2 and always redirects to HTTPS (zone openapphub.org). Every page a Worker renders now says `Cache-Control: private, no-store`, so no browser or proxy keeps a copy of personal pages.                                                                           |
+| **A05 Injection**                              | Parameterised queries through PostgREST; no dynamic SQL from user input (round 1); React escapes output; email templates escape.                                                                                                                                                                                                                                                                          | —                                                                                                                                                                                                                                                                                                        |
+| **A06 Insecure Design**                        | Tenants separated in every table and test; misuse cases tested (lockouts, limits, cross-organization access).                                                                                                                                                                                                                                                                                             | —                                                                                                                                                                                                                                                                                                        |
+| **A07 Authentication Failures**                | Supabase Auth (premade, well-tested); two-step sign-in with org-level requirements; confirm-it's-you before dangerous actions; generic sign-in errors; sign-up and password reset don't reveal whether an account exists (email confirmation on). **Owner:** turn on **leaked password protection** in Supabase (checks new passwords against Have I Been Pwned) and set a minimum length of at least 12. | —                                                                                                                                                                                                                                                                                                        |
+| **A08 Software or Data Integrity Failures**    | Signed email action links (HMAC); Stripe webhooks verified; changes through pull requests and CI. **Owner:** branch protection ([manual steps](manual-steps.md#3-github)).                                                                                                                                                                                                                                | —                                                                                                                                                                                                                                                                                                        |
+| **A09 Security Logging and Alerting Failures** | Append-only audit logs in every app; account security activity; failed recovery tries recorded.                                                                                                                                                                                                                                                                                                           | Core `0023`: when recovery locks (10 wrong backup codes or links in an hour, which needs the person's password), the person is emailed at once (`recovery_locked`) and it's recorded. **Owner:** Cloudflare and Supabase alerts to an operations address ([manual steps](manual-steps.md#5-cloudflare)). |
+| **A10 Mishandling of Exceptional Conditions**  | A global error handler in every Worker returns a generic message; database work is all-or-nothing (functions and `audited_write` roll back on any error); limits on codes, links, invitations and recovery emails.                                                                                                                                                                                        | Core `0022`: at most 20 new organizations a day per person ("nothing should be limitless"). Chapters, seeds and server tasks aren't limited.                                                                                                                                                             |
 
 Tests: `db/tests/27_org_limit.sql`, `db/tests/28_security_alerts.sql`, and no-cache tests in each repo's `security-headers.test.ts`.
 
+## Round 7: last sweep (2026-11-15)
+
+A full pass over every database function anyone can call, every write rule, every public endpoint,
+the server code and the dependencies, to find anything the earlier rounds missed.
+
+### Found and fixed
+
+| Where                                   | Problem                                                                                                                                                                                              | Fix                                                                                                                                                                                      |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenBoardApp `board.settings`           | Any signed-in person who knew an organization's id could read its Board settings (time zone, quorum, voting rules).                                                                                  | Only people who can open OpenBoardApp in that organization see them; others get the defaults. Migration `0022_settings_members_only.sql`, test `db/tests/100_settings_members_only.sql`. |
+| OpenCharterApp logos                    | Logos could be SVG pictures, which can hold scripts. The Charter architecture doc said they were cleaned; they weren't. No SVG logo had been uploaded.                                               | PNG, JPG and WebP only, in the app and in storage. Migration `0020_no_svg_logos.sql`.                                                                                                    |
+| OpenCharterApp and OpenLedgerApp inputs | A few lists and values had no size limit (membership terms, pricing rule values, field choices, transaction lines, tags, the import column mapping), so one request could store a very large amount. | Each has a limit well above real use.                                                                                                                                                    |
+| Stripe webhooks (hub and Charter)       | The whole body was read, and Charter looked up the organization, before checking there was a signature.                                                                                              | No signature, a body over 1 MB, or (Charter) a badly formed organization id is turned away first.                                                                                        |
+| Hub server functions                    | They act through the session cookie. SameSite=Lax already stops other sites' forms sending it.                                                                                                       | As a second layer, the hub refuses any change a browser marks as sent from another site (`src/lib/cross-site.ts`). The apps use a bearer token, which other sites can't send.            |
+
+### Checked and fine
+
+- Every security-definer function signed-in people can call either checks membership or only answers
+  yes or no. Signed-out visitors can call three: reading an invitation by its secret link (email
+  partly hidden), joining the waitlist (limited to 30 sign-ups in 10 minutes), and Supabase's own
+  event trigger, which can't be called directly.
+- No table has a rule letting signed-out visitors read it, and no write rule is simply "true". The
+  hub's tables can only be changed through functions, except leaving or removing a member, which
+  can't remove the owner.
+- No read-only (GET) server call changes data; the email unsubscribe link only changes anything after
+  a button press, so mail scanners can't unsubscribe people.
+- Sign-in redirects go only to the suite's own sites. Email templates escape everything people type.
+  The hub's signed call to the apps expires after five minutes.
+- No real keys or secrets in any repository or its history; `.env` files with real values are ignored.
+- `npm audit` and `bun audit` find nothing in production dependencies. One moderate issue is in a
+  developer-only tool (ESLint's `minimatch`) and never reaches the sites.
+
+### Accepted
+
+- Most app tables are written straight from the browser through Supabase, so text sizes there are
+  limited by the database, not our forms. Only people with an editing role in their own organization
+  can write, and it only affects that organization.
+- Database error messages can name a table or rule. They never contain other organizations' data.
+
 ## What the owner needs to do
 
-These are settings in dashboards. We can't change them from the code. They're in order of importance.
-
-### 1. Protect your own accounts (do this first)
-
-Turn on two-step sign-in for **your own** accounts at:
-
-- GitHub
-- Supabase
-- Cloudflare
-- Stripe
-- Resend
-- your domain registrar
-
-Anyone who gets into one of these could change the whole suite. This matters more than anything else on this list.
-
-### 2. GitHub: branch protection
-
-In each of the five repositories, go to **Settings** > **Rules** > **Rulesets** > **New branch ruleset**. Make one ruleset for `main` and `staging` with:
-
-- **Restrict deletions**: on.
-- **Block force pushes**: on.
-- **Require a pull request before merging**: on.
-- **Require status checks to pass**: on. Choose the CI checks.
-
-### 3. GitHub: security features
-
-In each repository, under **Settings** > **Code security**, turn on:
-
-- **Dependabot alerts** and **Dependabot security updates**;
-- **Secret scanning** and **Push protection** (needed for OpenCharterApp, OpenBoardApp and OpenLedgerApp);
-- **Code scanning** results will appear on their own once the CodeQL workflow runs.
-
-### 4. Supabase (production project)
-
-Under **Authentication**:
-
-- **Leaked password protection:** on (Passwords).
-- **Minimum password length:** 8 or more.
-- **Confirm email:** on.
-- **URL configuration:** allow only `openapphub.org` and the app domains as redirect addresses.
-- **Multi-factor:** TOTP is enabled on production and staging (done, 2026-11-14).
-- **Sessions:** consider a time limit, like signing people out after 7 days of no use.
-
-Under **Database**:
-
-- **Enforce SSL:** on.
-- **Point-in-time recovery (backups you can roll back to any minute):** turn it on if your plan allows. It's the best protection against mistakes.
-
-### 5. Cloudflare
-
-- Turn on the **WAF managed rules** (a firewall that blocks common attacks).
-- Send **alerts** for Worker errors to an operations email address.
-- Switch off **Web Analytics** for the sites (round 4): our Content Security Policy blocks its script anyway.
-
-### 6. A security email address
-
-Our `security.txt` and docs use support@openapphub.org for reports today. A separate **security@openapphub.org** is better. If you create it, we'll update those files.
+Everything that needs you (dashboard settings, decisions, legal text and secrets) is in one list:
+[`manual-steps.md`](manual-steps.md).
 
 ---
 

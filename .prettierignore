@@ -9,5 +9,6 @@ docs/START-HERE.md
 AGENTS.md
 docs/design/prototype
 docs/design/contrast.md
-public/third-party.json
+licenses/
+shared/licenses/suite.json
 public/third-party-licenses.txt

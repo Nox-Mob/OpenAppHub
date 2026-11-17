@@ -56,6 +56,7 @@ Paths inside an app's documents (`src/…`, `db/…`, `scripts/…`) refer to th
 | [`charter/risks-and-open-questions.md`](charter/risks-and-open-questions.md)                     | Risks and open questions                                                                              |
 | [`charter/glossary.md`](charter/glossary.md)                                                     | Glossary                                                                                              |
 | [`charter/plans/`](charter/plans/)                                                               | Release and review plans                                                                              |
+| [`plans/esignatures-signudoc.md`](plans/esignatures-signudoc.md)                                 | E-signatures with SignuDoc: plan for the owner's decision (2026-11-17)                                |
 | [`charter/epic.md`](charter/epic.md), [`charter/roadmap.md`](charter/roadmap.md)                 | History only (superseded by [`ROADMAP.md`](ROADMAP.md))                                               |
 
 ### OpenBoardApp → [`board/`](board/)

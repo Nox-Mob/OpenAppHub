@@ -158,6 +158,11 @@ export function SiteFooter() {
             </Link>
           </li>
           <li>
+            <Link className={link} to="/about">
+              About and licenses
+            </Link>
+          </li>
+          <li>
             <button type="button" className={link} onClick={() => openCookieSettings()}>
               Cookie settings
             </button>

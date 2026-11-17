@@ -1,7 +1,8 @@
 # E-signatures with SignuDoc: plan
 
 Status: **plan only, for the owner's decision** (2026-11-17). Nothing here is built. The only code is a
-throwaway spike in [`esign-spike/`](esign-spike/), on a working branch.
+throwaway spike, kept out of `staging` and `main`: commit `a37b225` on the branch
+`claude/great-brown-cwk5vo`, folder `docs/plans/esign-spike/`.
 
 Owner request: "How easy would it be to implement SignuDoc into the OpenAppHub code base? Most
 applicable in OpenBoardApp (signatures on documents, execution of bylaws), and later OpenCharterApp (a
@@ -82,7 +83,7 @@ Read from the repository (`NYLLON-SOFTWARE/signudoc`, commit `1df503d`, 2026-11-
 
 ### The spike (option C's biggest risk)
 
-[`esign-spike/`](esign-spike/) builds a PDF with `pdf-lib`, adds a signature placeholder, and seals it
+The spike (commit `a37b225`, `docs/plans/esign-spike/`) builds a PDF with `pdf-lib`, adds a signature placeholder, and seals it
 with `@signpdf` and `node-forge`, the same libraries and versions SignuDoc uses.
 
 | Where it ran                                                        | Result                                                                                                 |

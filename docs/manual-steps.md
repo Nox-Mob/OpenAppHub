@@ -89,6 +89,11 @@ Already done: TLS 1.2 minimum, always HTTPS, and Web Analytics switched to produ
       When you have them, set up live mode in Stripe and add the live keys as Worker secrets
       ([`SECRETS.md`](SECRETS.md)).
 
+- [ ] **A package with no license in OpenLedgerApp.** `buffers` 0.1.1 states no license (without one,
+      its author keeps all rights). It comes in through `exceljs` (spreadsheet export), via `unzipper`
+      and `binary`. Choose: we replace `exceljs` with a library whose packages are all licensed, or you
+      accept it as it is. It's listed on OpenLedgerApp's About page as "Not stated by the package".
+
 ## 8. Legal text
 
 - [ ] **Privacy Policy.** The page is a placeholder. It needs the final text before launch. It should

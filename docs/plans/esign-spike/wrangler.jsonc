@@ -1,8 +1,0 @@
-// Spike only (2026-11-17): proves SignuDoc's sealing libraries run on Cloudflare Workers.
-// Not deployed. Run: npm i (see package.json), then npx wrangler dev, then open http://127.0.0.1:8787/.
-{
-  "name": "esign-spike",
-  "main": "worker.mjs",
-  "compatibility_date": "2026-11-01",
-  "compatibility_flags": ["nodejs_compat"],
-}

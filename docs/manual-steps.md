@@ -89,11 +89,6 @@ Already done: TLS 1.2 minimum, always HTTPS, and Web Analytics switched to produ
       When you have them, set up live mode in Stripe and add the live keys as Worker secrets
       ([`SECRETS.md`](SECRETS.md)).
 
-- [ ] **A package with no license in OpenLedgerApp.** `buffers` 0.1.1 states no license (without one,
-      its author keeps all rights). It comes in through `exceljs` (spreadsheet export), via `unzipper`
-      and `binary`. Choose: we replace `exceljs` with a library whose packages are all licensed, or you
-      accept it as it is. It's listed on OpenLedgerApp's About page as "Not stated by the package".
-
 ## 8. Legal text
 
 - [ ] **Privacy Policy.** The page is a placeholder. It needs the final text before launch. It should
@@ -117,3 +112,4 @@ Never paste these into a chat or commit them. Add them under **Settings** > **Se
 Move items here, with the date, when they're finished.
 
 - 2026-11-14: Two-step sign-in (TOTP) enabled on the production and staging Supabase projects.
+- 2026-11-17: `buffers` 0.1.1 (no stated license, through OpenLedgerApp's `exceljs`) accepted as is.

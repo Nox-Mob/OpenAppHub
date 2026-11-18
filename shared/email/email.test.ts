@@ -131,6 +131,25 @@ describe("templates", () => {
     expect(r.html).toContain("https://board.openapphub.org/orgs/x");
   });
 
+  it("only links to the suite's own sites, whatever a row's data says", () => {
+    const render = (link: string) =>
+      renderEmail(
+        row({
+          template: "automation.message",
+          category: "essential",
+          data: { subject: "Hi", message: "x", link },
+        }),
+        ctx,
+      ).html;
+    expect(render("https://evil.example/login")).not.toContain("evil.example");
+    expect(render("https://evil.example/login")).toContain('href="https://openapphub.org/"');
+    expect(render("javascript:alert(1)")).not.toContain("javascript:");
+    expect(render("//evil.example/x")).not.toContain("evil.example");
+    expect(render("https://board.openapphub.org/board/meetings/1")).toContain(
+      "https://board.openapphub.org/board/meetings/1",
+    );
+  });
+
   it("renders a notification with its organization and link", () => {
     const r = renderEmail(
       row({
@@ -426,6 +445,18 @@ describe("smtp", () => {
     expect(mime).toContain("Content-Type: multipart/alternative");
     expect(mime).toContain(btoa("<p>Hi</p>"));
     expect(mime).toContain("To: bob@lakeview.test");
+  });
+
+  it("refuses a Reply-To that would add a header line", () => {
+    expect(() =>
+      buildMime({ ...message, replyTo: "Help <help@lakeview.test\r\nBcc: all@evil.test>" }),
+    ).toThrow();
+    expect(() =>
+      buildMime({ ...message, replyTo: "help@lakeview.test\r\nBcc: x@evil.test" }),
+    ).toThrow();
+    const mime = buildMime({ ...message, replyTo: "Lakeview Help <help@lakeview.test>" });
+    expect(mime).toContain('Reply-To: "Lakeview Help" <help@lakeview.test>');
+    expect(mime).not.toContain("Bcc:");
   });
 });
 

@@ -97,3 +97,28 @@ export function currentOrigin(): string {
     return "";
   }
 }
+
+/**
+ * The origin to put in links we email or hand to Stripe (invitations, checkout and portal return
+ * addresses). The request's own origin only when it's the configured hub or one of our preview
+ * addresses; otherwise the configured hub. A forged Host header can then never make an email point
+ * somewhere else.
+ */
+export function linkOrigin(
+  requestOrigin: string,
+  configured: string = hubConfiguredOrigin(),
+  domains: string[] = previewDomains(),
+): string {
+  if (!configured) return requestOrigin;
+  if (requestOrigin === configured || isPreviewOrigin(requestOrigin, domains)) return requestOrigin;
+  return configured;
+}
+
+function hubConfiguredOrigin(): string {
+  try {
+    const hub = hubUrl("/");
+    return hub.startsWith("http") ? new URL(hub).origin : "";
+  } catch {
+    return "";
+  }
+}

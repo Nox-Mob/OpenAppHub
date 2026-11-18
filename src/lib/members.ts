@@ -33,7 +33,8 @@ export const sendInvitation = createServerFn({ method: "POST" })
     if (!userClient) return { error: "This site isn't connected to its database." };
     const { data: auth } = await userClient.auth.getUser();
     if (!auth.user) return { error: "You need to be signed in." };
-    const origin = new URL(getRequest().url).origin;
+    const { linkOrigin } = await import("./next");
+    const origin = linkOrigin(new URL(getRequest().url).origin);
     try {
       return await core.inviteMember({
         userClient,

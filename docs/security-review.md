@@ -391,6 +391,40 @@ the server code and the dependencies, to find anything the earlier rounds missed
   can write, and it only affects that organization.
 - Database error messages can name a table or rule. They never contain other organizations' data.
 
+## Round 8: thinking like an attacker (2026-11-18)
+
+A live attack on staging as an outsider, the public `test@demo.openapphub.org` account, which
+belongs to no organization. Every probe ran in a transaction that was rolled back. After that, a
+code review for what an attacker would try next.
+
+### Found and fixed
+
+| Where                           | Problem                                                                                                                                                                                                    | Fix                                                                                                                                                                                                                              |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CI in every repository          | A new high advisory for `picomatch` (ReDoS in glob patterns) with no fixed version blocked every pull request. `picomatch` only runs at build time, on patterns we write; it isn't in any deployed Worker. | `shared/security/audit.mjs`: fails on any high or critical advisory except those in `shared/security/audit-allow.json`, each with a reason and an expiry date (this one: 2026-12-18). Charter's `bun audit` takes the same list. |
+| Self-hosted email (SMTP)        | A `Reply-To` with a name could carry a line break into the email's headers (for example a hidden `Bcc:`). From and To were already checked when sent; Reply-To wasn't.                                     | Every address in a header goes through the strict address check. Test added.                                                                                                                                                     |
+| Email links                     | A link saved with a queued email was used as is if it was absolute, so a crafted value could make our own emails point at a phishing site.                                                                 | Absolute links only to the suite's own sites; anything else becomes the app's home page. Test added.                                                                                                                             |
+| Hub invitation and Stripe links | Built from the incoming request's address (its Host header). Cloudflare doesn't let a forged Host reach the Worker, but the links shouldn't depend on that.                                                | `linkOrigin`: the request's address only when it's the configured hub or one of our preview addresses; otherwise the configured hub. Test added.                                                                                 |
+
+### Tried and blocked
+
+- **Reading:** across all six schemas, the outsider sees only lookup tables, their own profile and
+  the built-in Charter role templates.
+- **Writing:** inserting a row for another organization into each of the 61 tables with an `org_id`
+  failed every time (52 by row rules, 9 by validation checks first).
+- **Database functions:** every function taking an organization id, aimed at another organization,
+  returned nothing private. Board settings come back as defaults (round 7), the join information is
+  the public join page's, and a few yes/no settings remain (accepted in earlier rounds).
+- **Files:** upload rules check the organization folder against the uploader's role; Board files
+  can't be overwritten.
+- **Signed email links:** tied to one person, expire after 7 days, and only run what that person
+  could already do.
+- **Free dues through the test payment gateway:** only demo organizations or a platform flag;
+  nobody can switch an organization to demo, and only platform operators create demo ones.
+- **Also checked:** spreadsheet formula injection in every CSV export, CSS injection through charts,
+  and Supabase's security advisor (only expected notes, plus leaked-password protection, which is
+  already in [`manual-steps.md`](manual-steps.md)).
+
 ## What the owner needs to do
 
 Everything that needs you (dashboard settings, decisions, legal text and secrets) is in one list:

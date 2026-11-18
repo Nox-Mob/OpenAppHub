@@ -18,12 +18,13 @@ async function context() {
       import("./billing-core"),
       import("@tanstack/react-start/server"),
     ]);
+  const { linkOrigin } = await import("./next");
   return {
     userClient: getSupabaseServerClient(),
     service: getServiceClient(),
     core,
     config: core.stripeConfigFromEnv(process.env),
-    origin: new URL(getRequest().url).origin,
+    origin: linkOrigin(new URL(getRequest().url).origin),
   };
 }
 

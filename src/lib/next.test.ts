@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPreviewOrigin, previewDomains, safeNext } from "./next";
+import { isPreviewOrigin, linkOrigin, previewDomains, safeNext } from "./next";
 
 const here = "https://openapphub.org";
 const origins = [here, "https://charter.openapphub.org", "https://board.openapphub.org"];
@@ -77,5 +77,23 @@ describe("preview origins (staging)", () => {
   it("is off without preview domains (production)", () => {
     const next = "https://staging.board.staging.openapphub.org/";
     expect(safeNext(next, "https://openapphub.org", [], [])).toBe("/");
+  });
+});
+
+describe("linkOrigin", () => {
+  const hub = "https://openapphub.org";
+  const domains = ["staging.openapphub.org"];
+  it("keeps the hub's own origin and our preview addresses", () => {
+    expect(linkOrigin(hub, hub, domains)).toBe(hub);
+    expect(linkOrigin("https://feature.staging.openapphub.org", hub, domains)).toBe(
+      "https://feature.staging.openapphub.org",
+    );
+  });
+  it("uses the configured hub for any other host, so a forged Host can't redirect emails", () => {
+    expect(linkOrigin("https://evil.example", hub, domains)).toBe(hub);
+    expect(linkOrigin("https://openapphub.org.evil.example", hub, domains)).toBe(hub);
+  });
+  it("falls back to the request when no hub is configured (local development)", () => {
+    expect(linkOrigin("http://localhost:3000", "", domains)).toBe("http://localhost:3000");
   });
 });

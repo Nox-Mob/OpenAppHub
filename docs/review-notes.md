@@ -179,3 +179,11 @@ Fixed: Board settings readable by other organizations (Board 0022), SVG logos in
 hub refuses cross-site changes. Everything else checked is listed in
 [`security-review.md`](security-review.md#round-7-last-sweep-2026-11-15). Every step that needs the
 owner is now in one place: [`manual-steps.md`](manual-steps.md).
+
+## 16. Round 8 (2026-11-18): thinking like an attacker
+
+A live outsider attack on staging (rolled back) found no way in. Fixed: CI's dependency audit gets
+a dated allow-list (picomatch has no fix yet), self-hosted email Reply-To can't add headers, emails
+only link to the suite's own sites, and the hub's invitation and Stripe links come from its
+configured address. Details in
+[`security-review.md`](security-review.md#round-8-thinking-like-an-attacker-2026-11-18).

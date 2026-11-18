@@ -891,7 +891,7 @@ flowchart TB
 ```text
 React screens (src/routes, src/components)
         |  only through
-Data facade (src/data: db, attempt)  ── data-layer.test.ts forbids direct client imports
+Data facade (src/data: db, attempt)  ── screens never import the client directly
         |
 Cloud adapter (src/data/cloud-adapter.ts): auth, tables, RPCs, files
         |

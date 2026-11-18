@@ -15,13 +15,13 @@ accurate)."
    - SignuDoc is a separate Next.js app for Vercel, made for **one organization per install**. We're a
      multi-organization suite on Cloudflare Workers and Supabase. Its pages, sign-in, database code and
      file storage can't be used as they are.
-   - **Its signing engine can be reused**: building the signed PDF, the tamper-proof PDF seal (PAdES),
-     the chained audit trail, and the "is this the real file?" check. A spike sealed a PDF on
+   - **Its signing engine can be reused**: building the signed PDF and its certificate, the chained
+     audit trail, the "is this the real file?" check, and later, if wanted, a PDF seal (PAdES). A spike sealed a PDF on
      Cloudflare's own runtime in about 50 ms. The libraries add about 270 KB (gzipped) to a Worker.
    - The recommended path is to **port the engine into one suite service** (OpenAppHub Signatures)
      that every app uses, and build our own screens on our design system and security model.
    - Rough size: an **attestation-only** first release (sign a statement about a record) is small, a
-     few weeks. **Full PDF signing** (place fields on a PDF, signing order, sealed copy, verify page) is
+     few weeks. **Full PDF signing** (place fields on a PDF, signing order, signed copy with its Certificate of Completion, verify page) is
      a large epic, roughly 2 to 3 months of focused work including tests and docs.
 2. **Dependencies.** The suite foundations it needs are **already done**: email, signed links,
    confirm-it's-you, two-step sign-in, documents and storage, tasks, notifications, automations and
@@ -29,7 +29,8 @@ accurate)."
    - Board's **B-13** (minutes sign-off) and **B-14** (policies and annual forms) are the first users.
    - Charter's award signatures wait on **C-29** (form builder), **C-30/C-31** (award approvals) and
      **C-24** (the approval engine).
-   - Owner decisions: the seal certificate, legal wording and the Privacy Policy.
+   - Owner decisions: legal wording and the Privacy Policy. The PDF seal is deferred (owner,
+     2026-11-18): a Certificate of Completion goes on the end of each signed PDF instead.
 3. **Do alongside it**, even as groundwork:
    - fingerprint (SHA-256) every stored document version now;
    - a versioned "consent to electronic records" document;
@@ -101,7 +102,7 @@ certificate status and timestamps), and very large PDFs (Worker CPU time).
 ## 4. Recommended design: OpenAppHub Signatures
 
 One service for the whole suite, like email (S-16) and approvals (core `0014`). Apps ask for a
-signature; the hub collects it, seals it and keeps the evidence; apps hear back through events and
+signature; the hub collects it, adds the certificate and keeps the evidence; apps hear back through events and
 automations.
 
 ### Two kinds of signature
@@ -110,8 +111,8 @@ automations.
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | What's signed       | A statement about a record: "I attest this award recommendation is true and accurate", "I approve these minutes", "I have read the conflict-of-interest policy" | A PDF: bylaws, a resolution, a contract, a lease                        |
 | How                 | One screen: the statement, the record's summary and fingerprint, typed name, confirm-it's-you, Sign                                                             | Fields placed on the PDF, signing order, each signer fills their fields |
-| Result              | An attestation record (who, when, what, the record's fingerprint, how we checked who they were). Optional one-page sealed certificate PDF                       | A sealed signed PDF plus an audit certificate                           |
-| SignuDoc parts used | Audit chain, canonical JSON, seal (for the certificate)                                                                                                         | Almost the whole engine                                                 |
+| Result              | An attestation record (who, when, what, the record's fingerprint, how we checked who they were). A one-page certificate PDF                                     | A signed PDF with its Certificate of Completion on the end              |
+| SignuDoc parts used | Audit chain, canonical JSON, certificate layout                                                                                                                 | Almost the whole engine                                                 |
 | Size                | Small                                                                                                                                                           | Large                                                                   |
 
 **Start with attestations.** They cover most of what Board and Charter need (minutes sign-off, annual
@@ -127,18 +128,18 @@ piece. Document signing builds on the same tables and evidence.
   - `sign_fields`: document signing only.
   - `sign_events`: **append-only and hash-chained**, like SignuDoc's `audit_events`.
   - `sign_files`: original, signed and certificate files, each with its SHA-256.
-  - `seal_keys`: the platform's seal keys; private keys encrypted with a Worker secret.
   - RLS: members of the organization read; only the hub's definer functions write. The apps call
     invoker functions (S-12 pattern).
 - **The hub hosts**:
   - the signing page (`/sign/<id>` for members, `/sign/t/<token>` for outside signers via core
     `action_links`);
-  - sealing (it holds the service role and the seal key secret, and the other apps don't, by design);
-  - the public **Verify** page (`/verify`: drop a file, it says if it's an original we sealed; only
+  - finishing the PDF and its certificate (it holds the service role, and the other apps don't, by
+    design);
+  - the public **Verify** page (`/verify`: drop a file, it says if it's exactly a file we produced; only
     the fingerprint is sent).
-- **Shared module** (`shared/esign/`): the ported engine (PDF stamping, seal, audit chain, verify),
+- **Shared module** (`shared/esign/`): the ported engine (PDF stamping, certificate, audit chain, verify),
   with SignuDoc's MIT notice. Synced to the apps like the rest of `shared/`, so self-hosted apps can
-  seal too.
+  produce signed copies too.
 - **Storage**: a private `sign-files` bucket with per-organization paths and its own size and type
   limits (PDF only for documents).
 - **Apps**: Board and Charter add a "Request signatures" action on their records and show the status.
@@ -154,41 +155,68 @@ piece. Document signing builds on the same tables and evidence.
   emailed one-time code. Optional access code.
 - The method is stored on each signature and printed on the certificate.
 
-### Evidence
+### Evidence: a Certificate of Completion (owner direction, 2026-11-18)
+
+When the last person signs, we **add a Certificate of Completion to the end of the signed PDF**, like
+DocuSign's. It's the page people actually read when a signature is questioned. It shows:
+
+- the document's title, the request's ID, who sent it and when;
+- each signer: name, email, how we checked who they were (signed in with two-step sign-in and
+  confirm-it's-you, or an emailed code), when they viewed, consented and signed, their IP address
+  and browser, and their signature as drawn or typed;
+- the signed document's SHA-256 fingerprint (the pages before the certificate);
+- the version of the consent-to-electronic-records text each signer accepted;
+- the full event history (created, sent, viewed, consented, signed, declined, completed);
+- a link to our Verify page.
+
+The certificate is also available as its own download, and an attestation (section 4, "Two kinds")
+gets a one-page certificate on its own.
+
+Behind it:
 
 - Consent to electronic records, versioned, before the first signature.
-- The document's SHA-256 before signing and after sealing.
-- Hash-chained events (created, sent, viewed, consented, signed, declined, completed, voided). IP and
-  browser stored as SignuDoc does, and covered by the Privacy Policy.
-- The sealed PDF plus certificate page, checkable in any PDF reader and on our Verify page.
+- Hash-chained events in the database (SignuDoc's design), so an edited or deleted event shows.
+- **The finished file's SHA-256 stored with the request.** The Verify page answers "is this exactly
+  the file we produced?" for anyone holding a copy. Only the fingerprint is sent, never the file.
 - Included in each app's "Export everything" (S-06) and Board's record export (B-08).
 
-### The seal
+### The seal (PAdES): not now
 
-SignuDoc self-signs by default and lets an install add a trusted certificate.
+**Recommendation: certificate and Verify page first, no PAdES seal.**
 
-- **A self-signed platform key** shows "signed, unchanged since" in PDF readers, but readers warn the
-  signer is unknown.
-- **A certificate trusted by Adobe (AATL)** removes the warning and costs money every year.
+- **What the seal would add:** a PDF reader could show "unchanged since signing" without visiting our
+  site.
+- **What a self-signed seal costs:** Adobe Acrobat shows a yellow "signature validity is unknown"
+  banner on every document, because it doesn't know our certificate. To a board member that reads as
+  "something is wrong with this file". We'd also look after a private key (encryption, rotation, theft
+  risk).
+- **Tamper evidence without it:** the stored fingerprint, the Verify page and the chained events
+  catch any change to the file. The certificate prints the fingerprint, so anyone can check.
+- **Legally:** ESIGN and UETA look for consent, intent, who signed and a kept record. The
+  certificate and the audit trail provide those; neither law needs a cryptographic seal.
+- **Later, if wanted:** if a customer needs reader-checkable signatures, add the seal on top
+  (S-33). It goes on the finished file, certificate included, and is worth doing with a certificate
+  Adobe trusts (AATL), which removes the warning but costs money every year. A self-signed seal
+  stays the fallback if you'd rather have one from the start; the spike shows it works.
 
-This is an owner decision; start self-signed on staging. Long-term validation (timestamps, B-LTA)
-comes later.
+This also makes S-29 to S-31 smaller: no seal keys, no `node-forge` or `@signpdf`, and no long-term
+validation code.
 
 ## 5. New epics, and where they go
 
-| ID       | Epic                                         | Needs                                            | Notes                                                                                                                                                                                                                                                                                             |
-| -------- | -------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **S-29** | **Signatures core**                          | S-16 ✅, core `0014` ✅, core `0019` ✅, S-12 ✅ | Core tables and RLS, hash chain, `shared/esign/` (ported engine, MIT notice), storage bucket, seal key handling, email templates, `signature.*` automation triggers, tasks ("Sign this" on the hub dashboard, S-15/S-19), notifications (H-02). DB tests, including cross-organization isolation. |
-| **S-30** | **Attestations**                             | S-29                                             | Statement plus record fingerprint, confirm-it's-you, certificate PDF. The first thing Board and Charter use.                                                                                                                                                                                      |
-| **S-31** | **Document signing**                         | S-29                                             | Upload or pick a PDF; place fields (PDF.js canvas, keyboard alternative); signing order; copy recipients; deadlines; reminders as S-25 automations; decline and void; sealed PDF and certificate. Works on phones (the screens review sizes).                                                     |
-| **S-32** | **Verify page and certificates**             | S-29                                             | The public `/verify` page; certificate layout; letterhead from Board (B-04).                                                                                                                                                                                                                      |
-| **S-33** | **Later**                                    | S-31                                             | Long-term validation and timestamps, templates, CJK fonts, outside providers for advanced or qualified signatures (eIDAS), several documents in one envelope.                                                                                                                                     |
-| **B-16** | **Board: sign documents and execute bylaws** | S-31, B-04 ✅                                    | "Request signatures" on a document version; signed copy stored as the next version; bylaws and resolutions marked executed; signed copies in the board packet.                                                                                                                                    |
-| **B-13** | Consent agenda and sign-off _(exists)_       | S-30                                             | The secretary's (and chair's) sign-off on approved minutes becomes an attestation.                                                                                                                                                                                                                |
-| **B-14** | Policies and annual forms _(exists)_         | S-30                                             | Yearly conflict-of-interest disclosure and policy acknowledgement as attestations, with tasks and reminders.                                                                                                                                                                                      |
-| **C-44** | **Charter: required signatures**             | S-30; C-29 for forms                             | A national (or region) sets which forms or records need an attestation and from whom ("the chapter commander attests the award recommendation is true and accurate"). Chapters see it as a required step. Uses the chain of command and H-09 roles.                                               |
-| C-31     | Award submission and approvals _(exists)_    | C-30, C-24, **C-44**                             | The recommendation can't be submitted without the attestation; each approver's decision can be an attestation too.                                                                                                                                                                                |
-| C-43     | Annual chapter reports _(exists)_            | C-29, **C-44**                                   | The national can require the chapter's officers to attest the report.                                                                                                                                                                                                                             |
+| ID       | Epic                                         | Needs                                            | Notes                                                                                                                                                                                                                                                                          |
+| -------- | -------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **S-29** | **Signatures core**                          | S-16 ✅, core `0014` ✅, core `0019` ✅, S-12 ✅ | Core tables and RLS, hash chain, `shared/esign/` (ported engine, MIT notice), storage bucket, email templates, `signature.*` automation triggers, tasks ("Sign this" on the hub dashboard, S-15/S-19), notifications (H-02). DB tests, including cross-organization isolation. |
+| **S-30** | **Attestations**                             | S-29                                             | Statement plus record fingerprint, confirm-it's-you, certificate PDF. The first thing Board and Charter use.                                                                                                                                                                   |
+| **S-31** | **Document signing**                         | S-29                                             | Upload or pick a PDF; place fields (PDF.js canvas, keyboard alternative); signing order; copy recipients; deadlines; reminders as S-25 automations; decline and void; signed PDF with its certificate. Works on phones (the screens review sizes).                             |
+| **S-32** | **Verify page and certificates**             | S-29                                             | The Certificate of Completion added to the end of each signed PDF (and as its own download); the public `/verify` page; certificate layout with letterhead from Board (B-04).                                                                                                  |
+| **S-33** | **Later**                                    | S-31                                             | A PDF seal (PAdES) on the finished file, best with a trusted (AATL) certificate; long-term validation and timestamps, templates, CJK fonts, outside providers for advanced or qualified signatures (eIDAS), several documents in one envelope.                                 |
+| **B-16** | **Board: sign documents and execute bylaws** | S-31, B-04 ✅                                    | "Request signatures" on a document version; signed copy stored as the next version; bylaws and resolutions marked executed; signed copies in the board packet.                                                                                                                 |
+| **B-13** | Consent agenda and sign-off _(exists)_       | S-30                                             | The secretary's (and chair's) sign-off on approved minutes becomes an attestation.                                                                                                                                                                                             |
+| **B-14** | Policies and annual forms _(exists)_         | S-30                                             | Yearly conflict-of-interest disclosure and policy acknowledgement as attestations, with tasks and reminders.                                                                                                                                                                   |
+| **C-44** | **Charter: required signatures**             | S-30; C-29 for forms                             | A national (or region) sets which forms or records need an attestation and from whom ("the chapter commander attests the award recommendation is true and accurate"). Chapters see it as a required step. Uses the chain of command and H-09 roles.                            |
+| C-31     | Award submission and approvals _(exists)_    | C-30, C-24, **C-44**                             | The recommendation can't be submitted without the attestation; each approver's decision can be an attestation too.                                                                                                                                                             |
+| C-43     | Annual chapter reports _(exists)_            | C-29, **C-44**                                   | The national can require the chapter's officers to attest the report.                                                                                                                                                                                                          |
 
 ### Order
 
@@ -225,7 +253,6 @@ comes later.
 - **C-26** Charter document repository: only for signing Charter documents as PDFs. Attestations on
   records don't need it.
 - **Legal and owner items** (into [`../manual-steps.md`](../manual-steps.md) if approved):
-  - the seal certificate decision;
   - the consent-to-electronic-records wording;
   - the Privacy Policy covering signing evidence (IP address, browser);
   - Terms of Service saying what e-signatures may and may not be used for;
@@ -251,7 +278,7 @@ comes later.
    notarised and real-estate documents: no.
 7. **A Worker bundle size check in CI.** Fail the build if a Worker nears Cloudflare's limit. The PDF
    engine, PDF.js and fonts are big.
-8. **Talk to SignuDoc upstream.** Ask whether they'd publish the engine (PDF finalize, seal, audit
+8. **Talk to SignuDoc upstream.** Ask whether they'd publish the engine (PDF finalize, certificate, seal, audit
    chain, verify) as its own package with no Next.js or Vercel code. Then we depend on it instead of
    copying it, and fixes flow both ways. Until then, copy a pinned version with its MIT notice, and
    note which upstream commit each file came from.
@@ -260,20 +287,21 @@ comes later.
 
 ## 8. Risks
 
-| Risk                                   | How we handle it                                                                                                                                                                                                                |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SignuDoc is days old and changing fast | Copy a pinned commit; our own tests (seal, chain, verify, tampering) decide, not theirs; re-sync on purpose.                                                                                                                    |
-| Legal weight                           | We provide the features ESIGN/UETA look for (consent, intent, attribution, record keeping). We don't promise a signature is valid for a purpose, and say what it isn't for (section 7.6). Owner to check wording with a lawyer. |
-| Worker CPU and size limits             | Cap PDF size and pages; leave CJK out at first; measure big PDFs before S-31 ships; move sealing to a queue if needed.                                                                                                          |
-| Seal key theft                         | The key is encrypted with a Worker secret and used only in the hub's Worker. Rotation keeps old seals verifiable (SignuDoc's `retired_at` design). Covered in SECRETS.md and the security review.                               |
-| Signing evidence is personal data      | IP and browser kept only as long as the record; in the Privacy Policy and the export; erasure rules match retention.                                                                                                            |
-| Scope creep toward DocuSign            | Keep to attestations and everyday documents. Bulk send, payments and integrations are out of scope.                                                                                                                             |
+| Risk                                                   | How we handle it                                                                                                                                                                                                                |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SignuDoc is days old and changing fast                 | Copy a pinned commit; our own tests (certificate, chain, verify, tampering) decide, not theirs; re-sync on purpose.                                                                                                             |
+| Legal weight                                           | We provide the features ESIGN/UETA look for (consent, intent, attribution, record keeping). We don't promise a signature is valid for a purpose, and say what it isn't for (section 7.6). Owner to check wording with a lawyer. |
+| Worker CPU and size limits                             | Cap PDF size and pages; leave CJK out at first; measure big PDFs before S-31 ships; move finishing to a queue if needed.                                                                                                        |
+| Seal key theft (only if the seal is added later, S-33) | The key is encrypted with a Worker secret and used only in the hub's Worker. Rotation keeps old seals verifiable (SignuDoc's `retired_at` design). Covered in SECRETS.md and the security review.                               |
+| Signing evidence is personal data                      | IP and browser kept only as long as the record; in the Privacy Policy and the export; erasure rules match retention.                                                                                                            |
+| Scope creep toward DocuSign                            | Keep to attestations and everyday documents. Bulk send, payments and integrations are out of scope.                                                                                                                             |
 
 ## 9. Decisions for the owner
 
 1. **Approve option C** (port the engine into a suite service) and the order in section 5.
 2. **Attestations first** (S-30 before S-31)?
-3. **The seal:** self-signed to start, or buy a trusted (AATL) certificate before launch?
+3. **The seal:** decided (2026-11-18): a Certificate of Completion on the end of each signed PDF,
+   with the Verify page; no PAdES seal for now. A self-signed seal is the fallback if wanted.
 4. **Plans:** is signing in every plan, or a paid feature?
 5. **Groundwork now:** approve items 1–4 of section 7 (small, useful on their own).
 6. **Upstream:** OK to contact SignuDoc's maintainers about a separate engine package?

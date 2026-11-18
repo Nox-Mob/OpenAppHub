@@ -23,10 +23,11 @@ describe("the suite list", () => {
     expect(LIBRARIES.length).toBeGreaterThan(100);
     for (const l of LIBRARIES) expect(Object.keys(l).sort()).toEqual(["license", "name"]);
   });
-  it("includes npm and Rust libraries", () => {
+  it("is the web suite's npm libraries, without the desktop edition's Rust ones", () => {
     const names = new Set(LIBRARIES.map((l) => l.name));
     expect(names.has("react")).toBe(true);
-    expect(names.has("serde")).toBe(true);
+    expect(names.has("tauri-utils")).toBe(false);
+    expect(names.has("windows-sys")).toBe(false);
   });
 });
 
@@ -41,6 +42,17 @@ describe("AboutLicenses", () => {
     fireEvent.change(screen.getByLabelText("Search libraries"), { target: { value: "isc" } });
     expect(screen.queryByRole("cell", { name: "zod" })).toBeNull();
     expect(screen.getByRole("cell", { name: "lucide-react" })).toBeTruthy();
+  });
+  it("adds a second license file when an edition ships more", () => {
+    render(
+      <AboutLicenses
+        libraries={libs}
+        moreTexts={{ href: "/third-party-licenses-rust.txt", label: "the desktop license file" }}
+      />,
+    );
+    expect(
+      screen.getByRole("link", { name: "the desktop license file" }).getAttribute("href"),
+    ).toBe("/third-party-licenses-rust.txt");
   });
   it("links to the full license texts on the hub", () => {
     expect(licenseTextsUrl()).toMatch(/^https?:\/\/.+\/third-party-licenses\.txt$/);

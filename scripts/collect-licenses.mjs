@@ -4,14 +4,14 @@
 //
 //   node scripts/collect-licenses.mjs ../opencharterapp ../openboardapp ../openledgerapp ../openapphub-docs
 //
-// Run from the hub's root, with each repository checked out and its packages installed. It reads:
-// - the hub's npm packages and each listed repository's (shared/licenses/generate.mjs);
-// - each repository's Rust packages, from its licenses/rust.json (shared/licenses/cargo.mjs).
-// It writes:
+// Run from the hub's root, with each repository checked out and its packages installed. It reads
+// the hub's npm packages and each listed repository's (shared/licenses/generate.mjs). Rust packages
+// (OpenLedgerApp's desktop edition) aren't part of the web suite: the desktop build shows them
+// itself (shared/licenses/cargo.mjs). It writes:
 // - shared/licenses/suite.json: name and license only (the About page), synced to every app;
 // - public/third-party-licenses.txt: every license text, served at /third-party-licenses.txt.
 // Run it before syncing shared/ to the apps whenever an app's packages change.
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { collectNpm, noticesText } from "../shared/licenses/generate.mjs";
 
@@ -30,8 +30,6 @@ for (const root of [process.cwd(), ...repos]) {
     process.exit(1);
   }
   all.push(...collectNpm(root).packages);
-  const rust = join(root, "licenses", "rust.json");
-  if (existsSync(rust)) all.push(...JSON.parse(readFileSync(rust, "utf8")).packages);
 }
 
 // One row per name and license (versions left out); license texts kept once each.

@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CONSENT_EVENT,
-  COOKIES,
-  PREFERENCE_COOKIES,
   consentCookieString,
   hasConsent,
   parseConsent,
@@ -70,17 +68,6 @@ describe("consent record", () => {
     expect(document.cookie).not.toContain("oah_theme");
     expect(document.cookie).toContain("oah_org="); // required: untouched
     expect(seen).toHaveBeenCalledTimes(1);
-  });
-
-  it("every cookie we set is listed with a category, purpose and duration", () => {
-    for (const c of COOKIES) {
-      expect(c.purpose.length).toBeGreaterThan(10);
-      expect(c.duration.length).toBeGreaterThan(2);
-    }
-    expect(PREFERENCE_COOKIES).toEqual(["oah_theme"]);
-    expect(COOKIES.filter((c) => c.category === "necessary").map((c) => c.name)).toContain(
-      "oah_org",
-    );
   });
 });
 

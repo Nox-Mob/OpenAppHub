@@ -1,6 +1,6 @@
 # Release checklist
 
-Releases are a two-step process. `src/lib/release.test.ts` enforces the items a machine can check.
+Releases are a two-step process. `src/lib/version.test.ts` checks the app version matches `package.json`; the rest is checked by hand.
 
 ## Step 1: prepare (no version bump yet)
 

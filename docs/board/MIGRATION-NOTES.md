@@ -255,7 +255,7 @@ Core only. Hosted: Board's Settings → Transfer ownership links to the hub. Sel
 
 ## 3. Every place the code calls Supabase
 
-Nearly all calls are in one file (the data-layer rule in `AGENTS.md`, `src/data/data-layer.test.ts`).
+Nearly all calls are in one file (the data-layer rule in `AGENTS.md`).
 
 | File                                                | What                                                                                                                            | Changes in          |
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------- |

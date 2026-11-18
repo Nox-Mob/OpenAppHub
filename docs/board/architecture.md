@@ -38,7 +38,7 @@ Status labels used below: **Implemented and tested**, **Implemented, partly veri
 - **Database guards** enforce organization isolation, permissions, parent-link consistency, audit history, official-record locks and atomic live voting. Client-side checks improve the experience but are not the security boundary.
 - **Document generation** uses `pdf-lib` for PDFs and `fflate` for ZIP archives in the browser. This avoids Node-only document processing in the deployed worker runtime.
 
-`src/data/data-layer.test.ts` rejects direct database-client imports in screens and shared helpers. The generated sign-in gate in `src/routes/_authenticated/route.tsx` is the explicit exception. This check is an import-boundary check, not a full analysis of every possible storage call.
+Screens and shared helpers don't import the database client directly; they go through `db` in `src/data`. The generated sign-in gate in `src/routes/_authenticated/route.tsx` is the explicit exception. This is a rule kept in code review (the test that scanned for it was removed with the test cleanup of 2026-11-18).
 
 ## Status by area
 

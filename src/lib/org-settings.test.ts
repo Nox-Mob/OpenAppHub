@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  CURRENCIES,
-  confirmTextFor,
-  confirmationMatches,
-  looksLikeEmail,
-  timeZones,
-} from "./org-settings";
+import { confirmTextFor, confirmationMatches, looksLikeEmail, timeZones } from "./org-settings";
 
 describe("transfer confirmation", () => {
   it("uses the name, or the email when there is none", () => {
@@ -30,10 +24,6 @@ describe("options", () => {
     expect(zones).toContain("America/Toronto");
     expect(zones).toContain("Etc/GMT+5");
     expect(new Set(zones).size).toBe(zones.length);
-  });
-  it("has unique 3-letter currencies", () => {
-    expect(CURRENCIES.every((c) => /^[A-Z]{3}$/.test(c.code))).toBe(true);
-    expect(new Set(CURRENCIES.map((c) => c.code)).size).toBe(CURRENCIES.length);
   });
   it("checks email shape", () => {
     expect(looksLikeEmail(" billing@riverside.org ")).toBe(true);

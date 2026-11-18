@@ -187,3 +187,21 @@ a dated allow-list (picomatch has no fix yet), self-hosted email Reply-To can't 
 only link to the suite's own sites, and the hub's invitation and Stripe links come from its
 configured address. Details in
 [`security-review.md`](security-review.md#round-8-thinking-like-an-attacker-2026-11-18).
+
+## 17. Test cleanup (2026-11-18)
+
+Owner request: remove tests that only check something is (or isn't) present, can't fail, repeat
+another test, or have been replaced. Kept: database tests (they apply every migration and check the
+rules, including what an outsider can't do), UI tests, and tests that run real code with inputs.
+
+Removed (63 tests, 5 whole files; the rest of each file kept):
+
+| Repository     | What went                                                                                                                                                                                                                                                                                            | Why                                                                                                        |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| OpenAppHub     | `pricing.test.ts`; help-link constants; currency list; cookie, logo and About-list completeness; "has no window here"                                                                                                                                                                                | Restated fixed lists or checked for absence; one tested the test runner, not our code                      |
+| OpenBoardApp   | The scan for screens importing the database client (and its CI step); the permissions snapshot; the standard-agenda list; the e2e "no demo button" check                                                                                                                                             | A source scan for absence; a snapshot already covered by the `can()` tests; a fixed list; an absence check |
+| OpenLedgerApp  | `direct-writes.test.ts` and `architecture.test.ts` (source scans, and their CI step); `release.test.ts`; the "every server function is wrapped" scan; the version format and changelog checks; the permissions and terminology snapshots; the account-catalog data checks; the e2e "no AI PDF" check | Source and document scans; snapshots covered by behavior tests; fixed data; an absence check               |
+| OpenCharterApp | `legal.test.ts`; the starter-field flags; the email-settings path; the term-length and test-gateway lists                                                                                                                                                                                            | Restated fixed text and lists                                                                              |
+
+The architecture rules those scans enforced (screens use `db`; server functions don't write tables
+directly) are now kept in code review. The docs and `AGENTS.md` files say so.

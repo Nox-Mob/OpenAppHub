@@ -22,10 +22,6 @@ const urls = {
 };
 
 describe("shared UI renders under SSR", () => {
-  it("has no window here", () => {
-    expect(typeof window).toBe("undefined");
-  });
-
   it("AppShell", () => {
     const html = renderToString(
       <AppShell

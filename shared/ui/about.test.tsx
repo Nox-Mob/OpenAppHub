@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { AboutLicenses, filterLibraries, LIBRARIES, licenseTextsUrl, type Library } from "./About";
+import { AboutLicenses, filterLibraries, licenseTextsUrl, type Library } from "./About";
 
 const libs: Library[] = [
   { name: "react", license: "MIT" },
@@ -15,19 +15,6 @@ describe("filterLibraries", () => {
     expect(filterLibraries(libs, "react").map((l) => l.name)).toEqual(["react", "lucide-react"]);
     expect(filterLibraries(libs, "react isc").map((l) => l.name)).toEqual(["lucide-react"]);
     expect(filterLibraries(libs, "apache").map((l) => l.name)).toEqual(["serde"]);
-  });
-});
-
-describe("the suite list", () => {
-  it("has names and licenses only, no versions or links", () => {
-    expect(LIBRARIES.length).toBeGreaterThan(100);
-    for (const l of LIBRARIES) expect(Object.keys(l).sort()).toEqual(["license", "name"]);
-  });
-  it("is the web suite's npm libraries, without the desktop edition's Rust ones", () => {
-    const names = new Set(LIBRARIES.map((l) => l.name));
-    expect(names.has("react")).toBe(true);
-    expect(names.has("tauri-utils")).toBe(false);
-    expect(names.has("windows-sys")).toBe(false);
   });
 });
 
